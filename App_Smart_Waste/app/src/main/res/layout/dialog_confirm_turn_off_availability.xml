@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded"
+    android:elevation="8dp"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Red Warning Triangle Icon in Soft Red Circle -->
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_circle_notif_red">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:contentDescription="Cảnh báo"
+            android:src="@drawable/ic_warning_triangle"
+            app:tint="#DC2626" />
+    </FrameLayout>
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvDialogConfirmTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Tạm dừng nhận việc?"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Dialog Body Text -->
+    <TextView
+        android:id="@+id/tvDialogConfirmMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:lineSpacingExtra="3dp"
+        android:text="Khi tắt trạng thái làm việc, bạn sẽ không nhận được nhiệm vụ tự chọn mới.\n\nBạn vẫn có thể nhận nhiệm vụ từ Admin điều phối."
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="13.5sp" />
+
+    <!-- Action Buttons Row: [ Hủy ]  [ Tắt nhận việc ] -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelTurnOff"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_secondary_gray"
+            android:text="Hủy"
+            android:textAllCaps="false"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+
+        <Button
+            android:id="@+id/btnConfirmTurnOff"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_btn_danger_red"
+            android:text="Tắt nhận việc"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+
+</LinearLayout>

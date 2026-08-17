@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_role_badge_pill"
+        android:backgroundTint="#CBD5E1" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Báo sự cố / Bỏ qua điểm gom"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Hệ thống sẽ gửi sự cố tới Admin và chuyển sang điểm thu gom tiếp theo"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="12.5sp" />
+
+    <RadioGroup
+        android:id="@+id/rgSkipReason"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp">
+
+        <RadioButton
+            android:id="@+id/rbSkipLocked"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:paddingVertical="8dp"
+            android:text="Thùng rác bị khóa xích / Không mở được"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/rbSkipBroken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="8dp"
+            android:text="Hỏng nắp thùng / Hỏng kết cấu cơ học"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/rbSkipRoadBlocked"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="8dp"
+            android:text="Đường bị rào chắn / Thi công công trình"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/rbSkipCannotAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="8dp"
+            android:text="Không thể tiếp cận vị trí đặt thùng"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelSkip"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_secondary_gray"
+            android:text="Hủy"
+            android:textAllCaps="false"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+
+        <Button
+            android:id="@+id/btnConfirmSkip"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1.4"
+            android:background="@drawable/bg_btn_reject_outline"
+            android:text="Gửi &amp; Bỏ qua điểm"
+            android:textAllCaps="false"
+            android:textColor="#E53935"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+</LinearLayout>

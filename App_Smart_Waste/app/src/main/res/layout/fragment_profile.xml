@@ -1,0 +1,790 @@
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/profileScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_bg"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:id="@+id/profileRootLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="@dimen/screen_bottom_padding">
+
+        <!-- 1. Shared Unified AppHeader (Scrolls naturally with page) -->
+        <com.example.app_smart_waste.ui.common.AppHeaderView
+            android:id="@+id/appHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/screen_horizontal_padding">
+
+            <!-- 2. Hero Profile Card -->
+            <LinearLayout
+                android:id="@+id/cardHeroProfile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_profile"
+            android:clickable="true"
+            android:elevation="1dp"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="18dp">
+
+            <!-- Avatar 96dp with Camera Badge -->
+            <FrameLayout
+                android:layout_width="96dp"
+                android:layout_height="96dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/imgProfileAvatar"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:background="@drawable/bg_circle_work_info"
+                    android:contentDescription="Ảnh đại diện"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/img_avatar_worker"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Circle" />
+
+                <ImageView
+                    android:id="@+id/btnChangeAvatar"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="bottom|end"
+                    android:background="@drawable/bg_camera_badge_circle"
+                    android:clickable="true"
+                    android:contentDescription="Đổi ảnh đại diện"
+                    android:elevation="2dp"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_photo_camera_green" />
+            </FrameLayout>
+
+            <!-- User info: Name, Role Badge, Staff ID (NO PHONE NUMBER) -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvProfileName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Nguyễn Văn A"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_role_badge_pill"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp">
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:contentDescription="Xác thực"
+                        android:src="@drawable/ic_check_circle_badge" />
+
+                    <TextView
+                        android:id="@+id/tvProfileBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="Nhân viên thu gom"
+                        android:textColor="@color/profile_green_primary"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvStaffCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Mã nhân viên: NV-1024"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="14.5sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="Mở thông tin cá nhân"
+                android:src="@drawable/ic_chevron_right_gray" />
+        </LinearLayout>
+
+        <!-- 3. Work Information Card (2 Equal Columns with Divider) -->
+        <LinearLayout
+            android:id="@+id/cardWorkInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_profile"
+            android:elevation="1dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="18dp"
+            android:weightSum="2">
+
+            <!-- Column 1: Xe đang phụ trách -->
+            <LinearLayout
+                android:id="@+id/cardVehicleInfo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <FrameLayout
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_circle_work_info">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Xe rác"
+                        android:src="@drawable/ic_truck_green" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Xe đang phụ trách"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvVehiclePlateProfile"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="51C-234.56"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvVehicleTypeProfile"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Xe ép rác 8m³"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Vertical Divider between 2 columns -->
+            <View
+                android:layout_width="1dp"
+                android:layout_height="52dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@color/profile_divider" />
+
+            <!-- Column 2: Ca làm việc -->
+            <LinearLayout
+                android:id="@+id/cardShiftInfo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp">
+
+                <FrameLayout
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_circle_work_info">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Ca làm"
+                        android:src="@drawable/ic_calendar_green" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ca làm việc"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvShiftTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Ca sáng"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvShiftTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="06:00 - 14:00"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 4. Work Statistics Card -->
+        <LinearLayout
+            android:id="@+id/cardStatsSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_profile"
+            android:elevation="1dp"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <!-- Section Header: Title + Filter -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Thống kê công việc"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/tvStatsFilter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="4dp">
+
+                    <TextView
+                        android:id="@+id/tvStatsFilterLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="7 ngày qua"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="14sp" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="2dp"
+                        android:contentDescription="Lọc khoảng thời gian"
+                        android:src="@drawable/ic_arrow_down_filter" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 4 Equal Stat Columns with Vertical Dividers -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:weightSum="4">
+
+                <!-- Stat 1: Nhiệm vụ hoàn thành (Blue) -->
+                <LinearLayout
+                    android:id="@+id/statColCompleted"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_stat_circle_blue">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Nhiệm vụ"
+                            android:src="@drawable/ic_stat_clipboard_blue" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvStatDoneCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="12"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:gravity="center"
+                        android:text="Nhiệm vụ\nđã hoàn thành"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Divider 1 -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="62dp"
+                    android:background="@color/profile_divider" />
+
+                <!-- Stat 2: Rác đã thu gom (Green) -->
+                <LinearLayout
+                    android:id="@+id/statColWaste"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_stat_circle_green">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Rác"
+                            android:src="@drawable/ic_stat_trash_green" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvStatWasteTons"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="24.6 tấn"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:gravity="center"
+                        android:text="Rác đã\nthu gom"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Divider 2 -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="62dp"
+                    android:background="@color/profile_divider" />
+
+                <!-- Stat 3: Quãng đường di chuyển (Amber/Yellow) -->
+                <LinearLayout
+                    android:id="@+id/statColDistance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_stat_circle_yellow">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Quãng đường"
+                            android:src="@drawable/ic_stat_route_amber" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvStatDistanceKm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="156 km"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:gravity="center"
+                        android:text="Quãng đường\ndi chuyển"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Divider 3 -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="62dp"
+                    android:background="@color/profile_divider" />
+
+                <!-- Stat 4: Thời gian làm việc (Purple) -->
+                <LinearLayout
+                    android:id="@+id/statColHours"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_stat_circle_purple">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Thời gian"
+                            android:src="@drawable/ic_stat_clock_purple" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvStatWorkHours"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="38.5 giờ"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:gravity="center"
+                        android:text="Thời gian\nlàm việc"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Bottom CTA: Xem báo cáo chi tiết -->
+            <LinearLayout
+                android:id="@+id/btnViewDetailedReport"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_cta_report_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="Biểu đồ"
+                    android:src="@drawable/ic_chart_bar_green" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:text="Xem báo cáo chi tiết"
+                    android:textColor="@color/profile_cta_text"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="Mở báo cáo"
+                    android:src="@drawable/ic_chevron_right_green" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 5. Settings Menu Card (Full features: Profile, Incidents, GPS & Sound, Change Password, Help, About) -->
+        <LinearLayout
+            android:id="@+id/cardSettingsMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_profile"
+            android:elevation="1dp"
+            android:orientation="vertical">
+
+            <!-- Item 1: Thông tin cá nhân -->
+            <LinearLayout
+                android:id="@+id/menuPersonalInfo"
+                android:layout_width="match_parent"
+                android:layout_height="66dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="18dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Thông tin cá nhân"
+                    android:src="@drawable/ic_menu_person" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Thông tin cá nhân"
+                    android:textColor="@color/profile_menu_text"
+                    android:textSize="15.5sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="Chi tiết"
+                    android:src="@drawable/ic_chevron_right_gray" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginHorizontal="18dp"
+                android:background="@color/profile_menu_divider" />
+
+            <!-- Item 2: Lịch sử báo cáo sự cố (incident_reports) -->
+            <LinearLayout
+                android:id="@+id/menuIncidentHistory"
+                android:layout_width="match_parent"
+                android:layout_height="66dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="18dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Lịch sử sự cố"
+                    android:src="@drawable/ic_warning_shield"
+                    app:tint="@color/profile_menu_icon" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Lịch sử báo cáo sự cố"
+                    android:textColor="@color/profile_menu_text"
+                    android:textSize="15.5sp" />
+
+                <TextView
+                    android:id="@+id/tvIncidentsBadgeCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_role_badge_pill"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="3 sự cố"
+                    android:textColor="@color/profile_green_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="Chi tiết"
+                    android:src="@drawable/ic_chevron_right_gray" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginHorizontal="18dp"
+                android:background="@color/profile_menu_divider" />
+
+            <!-- Item 3: Cài đặt tần suất GPS & Âm báo -->
+            <LinearLayout
+                android:id="@+id/menuGpsSettings"
+                android:layout_width="match_parent"
+                android:layout_height="66dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="18dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Cài đặt GPS &amp; Âm báo"
+                    android:src="@drawable/ic_gps_satellite"
+                    app:tint="@color/profile_menu_icon" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Cài đặt tần suất GPS &amp; Âm báo"
+                    android:textColor="@color/profile_menu_text"
+                    android:textSize="15.5sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="Chi tiết"
+                    android:src="@drawable/ic_chevron_right_gray" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginHorizontal="18dp"
+                android:background="@color/profile_menu_divider" />
+
+            <!-- Item 4: Đổi mật khẩu -->
+            <LinearLayout
+                android:id="@+id/menuChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="66dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="18dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Đổi mật khẩu"
+                    android:src="@drawable/ic_menu_lock" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Đổi mật khẩu"
+                    android:textColor="@color/profile_menu_text"
+                    android:textSize="15.5sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="Chi tiết"
+                    android:src="@drawable/ic_chevron_right_gray" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 6. Logout Button (Separate Card Button) -->
+        <LinearLayout
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_btn_logout_card"
+            android:clickable="true"
+            android:elevation="1dp"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Đăng xuất"
+                android:src="@drawable/ic_logout_red" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="Đăng xuất"
+                android:textColor="@color/profile_danger"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>
+</androidx.core.widget.NestedScrollView>

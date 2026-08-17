@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="10dp">
+
+        <!-- Bin ID (e.g. BIN-023) -->
+        <TextView
+            android:id="@+id/tvRowBinId"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:text="BIN-023"
+            android:textColor="@color/app_text_primary"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
+
+        <!-- Fill Percent Badge (e.g. 92%) -->
+        <TextView
+            android:id="@+id/tvRowBinFill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_bin_percent_red"
+            android:gravity="center"
+            android:minWidth="38dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2.5dp"
+            android:text="92%"
+            android:textColor="#EF4444"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <!-- Address Location (e.g. Đường Nguyễn Văn Linh, P. Tân Phong) -->
+        <TextView
+            android:id="@+id/tvRowBinAddress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Đường Nguyễn Văn Linh, P. Tân Phong"
+            android:textColor="@color/app_text_secondary"
+            android:textSize="12.5sp" />
+    </LinearLayout>
+
+    <!-- Subtle divider -->
+    <View
+        android:id="@+id/rowDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F1F5F9" />
+</LinearLayout>

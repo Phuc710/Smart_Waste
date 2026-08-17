@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="26dp"
+    android:height="26dp"
+    android:viewportWidth="26"
+    android:viewportHeight="26">
+    <!-- Outer soft halo ring -->
+    <path
+        android:fillColor="#FEF3C7"
+        android:pathData="M13,0A13,13 0 1,0 13,26A13,13 0 1,0 13,0z"/>
+    <!-- Inner solid dot -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M13,7A6,6 0 1,0 13,19A6,6 0 1,0 13,7z"/>
+</vector>

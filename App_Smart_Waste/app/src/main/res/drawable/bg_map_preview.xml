@@ -1,0 +1,79 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="150dp"
+    android:height="150dp"
+    android:viewportWidth="150"
+    android:viewportHeight="150">
+
+    <!-- Map Background -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M0,0h150v150H0z"/>
+
+    <!-- Street lines -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:fillColor="#00000000"
+        android:pathData="M0,45h150M0,105h150M45,0v150M110,0v150"/>
+
+    <path
+        android:strokeColor="#E2E8F0"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M0,45h150M0,105h150M45,0v150M110,0v150M0,75h150M75,0v150"/>
+
+    <!-- Green Route Polyline -->
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M25,35 L55,35 L68,60 L85,60 L60,100 L95,120 L125,120"/>
+
+    <!-- Blue Current Position Dot + Halo -->
+    <path
+        android:fillColor="#BFDBFE"
+        android:pathData="M25,35m-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0"/>
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M25,35m-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0"/>
+
+    <!-- Waypoint 1 Badge (Circle "2") -->
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="1.5"
+        android:fillColor="#FFFFFF"
+        android:pathData="M55,35m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0"/>
+    <path
+        android:fillColor="#16A34A"
+        android:pathData="M53.5,33.5h2.5v0.8h-1.5l1.5,1.7v0.8h-3v-0.8h1.8l-1.3,-1.5v-1z"/>
+
+    <!-- Waypoint 2 Badge (Circle "3") -->
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="1.5"
+        android:fillColor="#FFFFFF"
+        android:pathData="M68,60m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0"/>
+    <path
+        android:fillColor="#16A34A"
+        android:pathData="M66.5,58.5h2.5v1h-1.2v0.6h1.2v1.5h-2.5v-0.8h1.6v-0.3h-1.2v-0.6h1.2v-0.6h-1.6z"/>
+
+    <!-- Waypoint 3 Badge (Circle "2") -->
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="1.5"
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,100m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0"/>
+    <path
+        android:fillColor="#16A34A"
+        android:pathData="M58.5,98.5h2.5v0.8h-1.5l1.5,1.7v0.8h-3v-0.8h1.8l-1.3,-1.5v-1z"/>
+
+    <!-- Destination Teal Halo + Pin -->
+    <path
+        android:fillColor="#CCFBF1"
+        android:pathData="M125,120m-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0"/>
+    <path
+        android:fillColor="#0D9488"
+        android:pathData="M125,120m-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0"/>
+</vector>

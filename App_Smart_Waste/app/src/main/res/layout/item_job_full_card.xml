@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:background="@drawable/bg_card_clean"
+    android:elevation="1dp"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- 1. Top Row: Status Badge & Timestamp -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvCardStatusBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_tag_moi_giao"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:text="Mới được giao"
+            android:textColor="#EF4444"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvCardTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hôm nay, 07:30"
+            android:textColor="@color/app_text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 2. Main Title & Job Number + Chevron -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Route Name (e.g. TUYEN-Q7-01) -->
+        <TextView
+            android:id="@+id/tvCardRouteTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="TUYEN-Q7-01"
+            android:textColor="@color/app_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Job ID / Subtitle + Chevron -->
+        <LinearLayout
+            android:id="@+id/layoutJobDetailChevron"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvCardJobNumber"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mã nhiệm vụ: J250518-001"
+                android:textColor="@color/app_text_secondary"
+                android:textSize="11.5sp" />
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="Detail"
+                android:src="@drawable/ic_chevron_right_gray"
+                app:tint="@color/app_text_primary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 3. Location Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:contentDescription="Location"
+            android:src="@drawable/ic_location_pin"
+            app:tint="@color/app_text_secondary" />
+
+        <TextView
+            android:id="@+id/tvCardLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="Quận 7, TP. Hồ Chí Minh"
+            android:textColor="@color/app_text_secondary"
+            android:textSize="12.5sp" />
+    </LinearLayout>
+
+    <!-- 4. Summary Metrics Strip (3 Columns) -->
+    <LinearLayout
+        android:id="@+id/layoutMetricsStrip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_metrics_strip"
+        android:baselineAligned="false"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="12dp">
+
+        <!-- Column 1: Bins & Progress -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_circle_work_info">
+
+                <ImageView
+                    android:id="@+id/ivBinIcon"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="Bins"
+                    android:src="@drawable/ic_stat_trash_green" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvMetricBinsTotal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="4 thùng rác"
+                    android:textColor="@color/app_text_primary"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMetricBinsCollected"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/4 đã gom"
+                    android:textColor="@color/app_text_secondary"
+                    android:textSize="11sp" />
+
+                <!-- In-Progress Progress Bar (Visible if in progress) -->
+                <LinearLayout
+                    android:id="@+id/layoutProgressPercentBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <ProgressBar
+                        android:id="@+id/pbJobCardProgress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="0dp"
+                        android:layout_height="5dp"
+                        android:layout_weight="1"
+                        android:max="100"
+                        android:progress="40"
+                        android:progressDrawable="@drawable/bg_fuel_progress" />
+
+                    <TextView
+                        android:id="@+id/tvJobCardProgressPercent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="40%"
+                        android:textColor="@color/app_text_primary"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Divider 1 -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="32dp"
+            android:layout_marginHorizontal="6dp"
+            android:background="#E2E8F0" />
+
+        <!-- Column 2: Distance & Duration -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="Distance"
+                android:src="@drawable/ic_route_optimize"
+                app:tint="@color/app_text_primary" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvMetricDistance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="6.2 km"
+                    android:textColor="@color/app_text_primary"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMetricDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="~ 18 phút"
+                    android:textColor="@color/app_text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Divider 2 -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="32dp"
+            android:layout_marginHorizontal="6dp"
+            android:background="#E2E8F0" />
+
+        <!-- Column 3: Priority -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/ivPriorityIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="Priority"
+                android:src="@drawable/ic_chart_priority_red" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvMetricPriorityTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ưu tiên cao"
+                    android:textColor="#EF4444"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMetricPrioritySubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="> 85% đầy"
+                    android:textColor="@color/app_text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 5. Bin Items List Container (Rows) -->
+    <LinearLayout
+        android:id="@+id/llCardBinsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical" />
+
+    <!-- 6. Card Action Buttons (Accept, Reject, Start, Continue) -->
+    <LinearLayout
+        android:id="@+id/layoutCardActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <!-- Reject Button (Shown in ASSIGNED) -->
+        <Button
+            android:id="@+id/btnCardReject"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_reject_outline"
+            android:text="✕ Từ chối"
+            android:textAllCaps="false"
+            android:textColor="#EF4444"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+
+        <!-- Accept / Primary Action Button -->
+        <Button
+            android:id="@+id/btnCardPrimaryAction"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1.3"
+            android:background="@drawable/bg_btn_accept_green"
+            android:text="✓ Nhận nhiệm vụ"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+
+</LinearLayout>

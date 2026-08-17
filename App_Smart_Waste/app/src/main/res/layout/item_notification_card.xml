@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/notifCardRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_notif_card_clean"
+    android:clickable="true"
+    android:elevation="0.5dp"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <!-- Unread Red Dot on the left -->
+    <View
+        android:id="@+id/viewUnreadDot"
+        android:layout_width="7dp"
+        android:layout_height="7dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_circle_notif_red"
+        android:backgroundTint="#EF4444" />
+
+    <!-- Icon Circle (Red, Green, Blue, Yellow, Purple) -->
+    <FrameLayout
+        android:id="@+id/flNotifIconContainer"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_circle_notif_red">
+
+        <ImageView
+            android:id="@+id/ivNotifIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:contentDescription="Icon"
+            android:src="@drawable/ic_trash_bin_red" />
+    </FrameLayout>
+
+    <!-- Center details -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvNotifTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Thùng BIN-023 vượt mức 85% (87%)"
+            android:textColor="@color/app_text_primary"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+
+        <!-- Subtitle / Location -->
+        <TextView
+            android:id="@+id/tvNotifSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Đường Nguyễn Văn Linh, Quận 7"
+            android:textColor="@color/app_text_secondary"
+            android:textSize="12.5sp" />
+
+        <!-- Category Tag Badge (Pill) -->
+        <TextView
+            android:id="@+id/tvNotifCategoryBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_tag_red"
+            android:paddingHorizontal="7dp"
+            android:paddingVertical="2dp"
+            android:text="Cảnh báo"
+            android:textColor="#EF4444"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Right: Time + Chevron -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="end|center_vertical"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvNotifTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="08:32"
+            android:textColor="@color/app_text_tertiary"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginTop="8dp"
+            android:contentDescription="Chevron"
+            android:src="@drawable/ic_chevron_right_gray"
+            app:tint="@color/app_text_tertiary" />
+    </LinearLayout>
+
+</LinearLayout>

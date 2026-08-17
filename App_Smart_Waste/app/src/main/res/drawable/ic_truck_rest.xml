@@ -1,0 +1,46 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="100dp"
+    android:viewportWidth="120"
+    android:viewportHeight="100">
+    <!-- Background Cloud/Glow -->
+    <path
+        android:fillColor="#EAF5EA"
+        android:pathData="M20 70a25 25 0 0 1 50-10 20 20 0 0 1 35 10z"/>
+    <!-- Truck Cargo Body (Green) -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M15 35h55v35H15z"/>
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M15 35l10-10h45v10z"/>
+    <!-- Eco Leaf / Trash symbol on Cargo -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M38 52c0-8 8-10 8-10s0 8-8 10zM42 45l4 4"/>
+    <!-- Truck Cabin (White/Light Gray) -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M70 42h22l10 12v16H70z"/>
+    <!-- Cabin Window (Blue) -->
+    <path
+        android:fillColor="#93C5FD"
+        android:pathData="M74 46h16l6 8H74z"/>
+    <!-- Wheels -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M28 72a9 9 0 1 0 0-0.1zM85 72a9 9 0 1 0 0-0.1z"/>
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M28 72a4 4 0 1 0 0-0.1zM85 72a4 4 0 1 0 0-0.1z"/>
+    <!-- Ground line -->
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M8 82h104"/>
+</vector>

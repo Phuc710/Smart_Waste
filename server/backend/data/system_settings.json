@@ -1,0 +1,13 @@
+{
+  "fill_threshold_warning": 70,
+  "fill_threshold_critical": 85,
+  "bin_offline_timeout_seconds": 15,
+  "employee_offline_timeout_seconds": 120,
+  "assign_timeout_minutes": 5,
+  "paused_timeout_minutes": 30,
+  "offline_timeout_seconds": 300,
+  "gps_throttle_min_distance": 10,
+  "auto_assign": true,
+  "map_provider": "leaflet",
+  "routes_provider": "osrm"
+}

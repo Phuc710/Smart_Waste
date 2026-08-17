@@ -1,0 +1,37 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/
+.kotlin/
+.agents/
+
+# PlatformIO / C++
+.pio
+*/.pio
+
+# Node.js / Web
+**/node_modules/
+**/dist/
+.env
+*.env
+**/.env
+
+# Android & Gradle
+.gradle/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+**/local.properties
+*.jks
+*.keystore
+*.p12
+secrets.properties
+**/secrets.properties
+google-services.json
+**/google-services.json
+
+

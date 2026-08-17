@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissions for Network, Telemetry & GPS -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.App_Smart_Waste"
+        android:usesCleartextTraffic="true">
+
+        <!-- 0. Splash Activity (Launcher) -->
+        <activity
+            android:name=".ui.splash.SplashActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.App_Smart_Waste">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 1. Login Activity -->
+        <activity
+            android:name=".ui.auth.LoginActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 2. Main Activity (4-Tab Bottom Navigation) -->
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- 3. Route Detail Activity -->
+        <activity
+            android:name=".ui.route.RouteDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- 4. Bin Detail Activity -->
+        <activity
+            android:name=".ui.bin.BinDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- 5. Incident Report Activity -->
+        <activity
+            android:name=".ui.incident.IncidentReportActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 6. History Activity -->
+        <activity
+            android:name=".ui.history.HistoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- 7. Job History Detail Activity -->
+        <activity
+            android:name=".ui.history.JobHistoryDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- 8. Job Execution Activity (Field Execution) -->
+        <activity
+            android:name=".ui.jobs.JobExecutionActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- 9. Job Detail Preview Activity -->
+        <activity
+            android:name=".ui.jobs.JobDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+    </application>
+
+</manifest>

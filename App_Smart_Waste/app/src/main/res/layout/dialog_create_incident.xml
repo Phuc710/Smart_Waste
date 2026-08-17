@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_role_badge_pill"
+        android:backgroundTint="#CBD5E1" />
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Báo Cáo Sự Cố Mới"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Gửi thông báo khẩn cấp đến Trung tâm Điều phối"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnCloseCreateIncident"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Đóng"
+            android:focusable="true"
+            android:padding="6dp"
+            android:src="@drawable/ic_close_gray" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="420dp"
+        android:layout_marginTop="14dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 1. Chọn thùng rác gặp sự cố -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1. Chọn thùng rác gặp sự cố"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spTargetBin"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_dialog_item_field"
+                android:paddingHorizontal="12dp" />
+
+            <!-- 2. Chọn loại sự cố (Reason) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="2. Loại sự cố phát sinh (Reason)"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <RadioGroup
+                android:id="@+id/rgIncidentReason"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_dialog_item_field"
+                android:padding="8dp">
+
+                <RadioButton
+                    android:id="@+id/rbLidStuck"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/profile_green_primary"
+                    android:checked="true"
+                    android:text="🔧 Nắp kẹt không mở / không đóng được"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp" />
+
+                <RadioButton
+                    android:id="@+id/rbHingeBroken"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/profile_green_primary"
+                    android:text="🔨 Gãy bản lề / Hỏng nắp thùng"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp" />
+
+                <RadioButton
+                    android:id="@+id/rbSensorFault"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/profile_green_primary"
+                    android:text="📡 Hỏng cảm biến khoảng cách / Báo sai % rác"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp" />
+
+                <RadioButton
+                    android:id="@+id/rbOverflow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/profile_green_primary"
+                    android:text="⚠️ Rác tràn đầy miệng thùng"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp" />
+
+                <RadioButton
+                    android:id="@+id/rbOtherReason"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/profile_green_primary"
+                    android:text="⚡ Sự cố khác..."
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp" />
+            </RadioGroup>
+
+            <!-- 3. Mô tả chi tiết (Description) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="3. Mô tả chi tiết (Tối đa 500 ký tự)"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvDescCharCounter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/500"
+                    android:textColor="@color/profile_text_tertiary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilIncidentDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                app:boxBackgroundColor="#F8FAFC"
+                app:boxCornerRadiusBottomEnd="10dp"
+                app:boxCornerRadiusBottomStart="10dp"
+                app:boxCornerRadiusTopEnd="10dp"
+                app:boxCornerRadiusTopStart="10dp"
+                app:boxStrokeColor="@color/profile_green_primary"
+                app:hintEnabled="false">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etIncidentDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="90dp"
+                    android:gravity="top|start"
+                    android:hint="Nhập mô tả cụ thể về hiện trạng để kỹ thuật chuẩn bị linh kiện thay thế..."
+                    android:inputType="textMultiLine"
+                    android:maxLength="500"
+                    android:padding="12dp"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- 4. Chụp ảnh hiện trường (Photo) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="4. Ảnh chụp minh chứng hiện trường"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_dialog_item_field"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="10dp">
+
+                <ImageView
+                    android:id="@+id/ivIncidentPhotoPreview"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="#E2E8F0"
+                    android:contentDescription="Ảnh minh chứng"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_image_photo" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvPhotoStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chưa chụp ảnh (Tùy chọn)"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Tự động nén ảnh &lt; 5MB"
+                        android:textColor="@color/profile_text_tertiary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnCapturePhoto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_btn_secondary_gray"
+                    android:text="📷 Chụp ảnh"
+                    android:textAllCaps="false"
+                    android:textColor="@color/profile_green_primary"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Submit Emergency Incident Report Button -->
+    <Button
+        android:id="@+id/btnSubmitEmergencyIncident"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_btn_primary_green"
+        android:text="🚨 Gửi Báo Cáo Khẩn Cấp"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="15.5sp"
+        android:textStyle="bold"
+        app:backgroundTint="@null" />
+
+</LinearLayout>

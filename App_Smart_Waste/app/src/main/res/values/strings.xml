@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SmartWaste</string>
+    <string name="title_home">Trang chủ</string>
+    <string name="title_jobs">Nhiệm vụ</string>
+    <string name="title_map">Bản đồ</string>
+    <string name="title_profile">Cá nhân</string>
+    <string name="login">Đăng nhập</string>
+    <string name="username">Tên đăng nhập</string>
+    <string name="password">Mật khẩu</string>
+    <string name="start_route">Bắt đầu tuyến</string>
+    <string name="complete_route">Hoàn thành tuyến</string>
+    <string name="collect_bin">Xác nhận đã thu gom</string>
+    <string name="report_incident">Báo sự cố</string>
+</resources>

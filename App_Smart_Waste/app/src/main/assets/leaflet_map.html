@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SmartWaste Mobile Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body, html, #map {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f8fafc;
+        }
+        .truck-pulse-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pulse-circle {
+            width: 32px;
+            height: 32px;
+            background: rgba(37, 99, 235, 0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse-ring 2s infinite ease-out;
+        }
+        .truck-dot {
+            width: 22px;
+            height: 22px;
+            background: #2563eb;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 11px;
+            color: #ffffff;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.7); opacity: 1; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .bin-pin-badge {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            color: white;
+            font-weight: 800;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([10.7769, 106.7009], 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        var truckMarker = null;
+        var routePolyline = null;
+        var binMarkers = [];
+
+        // Update Driver Truck Position
+        function setTruckLocation(lat, lng, heading) {
+            if (!truckMarker) {
+                var icon = L.divIcon({
+                    className: 'truck-pulse-icon',
+                    html: '<div class="pulse-circle"><div class="truck-dot">🚛</div></div>',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+                truckMarker = L.marker([lat, lng], { icon: icon }).addTo(map);
+            } else {
+                truckMarker.setLatLng([lat, lng]);
+            }
+        }
+
+        // Center on Truck
+        function centerOnTruck() {
+            if (truckMarker) {
+                map.setView(truckMarker.getLatLng(), 15, { animate: true });
+            }
+        }
+
+        // Render Bins along Route
+        function setBins(binsJson) {
+            binMarkers.forEach(function(m) { map.removeLayer(m); });
+            binMarkers = [];
+
+            try {
+                var bins = typeof binsJson === 'string' ? JSON.parse(binsJson) : binsJson;
+                var latLngs = [];
+                
+                if (truckMarker) {
+                    latLngs.push(truckMarker.getLatLng());
+                }
+
+                bins.forEach(function(b, idx) {
+                    var color = b.is_collected ? '#10b981' : (b.level >= 85 ? '#ef4444' : (b.level >= 70 ? '#f59e0b' : '#10b981'));
+                    var icon = L.divIcon({
+                        className: '',
+                        html: '<div class="bin-pin-badge" style="background-color:' + color + ';">' + (idx + 1) + '</div>',
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
+                    });
+
+                    var marker = L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
+                    marker.on('click', function() {
+                        if (window.AndroidBridge && window.AndroidBridge.onBinClicked) {
+                            window.AndroidBridge.onBinClicked(b.id);
+                        }
+                    });
+                    binMarkers.push(marker);
+                    latLngs.push([b.lat, b.lng]);
+                });
+
+                // Draw OSRM Blue Route Polyline
+                if (routePolyline) map.removeLayer(routePolyline);
+                if (latLngs.length >= 2) {
+                    routePolyline = L.polyline(latLngs, {
+                        color: '#2563eb',
+                        weight: 6,
+                        opacity: 0.9,
+                        lineJoin: 'round'
+                    }).addTo(map);
+                    map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        // Initialize default view
+        setTruckLocation(10.7769, 106.7009, 0);
+    </script>
+</body>
+</html>
