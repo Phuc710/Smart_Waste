@@ -124,8 +124,8 @@ class ProfileFragment : Fragment() {
             }
         }
 
-        // 3. Change Avatar Button
-        binding.btnChangeAvatar.setOnClickListener {
+        // 3. Change Avatar
+        binding.imgProfileAvatar.setOnClickListener {
             it.applyPressEffect {
                 Toast.makeText(requireContext(), "Tính năng cập nhật ảnh đại diện", Toast.LENGTH_SHORT).show()
             }

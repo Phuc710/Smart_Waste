@@ -139,19 +139,44 @@ class JobsFragment : Fragment() {
     }
 
     private fun showSettingsDialog() {
-        val items = arrayOf(
-            "Xe phụ trách: 51C-234.56 (8m³)",
-            "Bán kính nhận đơn: 5.0 km",
-            "Tự động điều hướng GPS",
-            "Đồng bộ ngoại tuyến"
-        )
-        AlertDialog.Builder(requireContext())
-            .setTitle("⚙️ Cài đặt ca & nhiệm vụ")
-            .setItems(items) { _, which ->
-                Toast.makeText(requireContext(), "Đã chọn: ${items[which]}", Toast.LENGTH_SHORT).show()
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
+        val view = layoutInflater.inflate(R.layout.dialog_system_settings, null)
+        dialog.setContentView(view)
+
+        val etBaseUrl = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etServerBaseUrl)
+        val switchOverload = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchOverloadAlert)
+        val switchGps = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchGpsAuto)
+        val tvCache = view.findViewById<TextView>(R.id.tvCacheSize)
+        val btnClear = view.findViewById<Button>(R.id.btnClearCache)
+
+        // Load configs
+        etBaseUrl?.setText(com.example.app_smart_waste.core.storage.AppConfig.getBaseUrl(requireContext()))
+        switchOverload?.isChecked = com.example.app_smart_waste.core.storage.AppConfig.isOverloadAlertEnabled(requireContext())
+        switchGps?.isChecked = com.example.app_smart_waste.core.storage.AppConfig.isAutoGpsEnabled(requireContext())
+
+        btnClear?.setOnClickListener {
+            tvCache?.text = "Đang sử dụng 0 KB (Đã dọn dẹp)"
+            Toast.makeText(requireContext(), "Đã giải phóng bộ nhớ đệm", Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<android.widget.ImageView>(R.id.btnCloseSystemSettings)?.setOnClickListener { dialog.dismiss() }
+        view.findViewById<Button>(R.id.btnSaveSystemSettings)?.setOnClickListener {
+            val newUrl = etBaseUrl?.text?.toString()?.trim()
+            if (!newUrl.isNullOrBlank()) {
+                com.example.app_smart_waste.core.storage.AppConfig.setBaseUrl(requireContext(), newUrl)
             }
-            .setNegativeButton("Đóng", null)
-            .show()
+            switchOverload?.let { sw ->
+                com.example.app_smart_waste.core.storage.AppConfig.setOverloadAlertEnabled(requireContext(), sw.isChecked)
+            }
+            switchGps?.let { sw ->
+                com.example.app_smart_waste.core.storage.AppConfig.setAutoGpsEnabled(requireContext(), sw.isChecked)
+            }
+
+            dialog.dismiss()
+            Toast.makeText(requireContext(), "✅ Đã lưu cài đặt & ca trực thành công!", Toast.LENGTH_SHORT).show()
+        }
+
+        dialog.show()
     }
 
     private fun setupTopTabs() {
@@ -395,28 +420,20 @@ class JobsFragment : Fragment() {
                         binding.tvHistoryTabCountBadge.text = historyList.size.toString()
                     }
                 }
-
-                launch {
-                    viewModel.historyFilter.collectLatest { filter ->
-                        filterAndSubmitHistory(viewModel.historyJobs.value, filter)
-                    }
-                }
-
-                // 6. Loading Indicator
-                launch {
-                    viewModel.isLoading.collectLatest { loading ->
-                        binding.jobsSwipeRefresh.isRefreshing = loading
+                            binding.tvAvailabilityDesc.text = "Gạt công tắc để bắt đầu ca và nhận nhiệm vụ mới."
+                        }
                     }
                 }
             }
         }
     }
 
-    private fun filterAndSubmitHistory(historyList: List<JobDisplayModel>, filter: String) {
+    private fun filterHistoryList(filter: String) {
+        val currentList = viewModel.historyJobs.value
         val filtered = when (filter) {
-            "COMPLETED" -> historyList.filter { it.statusType == "COMPLETED" }
-            "CANCELLED" -> historyList.filter { it.statusType == "CANCELLED" || it.statusType == "REJECTED" }
-            else -> historyList
+            "COMPLETED" -> currentList.filter { it.status == "COMPLETED" }
+            "ISSUES" -> currentList.filter { it.status == "INCIDENT" || it.status == "CANCELLED" }
+            else -> currentList
         }
         historyAdapter.submitList(filtered)
         if (filtered.isEmpty()) {
@@ -432,7 +449,6 @@ class JobsFragment : Fragment() {
         val views = listOf(
             binding.appHeader,
             binding.cardWorkAvailability,
-            binding.cardShift,
             binding.layoutJobsSegmentedControl,
             binding.layoutActiveJobsContainer
         )

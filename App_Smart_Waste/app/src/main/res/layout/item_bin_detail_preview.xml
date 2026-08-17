@@ -159,7 +159,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
-                android:text="🔓 Đang mở"
+                android:text="Đang mở"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -189,7 +189,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
-                android:text="⏱ 22:38:53"
+                android:text="22:38:53"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
