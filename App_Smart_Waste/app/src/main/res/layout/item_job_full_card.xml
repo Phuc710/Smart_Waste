@@ -319,17 +319,17 @@
         android:layout_marginTop="14dp"
         android:orientation="horizontal">
 
-        <!-- Reject Button (Shown in ASSIGNED) -->
+        <!-- Reject / Cancel Button (Shown in ASSIGNED) -->
         <Button
             android:id="@+id/btnCardReject"
             android:layout_width="0dp"
             android:layout_height="42dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_btn_reject_outline"
-            android:text="✕ Từ chối"
+            android:background="@drawable/bg_btn_danger_soft_pink"
+            android:text="Hủy"
             android:textAllCaps="false"
-            android:textColor="#EF4444"
+            android:textColor="#DC2626"
             android:textSize="13.5sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
@@ -342,7 +342,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1.3"
             android:background="@drawable/bg_btn_accept_green"
-            android:text="✓ Nhận nhiệm vụ"
+            android:text="Nhận nhiệm vụ"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="13.5sp"

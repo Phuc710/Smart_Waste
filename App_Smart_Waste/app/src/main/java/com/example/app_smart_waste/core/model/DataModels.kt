@@ -192,9 +192,47 @@ data class JobDisplayModel(
     val collectedBins: Int,
     val distanceKm: Double,
     val durationMinutes: Int,
+    val cancelReason: String? = null,
     val priorityText: String = "Ưu tiên cao",
     val prioritySubtext: String = "> 85% đầy",
     val isHighPriority: Boolean = true,
     val progressPercent: Int = 0,
     val binsList: List<JobBinDisplayItem> = emptyList()
+)
+
+// 9. Work Shift & Vehicle Info Models
+data class WorkShiftModel(
+    val id: String = "SHIFT_001",
+    val title: String = "Ca trực 8 tiếng",
+    val startTime: String = "08:15",
+    val endTime: String = "16:15",
+    val durationText: String = "08:00:00",
+    val routeName: String = "Quận 1 — Tuyến 04",
+    val totalBins: Int = 14,
+    val supervisor: String = "Nguyễn Văn A (0909 123 456)"
+)
+
+data class VehicleModel(
+    val plate: String = "51C-234.56",
+    val id: String = "XE-2345",
+    val type: String = "Xe ép rác chuyên dụng 8m³",
+    val capacity: String = "8.0 m³",
+    val weight: String = "5.5 Tấn",
+    val fuelLevel: Int = 78,
+    val isGpsConnected: Boolean = true
+)
+
+// 10. System Settings Model (Admin Config from Backend CSDL)
+data class SystemSettingsDto(
+    @SerializedName("assign_timeout_minutes") val assignTimeoutMinutes: Int? = 5,
+    @SerializedName("paused_timeout_minutes") val pausedTimeoutMinutes: Int? = 30,
+    @SerializedName("bin_offline_timeout_seconds") val binOfflineTimeoutSeconds: Int? = 15,
+    @SerializedName("fill_threshold_warning") val fillThresholdWarning: Int? = 70,
+    @SerializedName("fill_threshold_critical") val fillThresholdCritical: Int? = 85,
+    @SerializedName("auto_assign") val autoAssign: Boolean? = true
+)
+
+data class SystemSettingsResponse(
+    @SerializedName("ok") val ok: Boolean? = true,
+    @SerializedName("settings") val settings: SystemSettingsDto?
 )

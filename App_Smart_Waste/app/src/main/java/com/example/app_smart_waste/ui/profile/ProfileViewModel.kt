@@ -106,14 +106,18 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
             val roleDisplay = if (rawRole == "admin") "Quản trị viên" else "Nhân viên thu gom"
             val staffCode = if (!rawId.isNullOrBlank() && rawId.length >= 4) "NV-${rawId.takeLast(4).uppercase()}" else "NV-1024"
 
+            // Use data from dynamic models instead of hardcoded strings
+            val defaultShift = com.example.app_smart_waste.core.model.WorkShiftModel()
+            val defaultVehicle = com.example.app_smart_waste.core.model.VehicleModel()
+
             _userState.value = UserProfileData(
                 id = staffCode,
                 username = rawUsername,
                 fullName = displayName,
                 role = roleDisplay,
-                department = "Đội xe thu gom rác Quận 1 - Tuyến 04",
+                department = "Đội xe thu gom rác ${defaultShift.routeName}",
                 license = "Hạng C (Xe tải chuyên dụng > 3.5T)",
-                vehiclePlate = "51C-234.56",
+                vehiclePlate = defaultVehicle.plate,
                 isActive = storage.isActive()
             )
         }
@@ -179,7 +183,8 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
             }
 
             val activeJob = jobsRepo.getActiveJob().getOrNull()
-            val plate = activeJob?.employeeId?.let { "51C-234.56" } ?: "51C-234.56"
+            val defaultVehicle = com.example.app_smart_waste.core.model.VehicleModel()
+            val plate = activeJob?.employeeId?.let { defaultVehicle.plate } ?: defaultVehicle.plate
 
             _statsState.value = ProfileWorkStats(
                 completedTasks = completedCount,
@@ -187,7 +192,7 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
                 distanceKm = km,
                 workHours = hours,
                 vehiclePlate = plate,
-                vehicleType = "Xe ép rác 8m³",
+                vehicleType = defaultVehicle.type,
                 shiftName = "Ca sáng",
                 shiftTime = "06:00 - 14:00"
             )

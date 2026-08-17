@@ -63,7 +63,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="Admin điều phối"
+            android:text="Nguyễn Văn An"
             android:textColor="@color/profile_text_secondary"
             android:textSize="12sp" />
     </LinearLayout>
@@ -211,13 +211,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
-            android:text="⏱ Còn 04:35 để xác nhận"
+            android:text="Còn 04:35 để xác nhận"
             android:textColor="#D97706"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Action Buttons Row: [ Từ chối ] & [ Chấp nhận ] -->
+    <!-- Action Buttons Row: [ Hủy ] & [ Nhận nhiệm vụ ] -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -230,10 +230,10 @@
             android:layout_height="46dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="0.8"
-            android:background="@drawable/bg_btn_secondary_gray"
-            android:text="Từ chối"
+            android:background="@drawable/bg_btn_danger_soft_pink"
+            android:text="Hủy"
             android:textAllCaps="false"
-            android:textColor="@color/profile_danger"
+            android:textColor="#DC2626"
             android:textSize="14sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
@@ -245,7 +245,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1.2"
             android:background="@drawable/bg_btn_primary_green"
-            android:text="✓ Chấp nhận"
+            android:text="Nhận nhiệm vụ"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="14.5sp"

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_role_badge_pill"
+        android:backgroundTint="#CBD5E1" />
+
+    <!-- Danger Icon Header -->
+    <FrameLayout
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_icon_btn_danger">
+
+        <ImageView
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:contentDescription="Hủy nhiệm vụ"
+            android:src="@drawable/ic_warning_triangle"
+            app:tint="#F04444" />
+    </FrameLayout>
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvCancelReasonTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="Lý do hủy nhiệm vụ"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Dialog Subtitle -->
+    <TextView
+        android:id="@+id/tvCancelReasonSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:text="Vui lòng chọn lý do để điều phối viên gán lại tuyến cho tài xế phù hợp:"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="13sp" />
+
+    <!-- Job ID Pill -->
+    <TextView
+        android:id="@+id/tvCancelJobIdPill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_dialog_item_field"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:text="Mã ca: #JOB_1723801234"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="12.5sp"
+        android:textStyle="bold" />
+
+    <!-- Reasons RadioGroup -->
+    <RadioGroup
+        android:id="@+id/rgCancelReasons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp">
+
+        <RadioButton
+            android:id="@+id/rbReasonVehicle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:paddingVertical="6dp"
+            android:text="Phương tiện gặp sự cố kỹ thuật / hỏng xe"
+            android:textColor="@color/app_text_primary"
+            android:textSize="13.5sp" />
+
+        <RadioButton
+            android:id="@+id/rbReasonTraffic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="6dp"
+            android:text="Kẹt xe nghiêm trọng không thể tiếp cận"
+            android:textColor="@color/app_text_primary"
+            android:textSize="13.5sp" />
+
+        <RadioButton
+            android:id="@+id/rbReasonWeather"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="6dp"
+            android:text="Thời tiết xấu / ngập lụt tuyến đường"
+            android:textColor="@color/app_text_primary"
+            android:textSize="13.5sp" />
+
+        <RadioButton
+            android:id="@+id/rbReasonRoadBlock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="6dp"
+            android:text="Đường bị rào chắn / cấm xe tải vào"
+            android:textColor="@color/app_text_primary"
+            android:textSize="13.5sp" />
+
+        <RadioButton
+            android:id="@+id/rbReasonOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="6dp"
+            android:text="Lý do khác (Nhập chi tiết bên dưới)"
+            android:textColor="@color/app_text_primary"
+            android:textSize="13.5sp" />
+    </RadioGroup>
+
+    <!-- Custom Reason Input -->
+    <EditText
+        android:id="@+id/edtCustomReason"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_dialog_item_field"
+        android:hint="Nhập chi tiết lý do hủy nhiệm vụ..."
+        android:importantForAutofill="no"
+        android:inputType="textCapSentences|textMultiLine"
+        android:maxLines="3"
+        android:minHeight="44dp"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp"
+        android:textColor="@color/profile_text_primary"
+        android:textColorHint="@color/profile_text_secondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- Button Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelBack"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_cancel_gray"
+            android:text="Quay lại"
+            android:textAllCaps="false"
+            android:textColor="#475569"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+
+        <Button
+            android:id="@+id/btnConfirmCancelJob"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_btn_danger_red"
+            android:text="Xác nhận hủy"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+
+</LinearLayout>

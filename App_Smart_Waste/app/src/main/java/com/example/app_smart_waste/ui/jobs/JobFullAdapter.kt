@@ -118,19 +118,19 @@ class JobFullAdapter(
                 "ASSIGNED" -> {
                     binding.layoutCardActions.visibility = View.VISIBLE
                     binding.btnCardReject.visibility = View.VISIBLE
-                    binding.btnCardReject.text = "✕ Từ chối"
-                    binding.btnCardPrimaryAction.text = "✓ Nhận nhiệm vụ"
+                    binding.btnCardReject.text = "Hủy"
+                    binding.btnCardPrimaryAction.text = "Nhận nhiệm vụ"
                 }
                 "IN_PROGRESS" -> {
                     binding.layoutCardActions.visibility = View.VISIBLE
                     binding.btnCardReject.visibility = View.VISIBLE
                     binding.btnCardReject.text = "⏸ Tạm dừng"
-                    binding.btnCardPrimaryAction.text = "▶ Mở bản đồ lộ trình"
+                    binding.btnCardPrimaryAction.text = "Tiếp tục thu gom"
                 }
                 "ACCEPTED" -> {
                     binding.layoutCardActions.visibility = View.VISIBLE
                     binding.btnCardReject.visibility = View.GONE
-                    binding.btnCardPrimaryAction.text = "▶ Bắt đầu di chuyển"
+                    binding.btnCardPrimaryAction.text = "Bắt đầu thu gom"
                 }
                 "COMPLETED" -> {
                     binding.layoutCardActions.visibility = View.GONE

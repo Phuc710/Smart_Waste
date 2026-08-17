@@ -93,7 +93,7 @@ async function bootstrap() {
                 stateStore.employeeLocationsCache.set(loc.employee_id, loc);
             }
         }
-    } catch (_) {}
+    } catch (_) { }
 
     // Start background jobs & cron
     startCommandPoller(400);

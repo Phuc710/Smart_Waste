@@ -58,6 +58,8 @@ class ActiveJobsAdapter(
         }
     }
 
+    var assignTimeoutMinutes: Int = 5
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val job = getItem(position)
         when (holder) {
@@ -68,6 +70,16 @@ class ActiveJobsAdapter(
         }
     }
 
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && payloads.contains("PAYLOAD_COUNTDOWN")) {
+            if (holder is AssignedViewHolder) {
+                holder.updateCountdown(assignTimeoutMinutes)
+            }
+            return
+        }
+        super.onBindViewHolder(holder, position, payloads)
+    }
+
     inner class AssignedViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val root = itemView.findViewById<View>(R.id.cardJobAssignedRoot)
         private val tvCode = itemView.findViewById<TextView>(R.id.tvAssignedJobCode)
@@ -76,19 +88,25 @@ class ActiveJobsAdapter(
         private val tvDistance = itemView.findViewById<TextView>(R.id.tvAssignedDistance)
         private val tvDuration = itemView.findViewById<TextView>(R.id.tvAssignedDuration)
         private val tvRouteSummary = itemView.findViewById<TextView>(R.id.tvAssignedRouteSummary)
+        private val tvCountdown = itemView.findViewById<TextView>(R.id.tvAssignedCountdown)
         private val btnAccept = itemView.findViewById<Button>(R.id.btnAcceptAssigned)
         private val btnReject = itemView.findViewById<Button>(R.id.btnRejectAssigned)
 
+        private var currentJob: JobDto? = null
+
         fun bind(job: JobDto) {
+            currentJob = job
             val code = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
             tvCode.text = code
-            tvDispatcher.text = job.employeeName ?: "Admin điều phối"
+            tvDispatcher.text = job.employeeName ?: "Nguyễn Văn An"
 
             val stopsCount = job.targetBinIds?.size ?: 3
             tvStops.text = "$stopsCount điểm gom"
             tvDistance.text = "4.8 km"
             tvDuration.text = "~25 phút"
             tvRouteSummary.text = "📍 Chợ Bến Thành → Nguyễn Huệ → Cột Cờ"
+
+            updateCountdown(assignTimeoutMinutes)
 
             root.setOnClickListener {
                 it.applyPressEffect { onCardClick(job) }
@@ -98,6 +116,21 @@ class ActiveJobsAdapter(
             }
             btnReject.setOnClickListener {
                 it.applyPressEffect { onRejectClick(job) }
+            }
+        }
+
+        fun updateCountdown(timeoutMinutes: Int) {
+            val job = currentJob ?: return
+            val remSec = com.example.app_smart_waste.core.utils.TimeUtils.calculateJobCountdownSeconds(job.assignedAt, timeoutMinutes)
+            tvCountdown.text = com.example.app_smart_waste.core.utils.TimeUtils.formatJobCountdownText(remSec)
+            if (remSec <= 0) {
+                tvCountdown.setTextColor(android.graphics.Color.parseColor("#EF4444"))
+                btnAccept.isEnabled = false
+                btnAccept.alpha = 0.5f
+            } else {
+                tvCountdown.setTextColor(android.graphics.Color.parseColor("#D97706"))
+                btnAccept.isEnabled = true
+                btnAccept.alpha = 1.0f
             }
         }
     }
@@ -114,7 +147,7 @@ class ActiveJobsAdapter(
         fun bind(job: JobDto) {
             val code = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
             tvCode.text = code
-            tvDispatcher.text = job.employeeName ?: "Admin điều phối"
+            tvDispatcher.text = job.employeeName ?: "Nguyễn Văn An"
 
             val stopsCount = job.targetBinIds?.size ?: 3
             tvStops.text = "$stopsCount điểm gom"

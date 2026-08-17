@@ -11,32 +11,32 @@
     <FrameLayout
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:background="@drawable/bg_stat_circle_blue"
-        android:backgroundTint="#FEE2E2">
+        android:background="@drawable/bg_icon_btn_danger">
 
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_gravity="center"
             android:contentDescription="Đăng xuất"
-            android:src="@drawable/ic_logout_red" />
+            android:src="@drawable/ic_logout_red"
+            app:tint="#F04444" />
     </FrameLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="16dp"
         android:text="Kết thúc ca làm việc?"
         android:textColor="@color/profile_text_primary"
-        android:textSize="19sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:gravity="center"
-        android:lineSpacingExtra="2dp"
+        android:lineSpacingExtra="3dp"
         android:text="Hệ thống sẽ đồng bộ toàn bộ lộ trình và điểm thu gom trước khi đăng xuất tài khoản."
         android:textColor="@color/profile_text_secondary"
         android:textSize="13.5sp" />
@@ -44,34 +44,33 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="24dp"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/btnCancelLogout"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="6dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_btn_secondary_gray"
-            android:text="Hủy"
+            android:background="@drawable/bg_btn_cancel_gray"
+            android:text="Hủy bỏ"
             android:textAllCaps="false"
-            android:textColor="@color/profile_text_primary"
-            android:textSize="14.5sp"
+            android:textColor="#475569"
+            android:textSize="15sp"
+            android:textStyle="bold"
             app:backgroundTint="@null" />
 
         <Button
             android:id="@+id/btnConfirmLogout"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_btn_primary_green"
-            android:backgroundTint="@color/profile_danger"
+            android:layout_height="52dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_btn_danger_solid"
             android:text="Đăng xuất"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="14.5sp"
+            android:textSize="15.5sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
     </LinearLayout>

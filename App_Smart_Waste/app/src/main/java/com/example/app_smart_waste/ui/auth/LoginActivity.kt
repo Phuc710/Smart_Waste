@@ -10,6 +10,7 @@ import android.text.method.PasswordTransformationMethod
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -194,12 +195,7 @@ class LoginActivity : AppCompatActivity() {
                             binding.tvError.visibility = View.GONE
                         }
                         is LoginUiState.Success -> {
-                            setLoadingState(false)
-                            Toast.makeText(this@LoginActivity, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
-                            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                            finish()
-                            @Suppress("DEPRECATION")
-                            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                            handleLoginSuccess()
                         }
                         is LoginUiState.Error -> {
                             setLoadingState(false)
@@ -220,7 +216,72 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleLoginSuccess() {
+        // 1. Hide software keyboard immediately to avoid layout jank
+        currentFocus?.let { view ->
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+
+        // 2. Button Success Micro-interaction State
+        binding.loadingLayout.visibility = View.GONE
+        binding.tvBtnLoginText.visibility = View.GONE
+        binding.successLayout.visibility = View.VISIBLE
+        binding.btnLogin.isEnabled = false
+        binding.btnLogin.alpha = 1.0f
+
+        // Subtle tactile spring feedback
+        binding.btnLogin.animate()
+            .scaleX(1.02f)
+            .scaleY(1.02f)
+            .setDuration(120)
+            .withEndAction {
+                binding.btnLogin.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+            }
+            .start()
+
+        // 3. Smooth Outflow Transition + Clean Navigation Stack
+        if (!isAnimationEnabled()) {
+            navigateToMainCleanly()
+            return
+        }
+
+        binding.loginCard.animate()
+            .alpha(0f)
+            .translationY(-20f)
+            .setDuration(240)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        binding.topBrandingSection.animate()
+            .alpha(0f)
+            .translationY(-12f)
+            .setDuration(220)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+
+        binding.bottomInfoCard.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                navigateToMainCleanly()
+            }
+            .start()
+    }
+
+    private fun navigateToMainCleanly() {
+        val intent = Intent(this@LoginActivity, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("SHOW_WELCOME_MESSAGE", true)
+        }
+        startActivity(intent)
+        @Suppress("DEPRECATION")
+        overridePendingTransition(R.anim.anim_fade_in_smooth, R.anim.anim_fade_out_smooth)
+        finish()
+    }
+
     private fun setLoadingState(isLoading: Boolean) {
+        binding.successLayout.visibility = View.GONE
         if (isLoading) {
             binding.btnLogin.isEnabled = false
             binding.btnLogin.alpha = 0.85f

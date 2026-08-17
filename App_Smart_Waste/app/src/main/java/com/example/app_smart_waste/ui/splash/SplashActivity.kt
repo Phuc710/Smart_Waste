@@ -56,14 +56,22 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun navigateToHome() {
-        startActivity(Intent(this, MainActivity::class.java))
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.example.app_smart_waste.R.anim.anim_fade_in_smooth, com.example.app_smart_waste.R.anim.anim_fade_out_smooth)
         finish()
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
     private fun navigateToLogin() {
-        startActivity(Intent(this, LoginActivity::class.java))
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.example.app_smart_waste.R.anim.anim_fade_in_smooth, com.example.app_smart_waste.R.anim.anim_fade_out_smooth)
         finish()
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 }

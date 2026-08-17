@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/jobsSwipeRefresh"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/app_bg">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/jobsNestedScrollView"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/jobsSwipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        android:scrollbars="none">
+        android:layout_height="match_parent">
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/jobsNestedScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/jobsRootLayout"
@@ -121,15 +125,15 @@
                     android:orientation="horizontal"
                     android:padding="3dp">
 
-                    <!-- Tab 1: Đang xử lý -->
+                    <!-- Tab 1: Đang xử lý (Active default) -->
                     <LinearLayout
                         android:id="@+id/tabActiveJobs"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:background="@drawable/bg_card_profile"
+                        android:background="@drawable/bg_segmented_tab_active"
                         android:clickable="true"
-                        android:elevation="0.5dp"
+                        android:elevation="1dp"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
                         android:gravity="center"
@@ -140,25 +144,24 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Đang xử lý"
-                            android:textColor="@color/profile_green_primary"
+                            android:textColor="@color/white"
                             android:textSize="13.5sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tvActiveCountBadge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/bg_role_badge_pill"
-                            android:paddingHorizontal="6dp"
-                            android:paddingVertical="1dp"
-                            android:text="2"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_badge_on_active_tab"
+                            android:gravity="center"
+                            android:text="0"
                             android:textColor="@color/profile_green_primary"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Tab 2: Lịch sử -->
+                    <!-- Tab 2: Lịch sử (Inactive default) -->
                     <LinearLayout
                         android:id="@+id/tabHistoryJobs"
                         android:layout_width="0dp"
@@ -176,20 +179,20 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Lịch sử"
-                            android:textColor="@color/profile_text_secondary"
+                            android:textColor="@color/app_text_primary"
                             android:textSize="13.5sp" />
 
                         <TextView
                             android:id="@+id/tvHistoryTabCountBadge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/bg_dialog_item_field"
-                            android:paddingHorizontal="6dp"
-                            android:paddingVertical="1dp"
-                            android:text="3"
-                            android:textColor="@color/profile_text_secondary"
-                            android:textSize="11sp" />
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_badge_on_inactive_tab"
+                            android:gravity="center"
+                            android:text="0"
+                            android:textColor="@color/app_text_primary"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -222,11 +225,11 @@
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="6dp"
                             android:text="Tất cả"
-                            android:textColor="@color/profile_green_primary"
+                            android:textColor="@color/white"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
-                        <!-- Chip: 🕒 Đang chờ (3) -->
+                        <!-- Chip:  Đang chờ-->
                         <TextView
                             android:id="@+id/chipActiveSubPending"
                             android:layout_width="wrap_content"
@@ -235,11 +238,11 @@
                             android:background="@drawable/bg_chip_filter_inactive"
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="6dp"
-                            android:text="🕒 Đang chờ (3)"
-                            android:textColor="@color/profile_text_secondary"
+                            android:text="Đang chờ"
+                            android:textColor="@color/app_text_primary"
                             android:textSize="12.5sp" />
 
-                        <!-- Chip: ▶️ Đang làm (2) -->
+                        <!-- Chip:  Đang làm (2) -->
                         <TextView
                             android:id="@+id/chipActiveSubInProgress"
                             android:layout_width="wrap_content"
@@ -247,8 +250,8 @@
                             android:background="@drawable/bg_chip_filter_inactive"
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="6dp"
-                            android:text="▶️ Đang làm (2)"
-                            android:textColor="@color/profile_text_secondary"
+                            android:text="Đang làm"
+                            android:textColor="@color/app_text_primary"
                             android:textSize="12.5sp" />
                     </LinearLayout>
 
@@ -345,7 +348,7 @@
                             android:paddingHorizontal="14dp"
                             android:paddingVertical="6dp"
                             android:text="Tất cả"
-                            android:textColor="@color/profile_green_primary"
+                            android:textColor="@color/white"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
@@ -358,7 +361,7 @@
                             android:paddingHorizontal="14dp"
                             android:paddingVertical="6dp"
                             android:text="Hoàn thành"
-                            android:textColor="@color/profile_text_secondary"
+                            android:textColor="@color/app_text_primary"
                             android:textSize="12.5sp" />
 
                         <TextView
@@ -369,7 +372,7 @@
                             android:paddingHorizontal="14dp"
                             android:paddingVertical="6dp"
                             android:text="Đã hủy"
-                            android:textColor="@color/profile_text_secondary"
+                            android:textColor="@color/app_text_primary"
                             android:textSize="12.5sp" />
                     </LinearLayout>
 
@@ -424,5 +427,37 @@
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    <!-- CENTERED LOADING OVERLAY (Hiển thị ngay giữa màn hình điện thoại) -->
+    <LinearLayout
+        android:id="@+id/layoutLoadingCenter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_card_profile"
+        android:elevation="8dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="18dp"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/pbLoadingJobs"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/profile_green_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Đang tải dữ liệu ca làm..."
+            android:textColor="@color/profile_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</FrameLayout>

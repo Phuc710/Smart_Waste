@@ -49,6 +49,12 @@ class MainActivity : AppCompatActivity() {
             selectTab(R.id.navItemHome)
         }
 
+        if (intent.getBooleanExtra("SHOW_WELCOME_MESSAGE", false)) {
+            val userFullName = com.example.app_smart_waste.core.storage.SecureTokenStorage.getInstance(this).getFullName()
+            val greeting = if (!userFullName.isNullOrBlank()) "👋 Chào mừng $userFullName!" else "👋 Đăng nhập thành công!"
+            android.widget.Toast.makeText(this, greeting, android.widget.Toast.LENGTH_SHORT).show()
+        }
+
         checkAndStartGps()
     }
 

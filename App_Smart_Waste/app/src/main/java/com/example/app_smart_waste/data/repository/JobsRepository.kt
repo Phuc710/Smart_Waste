@@ -72,7 +72,7 @@ class JobsRepository(private val context: Context) {
             if (response.isSuccessful) {
                 Result.success(response.body()?.job)
             } else {
-                Result.failure(Exception("Không thể từ chối nhiệm vụ (HTTP ${response.code()})"))
+                Result.failure(Exception("Không thể hủy nhiệm vụ (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -161,6 +161,19 @@ class JobsRepository(private val context: Context) {
                 Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("Lỗi tải lịch sử thu gom (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getSystemSettings(): Result<SystemSettingsDto?> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getSystemSettings()
+            if (response.isSuccessful) {
+                Result.success(response.body()?.settings)
+            } else {
+                Result.failure(Exception("Lỗi tải cấu hình hệ thống (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.failure(e)

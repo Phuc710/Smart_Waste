@@ -34,30 +34,56 @@ class HistoryAdapter(
         private val tvDistance = itemView.findViewById<TextView>(R.id.tvHistoryDistance)
         private val tvDuration = itemView.findViewById<TextView>(R.id.tvHistoryDuration)
         private val tvWeight = itemView.findViewById<TextView>(R.id.tvHistoryWeight)
+        private val tvReason = itemView.findViewById<TextView>(R.id.tvHistoryReason)
 
         fun bind(item: JobDisplayModel) {
             val code = if (item.rawJob.id.startsWith("JOB_") || item.rawJob.id.startsWith("#")) item.rawJob.id else "#JOB_${item.rawJob.id}"
             tvCode.text = code
             tvDateTime.text = item.timeLabel
 
-            val isDone = item.statusType == "COMPLETED"
-            if (isDone) {
-                tvStatusBadge.text = "✓ Hoàn thành"
-                tvStatusBadge.setTextColor(Color.parseColor("#15803D"))
-                tvStatusBadge.setBackgroundResource(R.drawable.bg_role_badge_pill)
-                tvBinsCount.text = "${item.totalBins}/${item.totalBins} điểm"
-            } else {
-                tvStatusBadge.text = "⊗ Đã hủy"
-                tvStatusBadge.setTextColor(Color.parseColor("#DC2626"))
-                tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_pill_red)
-                tvBinsCount.text = "0/${item.totalBins} điểm"
+            when (item.statusType.uppercase()) {
+                "COMPLETED" -> {
+                    root.setBackgroundResource(R.drawable.bg_history_card_completed)
+                    tvStatusBadge.text = "Hoàn thành"
+                    tvStatusBadge.setTextColor(Color.parseColor("#166534"))
+                    tvStatusBadge.setBackgroundResource(R.drawable.bg_status_completed_pill)
+                    tvBinsCount.text = "${item.totalBins}/${item.totalBins}"
+                    tvDistance.text = "${item.distanceKm} km"
+                    tvDuration.text = "${item.durationMinutes} phút"
+                    val estKg = (item.totalBins * 83).coerceAtLeast(150)
+                    tvWeight.text = "~$estKg kg"
+                    tvReason.text = "Hoàn thành tất cả điểm thu gom"
+                }
+                "CANCELLED", "CANCELED", "REJECTED" -> {
+                    root.setBackgroundResource(R.drawable.bg_history_card_cancelled)
+                    tvStatusBadge.text = "Đã hủy"
+                    tvStatusBadge.setTextColor(Color.parseColor("#991B1B"))
+                    tvStatusBadge.setBackgroundResource(R.drawable.bg_status_cancelled_pill)
+                    tvBinsCount.text = "0/${item.totalBins}"
+                    tvDistance.text = "${item.distanceKm} km"
+                    tvDuration.text = "${item.durationMinutes} phút"
+                    tvWeight.text = "—"
+                    tvReason.text = item.cancelReason ?: "Thẻ bị khóa, không thể thu gom"
+                }
+                "EXPIRED" -> {
+                    root.setBackgroundResource(R.drawable.bg_history_card_expired)
+                    tvStatusBadge.text = "Hết hạn"
+                    tvStatusBadge.setTextColor(Color.parseColor("#9A3412"))
+                    tvStatusBadge.setBackgroundResource(R.drawable.bg_status_expired_pill)
+                    tvBinsCount.text = "0/${item.totalBins}"
+                    tvDistance.text = "—"
+                    tvDuration.text = "—"
+                    tvWeight.text = "—"
+                    tvReason.text = "Hết thời gian nhận ca (5 phút)"
+                }
+                else -> {
+                    root.setBackgroundResource(R.drawable.bg_card_profile)
+                    tvStatusBadge.text = item.statusBadgeText
+                    tvStatusBadge.setTextColor(Color.GRAY)
+                    tvStatusBadge.setBackgroundResource(R.drawable.bg_role_badge_pill)
+                    tvReason.text = "Trạng thái khác"
+                }
             }
-
-            tvDistance.text = "${item.distanceKm} km"
-            tvDuration.text = "${item.durationMinutes} phút"
-
-            val estKg = (item.totalBins * 83).coerceAtLeast(150)
-            tvWeight.text = "~$estKg kg"
 
             root.setOnClickListener {
                 it.applyPressEffect {

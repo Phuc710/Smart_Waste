@@ -126,4 +126,27 @@ object TimeUtils {
             "$minutes phút"
         }
     }
+
+    /**
+     * Calculates remaining seconds for an assigned job based on assigned_at and timeout minutes.
+     */
+    fun calculateJobCountdownSeconds(assignedAtIso: String?, timeoutMinutes: Int = 5): Long {
+        val assignedDate = parseIsoDate(assignedAtIso) ?: return (timeoutMinutes * 60L)
+        val elapsedMs = System.currentTimeMillis() - assignedDate.time
+        val totalMs = timeoutMinutes * 60 * 1000L
+        val remainingMs = totalMs - elapsedMs
+        return maxOf(0L, remainingMs / 1000L)
+    }
+
+    /**
+     * Formats remaining seconds as "Còn MM:SS để xác nhận" or "Đã hết hạn nhận ca" (no duplicate emoji icon)
+     */
+    fun formatJobCountdownText(remainingSeconds: Long): String {
+        if (remainingSeconds <= 0) {
+            return "Đã hết hạn nhận ca"
+        }
+        val mins = remainingSeconds / 60
+        val secs = remainingSeconds % 60
+        return String.format(Locale.US, "Còn %02d:%02d để xác nhận", mins, secs)
+    }
 }

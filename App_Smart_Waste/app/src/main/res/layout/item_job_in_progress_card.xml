@@ -24,7 +24,7 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_role_badge_pill"
+            android:background="@drawable/bg_tag_dang_thuc_hien"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="10dp"
@@ -33,14 +33,15 @@
             <View
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:background="@drawable/bg_badge_pill_green" />
+                android:background="@drawable/bg_dot_active_green"
+                android:backgroundTint="#2563EB" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="5dp"
                 android:text="ĐANG THỰC HIỆN"
-                android:textColor="@color/profile_green_primary"
+                android:textColor="#1D4ED8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -133,7 +134,7 @@
         android:background="@drawable/bg_btn_primary_green"
         android:drawableStart="@drawable/ic_play_white"
         android:paddingHorizontal="20dp"
-        android:text="Tiếp tục ca làm"
+        android:text="Tiếp tục thu gom"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="14.5sp"

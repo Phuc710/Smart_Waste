@@ -63,7 +63,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="Admin điều phối"
+            android:text="Nguyễn Văn An"
             android:textColor="@color/profile_text_secondary"
             android:textSize="12sp" />
     </LinearLayout>
@@ -198,7 +198,7 @@
         android:background="@drawable/bg_btn_primary_green"
         android:drawableStart="@drawable/ic_play_white"
         android:paddingHorizontal="20dp"
-        android:text="Bắt đầu thực hiện ca"
+        android:text="Bắt đầu thu gom"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="14.5sp"

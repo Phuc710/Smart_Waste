@@ -76,11 +76,11 @@
                         android:id="@+id/tvDetailStatusBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_role_badge_pill"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="4dp"
-                        android:text="✓ Hoàn thành"
-                        android:textColor="@color/profile_green_primary"
+                        android:background="@drawable/bg_status_completed_pill"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="5dp"
+                        android:text="Hoàn thành"
+                        android:textColor="#166534"
                         android:textSize="12.5sp"
                         android:textStyle="bold" />
                 </LinearLayout>

@@ -56,22 +56,12 @@
                 android:id="@+id/tvHistoryStatusBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_role_badge_pill"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="3dp"
-                android:text="✓ Hoàn thành"
-                android:textColor="@color/profile_green_primary"
+                android:background="@drawable/bg_status_completed_pill"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:text="Hoàn thành"
+                android:textColor="#166534"
                 android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvHistoryBinsCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="3/3 điểm"
-                android:textColor="@color/profile_text_primary"
-                android:textSize="12.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -96,149 +86,133 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:weightSum="3">
+        android:weightSum="4">
 
-        <!-- 1. Quãng đường -->
+        <!-- 1. Điểm gom -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <FrameLayout
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_circle_work_info">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="Quãng đường"
-                    android:src="@drawable/ic_route_nodes"
-                    app:tint="@color/profile_green_primary" />
-            </FrameLayout>
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvHistoryBinsCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:orientation="vertical">
+                android:text="3/3"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvHistoryDistance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="5.2 km"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="1dp"
-                    android:text="quãng đường"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="điểm gom"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- 2. Thời gian -->
+        <!-- 2. Quãng đường -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <FrameLayout
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_circle_work_info">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="Thời gian"
-                    android:src="@drawable/ic_clock_green"
-                    app:tint="@color/profile_green_primary" />
-            </FrameLayout>
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvHistoryDistance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:orientation="vertical">
+                android:text="5.2 km"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvHistoryDuration"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="45 phút"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="1dp"
-                    android:text="thời gian"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="quãng đường"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- 3. Khối lượng -->
+        <!-- 3. Thời gian -->
         <LinearLayout
-            android:id="@+id/llHistoryWeightContainer"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <FrameLayout
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_circle_work_info">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="Khối lượng"
-                    android:src="@drawable/ic_stat_trash_green"
-                    app:tint="@color/profile_green_primary" />
-            </FrameLayout>
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvHistoryDuration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:orientation="vertical">
+                android:text="45 phút"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvHistoryWeight"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="~250 kg"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="1dp"
-                    android:text="khối lượng"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="thời gian"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
+
+        <!-- 4. Khối lượng -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvHistoryWeight"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="~250 kg"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="khối lượng"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Reason Row -->
+    <LinearLayout
+        android:id="@+id/llHistoryReasonContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lý do: "
+            android:textColor="@color/profile_text_primary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvHistoryReason"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hoàn thành tất cả điểm thu gom"
+            android:textColor="@color/profile_text_secondary"
+            android:textSize="12sp" />
     </LinearLayout>
 
 </LinearLayout>

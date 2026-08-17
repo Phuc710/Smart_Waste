@@ -60,8 +60,9 @@
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginTop="14dp"
+        android:layout_weight="1"
         android:maxHeight="520dp"
         android:overScrollMode="never">
 
@@ -89,79 +90,129 @@
                 android:orientation="vertical"
                 android:padding="14dp">
 
+                <!-- New Shift Progress UI (Matching Image) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
 
-                    <FrameLayout
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:background="@drawable/bg_circle_work_info">
-
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:contentDescription="Ca làm"
-                            android:src="@drawable/ic_calendar_green" />
-                    </FrameLayout>
-
+                    <!-- Left: Start Time -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
 
-                        <TextView
-                            android:id="@+id/tvSettingsShiftTitle"
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_clock_outline"
+                            android:padding="2dp"
+                            app:tint="@color/profile_text_primary" />
+
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Ca trực 8 tiếng"
-                            android:textColor="@color/profile_text_primary"
-                            android:textSize="15.5sp"
-                            android:textStyle="bold" />
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/tvSettingsShiftTime"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="14:08 — 22:08 (Đang trong ca)"
-                            android:textColor="@color/profile_green_primary"
-                            android:textSize="12.5sp"
-                            android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Bắt đầu lúc"
+                                android:textColor="@color/profile_text_secondary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvSettingsShiftStartTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="08:15"
+                                android:textColor="@color/profile_text_primary"
+                                android:textSize="22sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvSettingsShiftDuration"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Tự động kết thúc sau 08:00:00"
+                                android:textColor="@color/profile_text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/badgeSettingsShiftStatus"
-                        android:layout_width="wrap_content"
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="60dp"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginHorizontal="8dp"
+                        android:background="#E2E8F0" />
+
+                    <!-- Right: Remaining Time -->
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_role_badge_pill"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="3dp"
-                        android:text="🟢 Trong ca"
-                        android:textColor="@color/profile_green_primary"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Spacer to match left icon offset for symmetry -->
+                        <View
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:visibility="invisible" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Thời gian còn lại"
+                                android:textColor="@color/profile_text_secondary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvSettingsShiftRemainingTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="05:30:15"
+                                android:textColor="@color/profile_text_primary"
+                                android:textSize="22sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvSettingsShiftEndTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="kết thúc lúc 16:15"
+                                android:textColor="@color/profile_text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
 
-                <View
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/progressShiftTime"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="10dp"
-                    android:background="@color/profile_divider" />
-
-                <TextView
-                    android:id="@+id/tvSettingsShiftDetail"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:lineSpacingExtra="2dp"
-                    android:text="• Tuyến điều phối: Quận 1 — Tuyến 04\n• Tổng số điểm gom: 14 thùng cảm biến\n• Trưởng ca: Trần Văn B (0909 123 456)"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="12sp" />
+                    android:layout_height="8dp"
+                    android:layout_marginTop="16dp"
+                    android:max="100"
+                    android:progress="35"
+                    android:progressDrawable="@drawable/bg_progress_shift_green" />
             </LinearLayout>
 
             <!-- 2. SECTION: PHƯƠNG TIỆN PHỤ TRÁCH  -->
@@ -213,7 +264,7 @@
                             android:id="@+id/tvSettingsVehiclePlate"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="51C-234.56"
+                            android:text="...-..."
                             android:textColor="@color/profile_text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -223,7 +274,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Xe ép rác chuyên dụng 8m³ (XE-2345)"
+                            android:text="Xe đang cập nhật..."
                             android:textColor="@color/profile_text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -265,10 +316,11 @@
                             android:textSize="11sp" />
 
                         <TextView
+                            android:id="@+id/tvSettingsVehicleWeight"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="5.5 Tấn"
+                            android:text="..."
                             android:textColor="@color/profile_text_primary"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
@@ -295,10 +347,11 @@
                             android:textSize="11sp" />
 
                         <TextView
+                            android:id="@+id/tvSettingsVehicleFuel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="78% (Đầy)"
+                            android:text="..."
                             android:textColor="@color/profile_green_primary"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
@@ -487,6 +540,7 @@
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/bg_btn_primary_green"
         android:text="Lưu cấu hình &amp; Đóng"
         android:textAllCaps="false"

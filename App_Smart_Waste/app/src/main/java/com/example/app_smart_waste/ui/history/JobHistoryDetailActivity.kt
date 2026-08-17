@@ -95,13 +95,13 @@ class JobHistoryDetailActivity : AppCompatActivity() {
         // 2. Status Badge
         val isCompleted = job.status == "COMPLETED"
         if (isCompleted) {
-            binding.tvDetailStatusBadge.text = "✓ Hoàn thành 100%"
-            binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#15803D"))
-            binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_role_badge_pill)
+            binding.tvDetailStatusBadge.text = "Hoàn thành"
+            binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#166534"))
+            binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_completed_pill)
         } else {
-            binding.tvDetailStatusBadge.text = "⊗ Đã hủy"
-            binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#DC2626"))
-            binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_badge_pill_red)
+            binding.tvDetailStatusBadge.text = "Đã hủy"
+            binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#991B1B"))
+            binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_cancelled_pill)
         }
 
         // 3. Vehicle & Dispatcher

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_role_badge_pill"
+        android:backgroundTint="#CBD5E1" />
+
+    <!-- Danger Icon Header (48dp-56dp Circle with #FFEBEB bg) -->
+    <FrameLayout
+        android:id="@+id/containerDangerIcon"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_icon_btn_danger">
+
+        <ImageView
+            android:id="@+id/imgConfirmIcon"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:contentDescription="Xác nhận"
+            android:src="@drawable/ic_trash_bin_red"
+            app:tint="#F04444" />
+    </FrameLayout>
+
+    <!-- Dialog Title -->
+    <TextView
+        android:id="@+id/tvConfirmTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="Xác nhận thao tác"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Dialog Message / Warning description -->
+    <TextView
+        android:id="@+id/tvConfirmMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:lineSpacingExtra="3dp"
+        android:text="Bạn có chắc chắn muốn thực hiện hành động này? Thao tác không thể hoàn tác."
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="13.5sp" />
+
+    <!-- Optional Detail Context Pill (e.g. Mã ca: #J250518-001) -->
+    <TextView
+        android:id="@+id/tvConfirmDetailPill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_dialog_item_field"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="5dp"
+        android:text="Mã ca: #TUYEN-Q1-01"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="12.5sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- Button Row (Hủy bỏ & Xóa/Từ chối) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnConfirmCancel"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_cancel_gray"
+            android:text="Hủy bỏ"
+            android:textAllCaps="false"
+            android:textColor="#475569"
+            android:textSize="15.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+
+        <Button
+            android:id="@+id/btnConfirmAction"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_danger_solid"
+            android:text="Xóa"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="15.5sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+
+</LinearLayout>

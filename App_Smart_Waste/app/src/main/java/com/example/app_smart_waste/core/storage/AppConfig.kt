@@ -29,6 +29,7 @@ object AppConfig {
     private const val KEY_AUTO_GPS = "auto_gps_enabled"
     private const val KEY_OVERLOAD_ALERT = "overload_alert_enabled"
     private const val KEY_SOUND_ENABLED = "sound_enabled"
+    private const val KEY_ASSIGN_TIMEOUT_MINUTES = "assign_timeout_minutes"
 
     // ─────────────────────────────────────────────────────────────────────
     // 🌐 1. CẤU HÌNH SERVER & MẠNG (NETWORK & API ENDPOINTS)
@@ -145,6 +146,17 @@ object AppConfig {
 
     fun setOverloadAlertEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_OVERLOAD_ALERT, enabled).apply()
+    }
+
+    /**
+     * Lấy thời gian đếm ngược nhận ca do Admin cấu hình (Phút)
+     */
+    fun getAssignTimeoutMinutes(context: Context): Int {
+        return getPrefs(context).getInt(KEY_ASSIGN_TIMEOUT_MINUTES, 5)
+    }
+
+    fun setAssignTimeoutMinutes(context: Context, minutes: Int) {
+        getPrefs(context).edit().putInt(KEY_ASSIGN_TIMEOUT_MINUTES, minutes).apply()
     }
 
     /**

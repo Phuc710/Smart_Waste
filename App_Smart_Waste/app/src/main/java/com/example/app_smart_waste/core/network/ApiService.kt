@@ -68,5 +68,9 @@ interface ApiService {
     // 6. History
     @GET("api/dispatch/history")
     suspend fun getHistory(@Query("limit") limit: Int = 100): Response<List<JobDto>>
+
+    // 7. System Settings & Config (Admin Settings from CSDL)
+    @GET("api/settings")
+    suspend fun getSystemSettings(): Response<SystemSettingsResponse>
 }
 

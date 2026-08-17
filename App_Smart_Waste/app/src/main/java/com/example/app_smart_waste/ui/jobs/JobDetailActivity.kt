@@ -11,8 +11,14 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.app_smart_waste.R
 import com.example.app_smart_waste.databinding.ActivityJobDetailBinding
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class JobDetailActivity : AppCompatActivity() {
 
@@ -46,37 +52,44 @@ class JobDetailActivity : AppCompatActivity() {
 
     private fun bindHeroSummary(code: String) {
         binding.tvJobDetailCode.text = code
+        binding.tvJobDetailDispatcher.text = "👤 Điều phối bởi: Nguyễn Văn An (Tổng đài)"
 
         when (jobStatus) {
             "ASSIGNED", "PENDING" -> {
-                binding.tvJobDetailStatusPill.text = "Mới được giao"
+                val timeoutMinutes = com.example.app_smart_waste.core.storage.AppConfig.getAssignTimeoutMinutes(this)
                 binding.tvJobDetailStatusPill.setTextColor(Color.parseColor("#D97706"))
                 binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_badge_pill_yellow)
-                binding.btnDetailAcceptOrStartJob.text = "✓ Nhận & Bắt đầu ca"
+                binding.btnDetailAcceptOrStartJob.text = "Nhận nhiệm vụ"
                 binding.btnDetailRejectJob.visibility = View.VISIBLE
+
+                lifecycleScope.launch {
+                    repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        while (isActive) {
+                            val remSec = com.example.app_smart_waste.core.utils.TimeUtils.calculateJobCountdownSeconds(null, timeoutMinutes)
+                            binding.tvJobDetailStatusPill.text = com.example.app_smart_waste.core.utils.TimeUtils.formatJobCountdownText(remSec)
+                            delay(1000)
+                        }
+                    }
+                }
             }
             "ACCEPTED" -> {
                 binding.tvJobDetailStatusPill.text = "Đã nhận ca"
                 binding.tvJobDetailStatusPill.setTextColor(Color.parseColor("#15803D"))
                 binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_role_badge_pill)
-                binding.btnDetailAcceptOrStartJob.text = "▶ Bắt đầu ca làm"
+                binding.btnDetailAcceptOrStartJob.text = "Bắt đầu thu gom"
                 binding.btnDetailRejectJob.visibility = View.GONE
             }
             else -> {
                 binding.tvJobDetailStatusPill.text = "Đang thực hiện"
-                binding.tvJobDetailStatusPill.setTextColor(Color.parseColor("#15803D"))
-                binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_role_badge_pill)
-                binding.btnDetailAcceptOrStartJob.text = "▶ Tiếp tục ca làm"
+                binding.tvJobDetailStatusPill.setTextColor(Color.parseColor("#1D4ED8"))
+                binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_tag_dang_thuc_hien)
+                binding.btnDetailAcceptOrStartJob.text = "Tiếp tục thu gom"
                 binding.btnDetailRejectJob.visibility = View.GONE
             }
         }
     }
 
     private fun populateBinsList() {
-        val container = binding.llBinsDetailContainer
-        container.removeAllViews()
-        val inflater = LayoutInflater.from(this)
-
         data class BinDetailInfo(
             val id: String,
             val name: String,
@@ -117,6 +130,10 @@ class JobDetailActivity : AppCompatActivity() {
             )
         )
 
+        val inflater = LayoutInflater.from(this)
+        val container = binding.llBinsDetailContainer
+        container.removeAllViews()
+
         bins.forEach { bin ->
             val v = inflater.inflate(R.layout.item_bin_detail_preview, container, false)
             v.findViewById<TextView>(R.id.tvBinPreviewId).text = bin.id
@@ -133,16 +150,15 @@ class JobDetailActivity : AppCompatActivity() {
     private fun setupListeners() {
         binding.btnDetailRejectJob.setOnClickListener {
             it.applyPressEffect {
-                AlertDialog.Builder(this)
-                    .setTitle("Từ chối nhiệm vụ")
-                    .setMessage("Bạn có chắc chắn muốn từ chối ca $jobId?")
-                    .setPositiveButton("Từ chối") { _, _ ->
-                        viewModel.rejectJob(jobId)
-                        Toast.makeText(this, "Đã từ chối nhiệm vụ.", Toast.LENGTH_SHORT).show()
+                com.example.app_smart_waste.ui.common.AppConfirmDialog.showCancelJobWithReason(
+                    context = this,
+                    jobId = jobId,
+                    onConfirm = { reason ->
+                        viewModel.rejectJob(jobId, reason)
+                        Toast.makeText(this, "✓ Đã hủy nhiệm vụ (Lý do: $reason)", Toast.LENGTH_LONG).show()
                         finish()
                     }
-                    .setNegativeButton("Hủy", null)
-                    .show()
+                )
             }
         }
 

@@ -13,6 +13,7 @@
     "aedes": "^0.47.0",
     "express": "^5.2.1",
     "mqtt": "^5.15.2",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "swagger-ui-express": "^5.0.1"
   }
 }

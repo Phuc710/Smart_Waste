@@ -514,14 +514,12 @@ class ProfileFragment : Fragment() {
         val view = layoutInflater.inflate(R.layout.dialog_system_settings, null)
         dialog.setContentView(view)
 
-        val etBaseUrl = view.findViewById<TextInputEditText>(R.id.etServerBaseUrl)
         val switchOverload = view.findViewById<MaterialSwitch>(R.id.switchOverloadAlert)
         val switchGps = view.findViewById<MaterialSwitch>(R.id.switchGpsAuto)
         val tvCache = view.findViewById<TextView>(R.id.tvCacheSize)
         val btnClear = view.findViewById<Button>(R.id.btnClearCache)
 
         // Load current configurations from AppConfig
-        etBaseUrl?.setText(com.example.app_smart_waste.core.storage.AppConfig.getBaseUrl(requireContext()))
         switchOverload?.isChecked = com.example.app_smart_waste.core.storage.AppConfig.isOverloadAlertEnabled(requireContext())
         switchGps?.isChecked = com.example.app_smart_waste.core.storage.AppConfig.isAutoGpsEnabled(requireContext())
 
@@ -532,10 +530,6 @@ class ProfileFragment : Fragment() {
 
         view.findViewById<ImageView>(R.id.btnCloseSystemSettings)?.setOnClickListener { dialog.dismiss() }
         view.findViewById<Button>(R.id.btnSaveSystemSettings)?.setOnClickListener {
-            val newUrl = etBaseUrl?.text?.toString()?.trim()
-            if (!newUrl.isNullOrBlank()) {
-                com.example.app_smart_waste.core.storage.AppConfig.setBaseUrl(requireContext(), newUrl)
-            }
             switchOverload?.let { sw ->
                 com.example.app_smart_waste.core.storage.AppConfig.setOverloadAlertEnabled(requireContext(), sw.isChecked)
             }
@@ -544,7 +538,7 @@ class ProfileFragment : Fragment() {
             }
 
             dialog.dismiss()
-            Toast.makeText(requireContext(), "✅ Đã lưu cấu hình & cập nhật IP Server thành công", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "✅ Đã lưu cấu hình thành công", Toast.LENGTH_SHORT).show()
         }
 
         dialog.show()
@@ -600,28 +594,24 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showLogoutConfirmDialog() {
-        val view = layoutInflater.inflate(R.layout.dialog_logout_confirm, null)
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(view)
-            .create()
-
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-
-        view.findViewById<Button>(R.id.btnCancelLogout)?.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        view.findViewById<Button>(R.id.btnConfirmLogout)?.setOnClickListener {
-            dialog.dismiss()
-            viewModel.logout()
-            val intent = Intent(requireContext(), LoginActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        com.example.app_smart_waste.ui.common.AppConfirmDialog.showDanger(
+            context = requireContext(),
+            title = "Đăng xuất tài khoản",
+            message = "Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc hiện tại? Hệ thống sẽ lưu trữ an toàn toàn bộ lộ trình và điểm thu gom.",
+            actionButtonText = "Đăng xuất",
+            cancelButtonText = "Ở lại",
+            iconRes = R.drawable.ic_logout_red,
+            onConfirm = {
+                viewModel.logout()
+                val intent = Intent(requireContext(), LoginActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+                @Suppress("DEPRECATION")
+                activity?.overridePendingTransition(R.anim.anim_fade_in_smooth, R.anim.anim_fade_out_smooth)
+                activity?.finish()
             }
-            startActivity(intent)
-            activity?.finish()
-        }
-
-        dialog.show()
+        )
     }
 
     // ==========================================

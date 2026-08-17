@@ -110,7 +110,7 @@
         android:background="@drawable/bg_btn_primary_green"
         android:drawableStart="@drawable/ic_play_white"
         android:paddingHorizontal="20dp"
-        android:text="Tiếp tục ca làm"
+        android:text="Tiếp tục thu gom"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="14.5sp"

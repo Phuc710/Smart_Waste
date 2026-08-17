@@ -47,38 +47,37 @@
         android:textColor="@color/profile_text_secondary"
         android:textSize="13.5sp" />
 
-    <!-- Action Buttons Row: [ Hủy ]  [ Tắt nhận việc ] -->
+    <!-- Action Buttons Row: [ Hủy bỏ ]  [ Tắt nhận việc ] -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="22dp"
+        android:layout_marginTop="24dp"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/btnCancelTurnOff"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="6dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_btn_secondary_gray"
-            android:text="Hủy"
+            android:background="@drawable/bg_btn_cancel_gray"
+            android:text="Hủy bỏ"
             android:textAllCaps="false"
-            android:textColor="@color/profile_text_primary"
-            android:textSize="14.5sp"
+            android:textColor="#475569"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
 
         <Button
             android:id="@+id/btnConfirmTurnOff"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="52dp"
             android:layout_weight="1.2"
-            android:background="@drawable/bg_btn_danger_red"
+            android:background="@drawable/bg_btn_danger_solid"
             android:text="Tắt nhận việc"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="14.5sp"
+            android:textSize="15.5sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
     </LinearLayout>

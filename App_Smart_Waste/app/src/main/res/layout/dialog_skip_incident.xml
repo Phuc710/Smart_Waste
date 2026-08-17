@@ -78,34 +78,33 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="24dp"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/btnCancelSkip"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="6dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_btn_secondary_gray"
-            android:text="Hủy"
+            android:background="@drawable/bg_btn_cancel_gray"
+            android:text="Hủy bỏ"
             android:textAllCaps="false"
-            android:textColor="@color/profile_text_primary"
-            android:textSize="14sp"
+            android:textColor="#475569"
+            android:textSize="15sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
 
         <Button
             android:id="@+id/btnConfirmSkip"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="52dp"
             android:layout_weight="1.4"
-            android:background="@drawable/bg_btn_reject_outline"
-            android:text="Gửi &amp; Bỏ qua điểm"
+            android:background="@drawable/bg_btn_danger_solid"
+            android:text="Bỏ qua điểm gom"
             android:textAllCaps="false"
-            android:textColor="#E53935"
-            android:textSize="14sp"
+            android:textColor="@color/white"
+            android:textSize="15.5sp"
             android:textStyle="bold"
             app:backgroundTint="@null" />
     </LinearLayout>
