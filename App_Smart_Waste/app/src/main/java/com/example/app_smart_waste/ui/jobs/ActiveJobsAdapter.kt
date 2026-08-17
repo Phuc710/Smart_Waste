@@ -98,13 +98,18 @@ class ActiveJobsAdapter(
             currentJob = job
             val code = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
             tvCode.text = code
-            tvDispatcher.text = job.employeeName ?: "Nguyễn Văn An"
+            tvDispatcher.text = job.employeeName ?: "Điều phối viên"
 
-            val stopsCount = job.targetBinIds?.size ?: 3
+            val stopsCount = job.targetBinIds?.size ?: (job.items?.size ?: 0)
             tvStops.text = "$stopsCount điểm gom"
-            tvDistance.text = "4.8 km"
-            tvDuration.text = "~25 phút"
-            tvRouteSummary.text = "📍 Chợ Bến Thành → Nguyễn Huệ → Cột Cờ"
+
+            val distMeters = job.routeData?.distanceMeters
+            tvDistance.text = if (distMeters != null && distMeters > 0) String.format(java.util.Locale.US, "%.1f km", distMeters / 1000.0) else "--"
+
+            val durSecs = job.routeData?.durationSeconds
+            tvDuration.text = if (durSecs != null && durSecs > 0) "~${(durSecs / 60).toInt()} phút" else "--"
+
+            tvRouteSummary.text = "📍 Tuyến thu gom $code"
 
             updateCountdown(assignTimeoutMinutes)
 
@@ -147,12 +152,16 @@ class ActiveJobsAdapter(
         fun bind(job: JobDto) {
             val code = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
             tvCode.text = code
-            tvDispatcher.text = job.employeeName ?: "Nguyễn Văn An"
+            tvDispatcher.text = job.employeeName ?: "Điều phối viên"
 
-            val stopsCount = job.targetBinIds?.size ?: 3
+            val stopsCount = job.targetBinIds?.size ?: (job.items?.size ?: 0)
             tvStops.text = "$stopsCount điểm gom"
-            tvDistance.text = "4.8 km"
-            tvDuration.text = "~25 phút"
+
+            val distMeters = job.routeData?.distanceMeters
+            tvDistance.text = if (distMeters != null && distMeters > 0) String.format(java.util.Locale.US, "%.1f km", distMeters / 1000.0) else "--"
+
+            val durSecs = job.routeData?.durationSeconds
+            tvDuration.text = if (durSecs != null && durSecs > 0) "~${(durSecs / 60).toInt()} phút" else "--"
 
             root.setOnClickListener {
                 it.applyPressEffect { onCardClick(job) }
@@ -176,14 +185,14 @@ class ActiveJobsAdapter(
             val code = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
             tvCode.text = code
 
-            val done = job.completedBinIds?.size ?: (job.collectedBins ?: 2)
-            val total = job.targetBinIds?.size ?: (job.totalBins ?: 3)
-            val pct = if (total > 0) (done * 100 / total) else 67
+            val done = job.completedBinIds?.size ?: (job.collectedBins ?: 0)
+            val total = job.targetBinIds?.size ?: (job.totalBins ?: (job.items?.size ?: 0))
+            val pct = if (total > 0) (done * 100 / total) else 0
 
             tvPercent.text = "$pct%"
             tvSummary.text = "$done / $total điểm đã hoàn thành"
             progressBar.progress = pct
-            tvCurrentBin.text = "Điểm hiện tại: BIN_HCM_04 (Nguyễn Huệ)"
+            tvCurrentBin.text = "Tiến độ: $done/$total điểm thu gom"
 
             root.setOnClickListener {
                 it.applyPressEffect { onCardClick(job) }
@@ -204,8 +213,8 @@ class ActiveJobsAdapter(
         fun bind(job: JobDto) {
             val code = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
             tvCode.text = code
-            tvTimer.text = "Đã dừng: 00:14:20"
-            tvReason.text = if (!job.pauseReason.isNullOrBlank()) "Lý do: ${job.pauseReason}" else "Lý do: Kẹt xe giờ cao điểm"
+            tvTimer.text = "Đang tạm dừng"
+            tvReason.text = if (!job.pauseReason.isNullOrBlank()) "Lý do: ${job.pauseReason}" else "Lý do: Tạm dừng nhiệm vụ"
 
             root.setOnClickListener {
                 it.applyPressEffect { onCardClick(job) }

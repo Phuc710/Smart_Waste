@@ -474,6 +474,48 @@ begin
 end;
 $$;
 
+create or replace function public.employee_update(
+    p_token_hash text,
+    p_employee_id uuid,
+    p_full_name text default null,
+    p_password text default null,
+    p_role text default null
+)
+returns table (id uuid, username text, full_name text, role text, is_active boolean)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+    v_admin_id uuid;
+    v_row public.employee_accounts%rowtype;
+begin
+    select e.id into v_admin_id
+    from public.employee_sessions s
+    join public.employee_accounts e on e.id = s.employee_id
+    where s.token_hash = p_token_hash
+      and s.expires_at > clock_timestamp()
+      and e.is_active = true
+      and e.deleted_at is null
+      and e.role = 'admin';
+
+    if v_admin_id is null then raise exception 'Không có quyền quản trị'; end if;
+
+    update public.employee_accounts
+    set full_name = coalesce(nullif(trim(p_full_name), ''), full_name),
+        password_hash = case when p_password is not null and length(trim(p_password)) >= 6 
+                             then extensions.crypt(trim(p_password), extensions.gen_salt('bf', 10)) 
+                             else password_hash end,
+        role = coalesce(p_role, role)
+    where id = p_employee_id and deleted_at is null
+    returning * into v_row;
+
+    if not found then raise exception 'Không tìm thấy tài khoản nhân viên'; end if;
+
+    return query select v_row.id, v_row.username, v_row.full_name, v_row.role, v_row.is_active;
+end;
+$$;
+
 create or replace function public.employee_password_reset(p_password text)
 returns jsonb
 language plpgsql
@@ -1083,7 +1125,8 @@ begin
 
     select count(*)::integer into v_count
     from public.bin_collections
-    where status = 'COMPLETED'
+    where employee_id = v_employee_id
+      and status = 'COMPLETED'
       and completed_at >= v_start
       and completed_at < v_end;
 

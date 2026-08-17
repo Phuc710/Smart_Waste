@@ -40,6 +40,8 @@ class GpsTracker private constructor(private val appContext: Context) {
         }
     }
 
+    fun getLastKnownLocation(): Location? = lastLocation
+
     fun startTracking() {
         if (isRunning) return
         isRunning = true
@@ -53,38 +55,38 @@ class GpsTracker private constructor(private val appContext: Context) {
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!fineGranted && !coarseGranted) {
-            Log.w(TAG, "Location permission not granted, GPS tracking postponed.")
-            return
-        }
+        if (fineGranted || coarseGranted) {
+            try {
+                locationManager?.let { lm ->
+                    val minDistance = com.example.app_smart_waste.core.storage.AppConfig.DEFAULT_GPS_MIN_DISTANCE_METERS
+                    if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        lm.requestLocationUpdates(
+                            LocationManager.GPS_PROVIDER,
+                            10000L,
+                            minDistance,
+                            locationListener
+                        )
+                        val lastGps = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        if (lastGps != null) lastLocation = lastGps
+                    }
 
-        try {
-            locationManager?.let { lm ->
-                val minDistance = com.example.app_smart_waste.core.storage.AppConfig.DEFAULT_GPS_MIN_DISTANCE_METERS
-                if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    lm.requestLocationUpdates(
-                        LocationManager.GPS_PROVIDER,
-                        10000L,
-                        minDistance,
-                        locationListener
-                    )
-                    lastLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                }
-
-                if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                    lm.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER,
-                        10000L,
-                        minDistance,
-                        locationListener
-                    )
-                    if (lastLocation == null) {
-                        lastLocation = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                    if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                        lm.requestLocationUpdates(
+                            LocationManager.NETWORK_PROVIDER,
+                            10000L,
+                            minDistance,
+                            locationListener
+                        )
+                        if (lastLocation == null) {
+                            lastLocation = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                        }
                     }
                 }
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException on location updates: ${e.message}")
             }
-        } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException on location updates: ${e.message}")
+        } else {
+            Log.w(TAG, "Location permission not granted, using fallback coordinates for online heartbeat.")
         }
 
         trackerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -95,6 +97,10 @@ class GpsTracker private constructor(private val appContext: Context) {
                 delay(interval)
             }
         }
+    }
+
+    suspend fun sendImmediateUpdate() {
+        sendLocationUpdate()
     }
 
     fun stopTracking() {

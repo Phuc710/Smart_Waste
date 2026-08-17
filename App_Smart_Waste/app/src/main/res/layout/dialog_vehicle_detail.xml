@@ -74,20 +74,20 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tvVehiclePlateDetail"
+                android:id="@+id/tvVehicleTypeDetail"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="51C-234.56"
+                android:text="Xe ép rác"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvVehicleTypeDetail"
+                android:id="@+id/tvVehiclePlateDetail"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Xe ép rác chuyên dụng 8m³"
+                android:text="Phương tiện thu gom thông minh"
                 android:textColor="@color/profile_text_secondary"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -114,7 +114,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:lineSpacingExtra="3dp"
-            android:text="• Mức nhiên liệu: 78% (Đạt tiêu chuẩn ca làm)\n• Hạn đăng kiểm định kỳ: 12/2026\n• Tình trạng GPS: Đang phát tín hiệu thời gian thực\n• Tải trọng tối đa: 5.5 tấn"
+            android:text="• Trọng tải định mức: 8 tấn\n• Dung tích thùng: 8 m³\n• Mức nhiên liệu: 100% (Đạt tiêu chuẩn ca làm)\n• Hạn đăng kiểm định kỳ: 12/2026\n• Tình trạng GPS: Đang phát tín hiệu thời gian thực"
             android:textColor="@color/profile_text_secondary"
             android:textSize="12.5sp" />
     </LinearLayout>

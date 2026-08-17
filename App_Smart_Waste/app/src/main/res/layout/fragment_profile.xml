@@ -179,27 +179,27 @@
                         android:textSize="12.5sp" />
 
                     <TextView
-                        android:id="@+id/tvVehiclePlateProfile"
+                        android:id="@+id/tvVehicleTypeProfile"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="51C-234.56"
+                        android:text="Xe ép rác"
                         android:textColor="@color/profile_text_primary"
-                        android:textSize="16.5sp"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
-                        android:id="@+id/tvVehicleTypeProfile"
+                        android:id="@+id/tvVehiclePlateProfile"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="1dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="Xe ép rác 8m³"
+                        android:text="8 tấn • 8 m³"
                         android:textColor="@color/profile_text_secondary"
-                        android:textSize="12.5sp" />
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -257,9 +257,9 @@
                         android:layout_marginTop="2dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="Ca sáng"
+                        android:text="Sáng"
                         android:textColor="@color/profile_text_primary"
-                        android:textSize="16.5sp"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -271,7 +271,7 @@
                         android:maxLines="1"
                         android:text="06:00 - 14:00"
                         android:textColor="@color/profile_text_secondary"
-                        android:textSize="12.5sp" />
+                        android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

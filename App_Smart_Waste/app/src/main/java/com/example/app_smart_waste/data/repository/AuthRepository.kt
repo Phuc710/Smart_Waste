@@ -88,7 +88,7 @@ class AuthRepository(private val context: Context) {
                 Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
-            Result.success(true) // Fallback for offline demo
+            Result.failure(Exception("Không thể kết nối máy chủ: ${e.localizedMessage}"))
         }
     }
 

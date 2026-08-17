@@ -157,6 +157,35 @@ async function listLocations(tokenHash) {
     return result;
 }
 
+async function updateEmployee({ tokenHash, employeeId, fullName, password, role }) {
+    try {
+        const rows = await callRpc('employee_update', {
+            p_token_hash: tokenHash,
+            p_employee_id: employeeId,
+            p_full_name: fullName || null,
+            p_password: password || null,
+            p_role: role || null
+        });
+        if (Array.isArray(rows) && rows.length) return rows[0];
+    } catch (err) {
+        logger.warn('employee_update RPC fallback', err.message);
+    }
+
+    // Direct table update fallback
+    const patchBody = {};
+    if (fullName) patchBody.full_name = fullName;
+    if (role) patchBody.role = role;
+
+    if (Object.keys(patchBody).length > 0) {
+        const { supabaseServiceRequest } = require('../core/supabase');
+        await supabaseServiceRequest(`employee_accounts?id=eq.${employeeId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(patchBody)
+        });
+    }
+    return { id: employeeId, full_name: fullName, role };
+}
+
 module.exports = {
     createEmployeeAuthUser,
     deleteEmployeeAuthUser,
@@ -164,6 +193,7 @@ module.exports = {
     logout,
     listEmployees,
     createEmployee,
+    updateEmployee,
     setEmployeeActive,
     deleteEmployee,
     updateLocation,

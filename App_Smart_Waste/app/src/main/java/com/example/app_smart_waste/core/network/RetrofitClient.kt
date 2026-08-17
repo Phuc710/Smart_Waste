@@ -34,10 +34,17 @@ class RetrofitClient private constructor(context: Context) {
 
         val baseUrl = AppConfig.getBaseUrl(context)
 
+        val gson = com.google.gson.GsonBuilder()
+            .setLenient()
+            .registerTypeAdapter(String::class.java, com.google.gson.JsonDeserializer<String> { json, _, _ ->
+                if (json.isJsonPrimitive) json.asString else json.toString()
+            })
+            .create()
+
         val retrofit = Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
 
         apiService = retrofit.create(ApiService::class.java)

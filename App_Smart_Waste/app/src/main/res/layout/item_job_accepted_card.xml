@@ -63,9 +63,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="Nguyễn Văn An"
             android:textColor="@color/profile_text_secondary"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            tools:text="Điều phối viên" />
     </LinearLayout>
 
     <!-- Job ID -->
@@ -74,10 +74,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="#JOB_1723801234"
         android:textColor="@color/profile_text_primary"
         android:textSize="18sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        tools:text="#JOB_1723801234" />
 
     <!-- 3 Metrics Strip -->
     <LinearLayout
@@ -110,10 +110,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:text="3 điểm gom"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="12.5sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="3 điểm gom" />
         </LinearLayout>
 
         <View
@@ -141,10 +141,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:text="4.8 km"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="12.5sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="4.8 km" />
         </LinearLayout>
 
         <View
@@ -172,22 +172,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:text="~25 phút"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="12.5sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="~25 phút" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Route summary: Tuyến: 01 → 02 → 03 -->
+    <!-- Route summary -->
     <TextView
         android:id="@+id/tvAcceptedRouteSummary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:text="🛣 Tuyến lộ trình: 01 → 02 → 03"
         android:textColor="@color/profile_text_secondary"
-        android:textSize="12.5sp" />
+        android:textSize="12.5sp"
+        tools:text="🛣 Tuyến thu gom" />
 
     <!-- Action Button: [ Bắt đầu ca / Xem chi tiết ca ] -->
     <Button

@@ -1,19 +1,12 @@
 package com.example.app_smart_waste.ui.jobs
 
-import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
 import android.view.animation.DecelerateInterpolator
-import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -23,7 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.app_smart_waste.R
-import com.example.app_smart_waste.core.model.JobDisplayModel
+import com.example.app_smart_waste.core.network.RealtimeManager
 import com.example.app_smart_waste.databinding.FragmentJobsBinding
 import com.example.app_smart_waste.ui.history.HistoryAdapter
 import com.example.app_smart_waste.ui.history.JobHistoryDetailActivity
@@ -39,6 +32,7 @@ class JobsFragment : Fragment() {
 
     private lateinit var activeJobsAdapter: ActiveJobsAdapter
     private lateinit var historyAdapter: HistoryAdapter
+    private val realtimeManager by lazy { RealtimeManager(requireContext()) }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,17 +46,12 @@ class JobsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. Shared Unified AppHeader with Settings Gear on Top Right
+        // 1. Shared Unified AppHeader
         binding.appHeader.configure(
             title = "Nhiệm vụ",
-            subtitle = "Quản lý ca thu gom",
-            actionIconRes = R.drawable.ic_settings_gear,
-            onActionClick = {
-                showSettingsDialog()
-            }
+            subtitle = "Quản lý ca thu gom"
         )
 
-        setupWorkAvailability()
         setupTopTabs()
         setupActiveSubFilters()
         setupRecyclerViews()
@@ -78,148 +67,31 @@ class JobsFragment : Fragment() {
         viewModel.loadAllJobData()
     }
 
-    private fun setupWorkAvailability() {
-        binding.switchAvailability.setOnClickListener {
-            val isChecked = binding.switchAvailability.isChecked
-            if (!isChecked) {
-                // User is trying to turn OFF -> Show Confirmation Dialog (Image 4)
-                binding.switchAvailability.isChecked = true // Keep visually ON until confirmed
-                showTurnOffConfirmDialog()
-            } else {
-                // User is turning ON
-                viewModel.setAvailability(true)
-                Toast.makeText(requireContext(), "🟢 Đã bật sẵn sàng nhận việc!", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun showTurnOffConfirmDialog() {
-        val dialog = Dialog(requireContext())
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.dialog_confirm_turn_off_availability)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.90).toInt(),
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-
-        val btnCancel = dialog.findViewById<Button>(R.id.btnCancelTurnOff)
-        val btnConfirm = dialog.findViewById<Button>(R.id.btnConfirmTurnOff)
-
-        btnCancel.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        btnConfirm.setOnClickListener {
-            dialog.dismiss()
-            viewModel.setAvailability(false)
-            binding.switchAvailability.isChecked = false
-            showTurnedOffSuccessDialog()
-        }
-
-        dialog.show()
-    }
-
-    private fun showTurnedOffSuccessDialog() {
-        val dialog = Dialog(requireContext())
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.dialog_turned_off_success)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.90).toInt(),
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-
-        val btnClose = dialog.findViewById<Button>(R.id.btnCloseTurnedOffDialog)
-        btnClose.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
-    }
-
-    private fun showSettingsDialog() {
-        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_settings_shift, null)
-        dialog.setContentView(view)
-
-        // 1. Bind Shift Views
-        val tvStartTime = view.findViewById<TextView>(R.id.tvShiftStartTimeVal)
-        val tvRemaining = view.findViewById<TextView>(R.id.tvShiftRemainingCountdownVal)
-        val tvEndTimeNote = view.findViewById<TextView>(R.id.tvShiftEndTimeNote)
-        val pbTimeline = view.findViewById<android.widget.ProgressBar>(R.id.pbShiftTimeline)
-
-        // 2. Bind Vehicle Views
-        val tvPlate = view.findViewById<TextView>(R.id.tvVehiclePlateNum)
-        val tvModel = view.findViewById<TextView>(R.id.tvVehicleFullModelId)
-        val tvVolume = view.findViewById<TextView>(R.id.tvVehicleVolumeBadge)
-        val tvPayload = view.findViewById<TextView>(R.id.tvVehiclePayloadVal)
-        val tvFuel = view.findViewById<TextView>(R.id.tvVehicleFuelVal)
-        val tvGps = view.findViewById<TextView>(R.id.tvVehicleGpsStatusVal)
-
-        val vehicle = viewModel.assignedVehicle.value
-        tvPlate?.text = vehicle.plateNumber
-        tvModel?.text = vehicle.modelName
-        tvVolume?.text = "🔵 ${vehicle.volume}"
-        tvPayload?.text = vehicle.payload
-        tvFuel?.text = vehicle.fuelStatus
-        tvGps?.text = vehicle.gpsStatus
-
-        // 3. Bind Operational Settings
-        val switchOverload = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchAlertOverload)
-        val switchGps = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchAutoGps)
-        val tvCache = view.findViewById<TextView>(R.id.tvMapCacheUsage)
-        val btnClearCache = view.findViewById<Button>(R.id.btnClearMapCache)
-        val btnClose = view.findViewById<android.widget.ImageView>(R.id.btnCloseSettingsSheet)
-
-        switchOverload?.isChecked = viewModel.isAlertOverload.value
-        switchGps?.isChecked = viewModel.isAutoGps.value
-        tvCache?.text = "Đang sử dụng ${viewModel.mapCacheSizeMb.value} MB"
-
-        switchOverload?.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setAlertOverload(isChecked)
-            com.example.app_smart_waste.core.storage.AppConfig.setOverloadAlertEnabled(requireContext(), isChecked)
-        }
-
-        switchGps?.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setAutoGps(isChecked)
-            com.example.app_smart_waste.core.storage.AppConfig.setAutoGpsEnabled(requireContext(), isChecked)
-        }
-
-        btnClearCache?.setOnClickListener {
-            val freedMb = viewModel.clearMapCache()
-            tvCache?.text = "Đang sử dụng 0.0 MB"
-            Toast.makeText(requireContext(), "✓ Đã xóa $freedMb MB bộ nhớ đệm bản đồ offline!", Toast.LENGTH_SHORT).show()
-        }
-
-        btnClose?.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        // Live Realtime Ticker for Shift Countdown (Updates every 1s) & Live Server Status
-        val shiftJob = viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    viewModel.shiftCountdownState.collectLatest { state ->
-                        tvStartTime?.text = state.startTimeStr
-                        tvRemaining?.text = state.remainingTimeFormatted
-                        tvEndTimeNote?.text = "kết thúc lúc ${state.endTimeStr}"
-                        pbTimeline?.progress = state.progressPercent
-                    }
-                }
-                launch {
-                    viewModel.serverStatus.collectLatest { status ->
-                        tvGps?.text = status
-                    }
+    override fun onStart() {
+        super.onStart()
+        realtimeManager.connect(object : RealtimeManager.Listener {
+            override fun onJobUpdated() {
+                activity?.runOnUiThread {
+                    viewModel.loadAllJobData()
                 }
             }
-        }
 
-        dialog.setOnDismissListener {
-            shiftJob.cancel()
-        }
+            override fun onBinOverfullAlert(alert: RealtimeManager.BinOverfullAlert) {
+                activity?.runOnUiThread {
+                    Toast.makeText(
+                        requireContext(),
+                        "🔴 Cảnh báo thùng ${alert.binId} vượt mức ${alert.levelPercent}%!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    viewModel.loadAllJobData()
+                }
+            }
+        })
+    }
 
-        dialog.show()
+    override fun onStop() {
+        realtimeManager.disconnect()
+        super.onStop()
     }
 
     private fun setupTopTabs() {
@@ -244,7 +116,7 @@ class JobsFragment : Fragment() {
         val whiteColor = ContextCompat.getColor(requireContext(), R.color.white)
 
         if (tabIndex == 0) {
-            // Tab 1: Đang xử lý (Active: Green Background, White Text)
+            // Tab 1: Đang xử lý (Active)
             binding.tabActiveJobs.setBackgroundResource(R.drawable.bg_segmented_tab_active)
             binding.tabActiveJobs.elevation = 2f
             binding.tvLabelTabActive.setTextColor(whiteColor)
@@ -253,7 +125,7 @@ class JobsFragment : Fragment() {
             binding.tvActiveCountBadge.setTextColor(greenPrimary)
             binding.tvActiveCountBadge.typeface = Typeface.DEFAULT_BOLD
 
-            // Tab 2: Lịch sử (Inactive: Transparent Background, Black Text)
+            // Tab 2: Lịch sử (Inactive)
             binding.tabHistoryJobs.background = null
             binding.tabHistoryJobs.elevation = 0f
             binding.tvLabelTabHistory.setTextColor(blackColor)
@@ -265,7 +137,7 @@ class JobsFragment : Fragment() {
             binding.layoutActiveJobsContainer.visibility = View.VISIBLE
             binding.layoutHistoryJobsContainer.visibility = View.GONE
         } else {
-            // Tab 2: Lịch sử (Active: Green Background, White Text)
+            // Tab 2: Lịch sử (Active)
             binding.tabHistoryJobs.setBackgroundResource(R.drawable.bg_segmented_tab_active)
             binding.tabHistoryJobs.elevation = 2f
             binding.tvLabelTabHistory.setTextColor(whiteColor)
@@ -274,7 +146,7 @@ class JobsFragment : Fragment() {
             binding.tvHistoryTabCountBadge.setTextColor(greenPrimary)
             binding.tvHistoryTabCountBadge.typeface = Typeface.DEFAULT_BOLD
 
-            // Tab 1: Đang xử lý (Inactive: Transparent Background, Black Text)
+            // Tab 1: Đang xử lý (Inactive)
             binding.tabActiveJobs.background = null
             binding.tabActiveJobs.elevation = 0f
             binding.tvLabelTabActive.setTextColor(blackColor)
@@ -321,7 +193,7 @@ class JobsFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        // Active Jobs Adapter (supports card click to view Landmark 81 details, accept, start)
+        // Active Jobs Adapter (supports card click to view details, accept, reject, execute)
         activeJobsAdapter = ActiveJobsAdapter(
             onCardClick = { job ->
                 val intent = Intent(requireContext(), JobDetailActivity::class.java).apply {
@@ -331,16 +203,24 @@ class JobsFragment : Fragment() {
                 startActivity(intent)
             },
             onAcceptClick = { job ->
-                viewModel.acceptJob(job.id)
-                Toast.makeText(requireContext(), "✓ Đã tiếp nhận ca #${job.id}!", Toast.LENGTH_SHORT).show()
+                viewModel.acceptJob(job.id) { success ->
+                    if (success) {
+                        Toast.makeText(requireContext(), "✓ Đã tiếp nhận ca #${job.id}!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(requireContext(), "Không thể tiếp nhận ca.", Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
             onRejectClick = { job ->
                 com.example.app_smart_waste.ui.common.AppConfirmDialog.showCancelJobWithReason(
                     context = requireContext(),
                     jobId = job.id,
                     onConfirm = { reason ->
-                        viewModel.rejectJob(job.id, reason)
-                        Toast.makeText(requireContext(), "✓ Đã hủy ca #${job.id} (Lý do: $reason)", Toast.LENGTH_LONG).show()
+                        viewModel.rejectJob(job.id, reason) { success ->
+                            if (success) {
+                                Toast.makeText(requireContext(), "✓ Đã hủy ca #${job.id}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 )
             },
@@ -423,50 +303,23 @@ class JobsFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // 1. Availability State
-                launch {
-                    viewModel.isAvailableForSelfPick.collectLatest { available ->
-                        if (available) {
-                            binding.dotAvailabilityIndicator.setBackgroundResource(R.drawable.bg_dot_active_green)
-                            binding.tvAvailabilityStatusLabel.text = "Sẵn sàng nhận việc"
-                            binding.tvAvailabilityStatusLabel.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_primary))
-                            binding.tvAvailabilityDesc.text = "Hệ thống tự động điều phối nhiệm vụ thu gom tối ưu về xe của bạn."
-                            if (!binding.switchAvailability.isChecked) {
-                                binding.switchAvailability.isChecked = true
-                            }
-                        } else {
-                            binding.dotAvailabilityIndicator.setBackgroundResource(R.drawable.bg_dot_inactive_red)
-                            binding.tvAvailabilityStatusLabel.text = "Tạm nghỉ"
-                            binding.tvAvailabilityStatusLabel.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_primary))
-                            binding.tvAvailabilityDesc.text = "Gạt công tắc để bắt đầu ca và nhận nhiệm vụ thu gom mới."
-                            if (binding.switchAvailability.isChecked) {
-                                binding.switchAvailability.isChecked = false
-                            }
-                        }
-                    }
-                }
-
-                // 0. Centered Loading Indicator & Swipe Refresh
+                // Swipe Refresh Loading State
                 launch {
                     viewModel.isLoading.collectLatest { loading ->
                         binding.jobsSwipeRefresh.isRefreshing = loading
-                        if (loading && viewModel.activeJobs.value.isEmpty()) {
-                            binding.layoutLoadingCenter.visibility = View.VISIBLE
-                        } else {
-                            binding.layoutLoadingCenter.visibility = View.GONE
-                        }
+                        binding.layoutLoadingCenter.visibility = View.GONE
                     }
                 }
 
-                // 1. Live Countdown Ticker
+                // Countdown Ticker
                 launch {
-                    viewModel.countdownTicker.collectLatest { _ ->
+                    viewModel.countdownTicker.collectLatest {
                         activeJobsAdapter.assignTimeoutMinutes = viewModel.assignTimeoutMinutes.value
                         activeJobsAdapter.notifyItemRangeChanged(0, activeJobsAdapter.itemCount, "PAYLOAD_COUNTDOWN")
                     }
                 }
 
-                // 2. Sub-Filter Counts
+                // Sub-Filter Counts
                 launch {
                     viewModel.allActiveCount.collectLatest { count ->
                         binding.chipActiveSubAll.text = "Tất cả ($count)"
@@ -487,7 +340,7 @@ class JobsFragment : Fragment() {
                     }
                 }
 
-                // 3. Displayed Active Jobs
+                // Displayed Active Jobs
                 launch {
                     viewModel.displayedActiveJobs.collectLatest { activeList ->
                         activeJobsAdapter.submitList(activeList)
@@ -501,7 +354,7 @@ class JobsFragment : Fragment() {
                     }
                 }
 
-                // 4. History Jobs List & Filtering
+                // History Jobs List & Filtering
                 launch {
                     viewModel.historyJobs.collectLatest { historyList ->
                         val completedCount = historyList.count { it.statusType.equals("COMPLETED", ignoreCase = true) }
@@ -551,7 +404,6 @@ class JobsFragment : Fragment() {
     private fun playEntranceAnimation() {
         val views = listOf(
             binding.appHeader,
-            binding.cardWorkAvailability,
             binding.layoutJobsSegmentedControl,
             binding.layoutActiveJobsContainer
         )

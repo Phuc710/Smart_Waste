@@ -10,6 +10,20 @@ class JobsRepository(private val context: Context) {
 
     private val api get() = RetrofitClient.getInstance(context).getApi()
 
+    suspend fun getMobileHome(): Result<MobileHomeResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getMobileHome()
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body)
+            } else {
+                Result.failure(Exception("Lỗi tải trang chủ (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getActiveJob(): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
             val response = api.getActiveJob()
@@ -25,15 +39,33 @@ class JobsRepository(private val context: Context) {
 
     suspend fun getJobDetail(jobId: String): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
+            val cleanId = jobId.removePrefix("#")
+
+            // 1. Kiểm tra Active Job trước
             val activeRes = api.getActiveJob()
-            if (activeRes.isSuccessful && activeRes.body()?.job?.id == jobId) {
-                return@withContext Result.success(activeRes.body()?.job)
+            if (activeRes.isSuccessful) {
+                val activeJob = activeRes.body()?.job
+                if (activeJob != null && (activeJob.id == jobId || activeJob.id.removePrefix("#") == cleanId)) {
+                    return@withContext Result.success(activeJob)
+                }
             }
+
+            // 2. Tra cứu trong History
             val historyRes = api.getHistory(100)
-            if (historyRes.isSuccessful && historyRes.body() != null) {
-                val found = historyRes.body()?.find { it.id == jobId }
-                if (found != null) return@withContext Result.success(found)
+            if (historyRes.isSuccessful) {
+                val historyList = historyRes.body().orEmpty()
+                val found = historyList.find { it.id == jobId || it.id.removePrefix("#") == cleanId }
+                if (found != null) {
+                    return@withContext Result.success(found)
+                }
+                return@withContext Result.success(null)
             }
+
+            // 3. Nếu không tìm thấy trong active job và history API báo lỗi
+            if (!historyRes.isSuccessful) {
+                return@withContext Result.failure(Exception("Lỗi tải thông tin nhiệm vụ (HTTP ${historyRes.code()})"))
+            }
+
             Result.success(null)
         } catch (e: Exception) {
             Result.failure(e)
@@ -43,8 +75,9 @@ class JobsRepository(private val context: Context) {
     suspend fun selfPickJob(binIds: List<String>): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
             val response = api.selfPickJob(SelfPickRequest(binIds))
-            if (response.isSuccessful) {
-                Result.success(response.body()?.job)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body.job)
             } else {
                 Result.failure(Exception("Không thể nhận danh sách thùng rác (HTTP ${response.code()})"))
             }
@@ -56,8 +89,9 @@ class JobsRepository(private val context: Context) {
     suspend fun acceptJob(jobId: String): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
             val response = api.acceptJob(jobId)
-            if (response.isSuccessful) {
-                Result.success(response.body()?.job)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body.job)
             } else {
                 Result.failure(Exception("Không thể tiếp nhận nhiệm vụ (HTTP ${response.code()})"))
             }
@@ -66,13 +100,15 @@ class JobsRepository(private val context: Context) {
         }
     }
 
-    suspend fun rejectJob(jobId: String): Result<JobDto?> = withContext(Dispatchers.IO) {
+    suspend fun rejectJob(jobId: String, reason: String? = null): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
-            val response = api.rejectJob(jobId)
-            if (response.isSuccessful) {
-                Result.success(response.body()?.job)
+            val payload = if (!reason.isNullOrBlank()) mapOf("reason" to reason) else emptyMap()
+            val response = api.rejectJob(jobId, payload)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body.job)
             } else {
-                Result.failure(Exception("Không thể hủy nhiệm vụ (HTTP ${response.code()})"))
+                Result.failure(Exception("Không thể từ chối nhiệm vụ (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -82,8 +118,9 @@ class JobsRepository(private val context: Context) {
     suspend fun startJob(jobId: String): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
             val response = api.startJob(jobId)
-            if (response.isSuccessful) {
-                Result.success(response.body()?.job)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body.job)
             } else {
                 Result.failure(Exception("Không thể bắt đầu tuyến thu gom (HTTP ${response.code()})"))
             }
@@ -95,8 +132,9 @@ class JobsRepository(private val context: Context) {
     suspend fun pauseJob(jobId: String, reason: String = "Tạm dừng"): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
             val response = api.pauseJob(jobId, mapOf("reason" to reason))
-            if (response.isSuccessful) {
-                Result.success(response.body()?.job)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body.job)
             } else {
                 Result.failure(Exception("Không thể tạm dừng tuyến (HTTP ${response.code()})"))
             }
@@ -108,8 +146,9 @@ class JobsRepository(private val context: Context) {
     suspend fun resumeJob(jobId: String): Result<JobDto?> = withContext(Dispatchers.IO) {
         try {
             val response = api.resumeJob(jobId)
-            if (response.isSuccessful) {
-                Result.success(response.body()?.job)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body.job)
             } else {
                 Result.failure(Exception("Không thể tiếp tục tuyến (HTTP ${response.code()})"))
             }
@@ -127,8 +166,9 @@ class JobsRepository(private val context: Context) {
         try {
             val req = CollectBinRequest(binId = binId, status = "COLLECTED", note = note, photoUrl = photoUrl)
             val response = api.collectBin(jobId, req)
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body)
             } else {
                 Result.failure(Exception("Không thể ghi nhận thu gom (HTTP ${response.code()})"))
             }
@@ -157,8 +197,9 @@ class JobsRepository(private val context: Context) {
     suspend fun getHistory(limit: Int = 100): Result<List<JobDto>> = withContext(Dispatchers.IO) {
         try {
             val response = api.getHistory(limit)
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body)
             } else {
                 Result.failure(Exception("Lỗi tải lịch sử thu gom (HTTP ${response.code()})"))
             }

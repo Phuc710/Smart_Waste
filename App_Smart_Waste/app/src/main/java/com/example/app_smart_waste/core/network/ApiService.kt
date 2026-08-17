@@ -20,6 +20,9 @@ interface ApiService {
     suspend fun logout(): Response<ActionResponse>
 
     // 2. Mobile Jobs Endpoints
+    @GET("api/mobile/home")
+    suspend fun getMobileHome(): Response<MobileHomeResponse>
+
     @GET("api/mobile/jobs/active")
     suspend fun getActiveJob(): Response<ActiveJobResponse>
 
@@ -30,7 +33,7 @@ interface ApiService {
     suspend fun acceptJob(@Path("id") jobId: String): Response<ActiveJobResponse>
 
     @POST("api/mobile/jobs/{id}/reject")
-    suspend fun rejectJob(@Path("id") jobId: String): Response<ActiveJobResponse>
+    suspend fun rejectJob(@Path("id") jobId: String, @Body body: Map<String, String> = emptyMap()): Response<ActiveJobResponse>
 
     @POST("api/mobile/jobs/{id}/start")
     suspend fun startJob(@Path("id") jobId: String): Response<ActiveJobResponse>
@@ -62,6 +65,12 @@ interface ApiService {
     @POST("api/incidents")
     suspend fun reportIncident(@Body request: IncidentRequest): Response<ActionResponse>
 
+    @POST("api/incidents/uploads")
+    suspend fun prepareIncidentUpload(@Body request: IncidentUploadRequest): Response<IncidentUploadResponse>
+
+    @POST("api/incidents/uploads/{uploadId}/complete")
+    suspend fun completeIncidentUpload(@Path("uploadId") uploadId: String): Response<ActionResponse>
+
     @GET("api/incidents/my")
     suspend fun getMyIncidents(): Response<IncidentsResponse>
 
@@ -72,5 +81,12 @@ interface ApiService {
     // 7. System Settings & Config (Admin Settings from CSDL)
     @GET("api/settings")
     suspend fun getSystemSettings(): Response<SystemSettingsResponse>
+
+    // 8. Map & Route & IoT Commands
+    @POST("api/map/route")
+    suspend fun calculateRoute(@Body request: RouteRequest): Response<RouteResponse>
+
+    @POST("api/bins/{id}/open-lid")
+    suspend fun openLid(@Path("id") binId: String): Response<ActionResponse>
 }
 

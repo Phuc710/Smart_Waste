@@ -5,7 +5,15 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const jobsDb = require('../services/jobsDb');
 const dispatchService = require('../services/dispatchService');
+const mobileHomeService = require('../services/mobileHomeService');
 const { asyncHandler } = require('../middleware/errorHandler');
+
+// GET /api/mobile/home - Field-driver home data, aggregated server-side from Supabase.
+router.get('/home', requireAuth, asyncHandler(async (req, res) => {
+    const home = await mobileHomeService.getHome(req.auth.user.id, req.auth.tokenHash);
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.json(home);
+}));
 
 // GET /api/mobile/jobs/active - Current active job for authenticated employee
 router.get('/jobs/active', requireAuth, asyncHandler(async (req, res) => {

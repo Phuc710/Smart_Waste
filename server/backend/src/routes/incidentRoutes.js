@@ -6,6 +6,32 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const incidentService = require('../services/incidentService');
 const { asyncHandler } = require('../middleware/errorHandler');
 
+// POST /api/incidents/uploads - Reserve a signed, short-lived JPEG upload URL.
+router.post('/uploads', requireAuth, asyncHandler(async (req, res) => {
+    const deviceId = String(req.body.deviceId || req.body.device_id || '').trim();
+    const reason = String(req.body.issueType || req.body.reason || '').trim();
+    const description = String(req.body.description || '');
+    if (!deviceId || !reason) {
+        return res.status(400).json({ error: 'Thiếu mã thùng rác hoặc loại sự cố.' });
+    }
+    const upload = await incidentService.prepareIncidentImageUpload({
+        tokenHash: req.auth.tokenHash,
+        deviceId,
+        reason,
+        description
+    });
+    res.status(201).json({ ok: true, upload });
+}));
+
+// POST /api/incidents/uploads/:uploadId/complete - Verify storage object and create the report.
+router.post('/uploads/:uploadId/complete', requireAuth, asyncHandler(async (req, res) => {
+    if (!/^[a-f0-9-]{36}$/i.test(String(req.params.uploadId || ''))) {
+        return res.status(400).json({ error: 'Phiên tải ảnh không hợp lệ.' });
+    }
+    const result = await incidentService.finalizeIncidentImageUpload(req.auth.tokenHash, req.params.uploadId);
+    res.status(201).json({ ok: true, result: Array.isArray(result) ? result[0] : result });
+}));
+
 // GET /api/incidents/my - List current employee's reported incidents
 router.get('/my', requireAuth, asyncHandler(async (req, res) => {
     const reports = await incidentService.getMyIncidents(req.auth.user.id);
@@ -59,4 +85,3 @@ router.patch('/:id/status', requireAuth, requireAdmin, asyncHandler(async (req, 
 }));
 
 module.exports = router;
-

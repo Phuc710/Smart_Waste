@@ -23,7 +23,8 @@ import {
   WifiOff,
   UserCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Edit3
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
@@ -36,7 +37,7 @@ let employeesCache = {
   lastFetched: 0
 };
 
-export default function EmployeesPage({ currentUser, onNotify }) {
+export default function EmployeesPage({ currentUser, onNotify, onUpdateCurrentUser }) {
   // Navigation View Tab: 'directory' | 'incidents'
   const [activeTab, setActiveTab] = useState('directory');
 
@@ -54,6 +55,13 @@ export default function EmployeesPage({ currentUser, onNotify }) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('staff');
   const [creating, setCreating] = useState(false);
+
+  // Edit Employee Form Modal
+  const [editModalEmployee, setEditModalEmployee] = useState(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editRole, setEditRole] = useState('staff');
+  const [updating, setUpdating] = useState(false);
 
   // Incidents Data (Instant from Cache)
   const [allIncidents, setAllIncidents] = useState(employeesCache.allIncidents);
@@ -208,6 +216,54 @@ export default function EmployeesPage({ currentUser, onNotify }) {
       if (onNotify) onNotify(`Không tạo được nhân viên: ${err.message}`, 'error');
     } finally {
       setCreating(false);
+    }
+  };
+
+  // Open Edit Modal
+  const handleOpenEdit = (emp) => {
+    setEditModalEmployee(emp);
+    setEditFullName(emp.full_name || '');
+    setEditPassword('');
+    setEditRole(emp.role || 'staff');
+  };
+
+  // Save Edit Employee
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editModalEmployee) return;
+    if (!editFullName.trim()) {
+      if (onNotify) onNotify('Họ và tên không được để trống.', 'error');
+      return;
+    }
+    setUpdating(true);
+    try {
+      const payload = {
+        fullName: editFullName.trim(),
+        role: editRole
+      };
+      if (editPassword.trim()) {
+        payload.password = editPassword.trim();
+      }
+      await api.updateEmployee(editModalEmployee.id, payload);
+      if (onNotify) onNotify(`Đã cập nhật thông tin "${editFullName.trim()}" thành công!`, 'success');
+
+      setEmployees(prev => prev.map(item => item.id === editModalEmployee.id ? { 
+        ...item, 
+        full_name: editFullName.trim(), 
+        role: editRole 
+      } : item));
+
+      if (editModalEmployee.id === currentUser?.id || editModalEmployee.username === currentUser?.username) {
+        if (onUpdateCurrentUser) {
+          onUpdateCurrentUser({ full_name: editFullName.trim(), role: editRole });
+        }
+      }
+
+      setEditModalEmployee(null);
+    } catch (err) {
+      if (onNotify) onNotify(`Lỗi cập nhật: ${err.message}`, 'error');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -881,10 +937,34 @@ export default function EmployeesPage({ currentUser, onNotify }) {
                             </button>
                           </td>
 
-                          {/* Actions: Lock Icon + Delete Icon (Centered) */}
+                          {/* Actions: Edit Icon + Lock Icon + Delete Icon (Centered) */}
                           <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                               
+                              {/* Edit Button (Available for all accounts including Admin) */}
+                              <button
+                                onClick={() => handleOpenEdit(emp)}
+                                style={{
+                                  padding: '5px 9px',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#eff6ff',
+                                  color: '#2563eb',
+                                  border: '1px solid #bfdbfe',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  transition: 'all 120ms ease'
+                                }}
+                                title="Chỉnh sửa họ tên & thông tin tài khoản"
+                              >
+                                <Edit3 size={13} />
+                                <span>Sửa</span>
+                              </button>
+
                               {/* Lock / Unlock Icon Button */}
                               {!isSelf ? (
                                 <button
@@ -1660,6 +1740,189 @@ export default function EmployeesPage({ currentUser, onNotify }) {
                 </button>
               </div>
 
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6.5. MODAL: CHỈNH SỬA THÔNG TIN NHÂN SỰ */}
+      {editModalEmployee && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '480px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#fafbfc'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: '#eff6ff',
+                  color: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Edit3 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Chỉnh sửa Thông tin Nhân sự
+                  </h3>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0, marginTop: '2px' }}>
+                    Tài khoản: <strong style={{ fontFamily: 'monospace', color: '#2563eb' }}>{editModalEmployee.username}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditModalEmployee(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  display: 'flex'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveEdit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  Họ và tên hiển thị <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: Nguyễn Phúc, Phúc Admin..."
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13.5px',
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  Vai trò phân quyền
+                </label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13.5px',
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="admin">Quản trị viên (Admin Web)</option>
+                  <option value="staff">Nhân viên thu gom (Staff App)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  Mật khẩu mới <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Để trống nếu không đổi mật khẩu)</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)..."
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13.5px',
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditModalEmployee(null)}
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: '10px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  style={{
+                    padding: '9px 22px',
+                    borderRadius: '10px',
+                    backgroundColor: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
+                  }}
+                >
+                  {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

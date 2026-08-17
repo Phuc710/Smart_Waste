@@ -74,6 +74,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+  updateEmployee: (id, data) => request(`/employees/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
   setEmployeeActive: (id, isActive) => request(`/employees/${encodeURIComponent(id)}/active`, {
     method: 'PATCH',
     body: JSON.stringify({ isActive })

@@ -59,10 +59,10 @@ async function getIncidents() {
         }
         const bin = stateStore.latestBins.get(row.device_id) || {};
         return {
-            id: row.id,
+            id: String(row.id),
             employee_id: row.employee_id,
             employee_name: row.employee_name || 'Nhân viên thực địa',
-            device_id: row.device_id,
+            device_id: String(row.device_id || ''),
             bin_name: bin.name || row.device_id,
             bin_location: bin.location || '',
             reason: row.reason,
@@ -102,9 +102,9 @@ async function getEmployeeIncidents(employeeId, tokenHash) {
         }
         const bin = stateStore.latestBins.get(row.device_id) || {};
         return {
-            id: row.id,
+            id: String(row.id),
             employee_id: employeeId,
-            device_id: row.device_id,
+            device_id: String(row.device_id || ''),
             bin_name: bin.name || row.device_id,
             bin_location: bin.location || '',
             reason: row.reason,
@@ -183,6 +183,43 @@ async function createIncident({ deviceId, employeeId, employeeName, reason, desc
     return report;
 }
 
+async function prepareIncidentImageUpload({ tokenHash, deviceId, reason, description }) {
+    const upload = await callRpc('employee_incident_upload_prepare', {
+        p_token_hash: tokenHash,
+        p_device_id: deviceId,
+        p_reason: reason,
+        p_description: description || ''
+    });
+    const data = Array.isArray(upload) ? upload[0] : upload;
+    if (!data?.upload_id || !data?.object_path) {
+        throw new Error('Không thể tạo phiên tải ảnh sự cố.');
+    }
+
+    const encodedPath = String(data.object_path).split('/').map(encodeURIComponent).join('/');
+    const signed = await storageServiceRequest(`object/upload/sign/incident-images/${encodedPath}`, {
+        method: 'POST',
+        body: JSON.stringify({})
+    });
+    const signedPath = signed?.url || signed?.signedURL || signed?.signedUrl;
+    if (!signedPath) throw new Error('Không thể tạo Signed URL cho ảnh sự cố.');
+
+    return {
+        uploadId: data.upload_id,
+        objectPath: data.object_path,
+        expiresAt: data.expires_at,
+        uploadUrl: /^https?:\/\//i.test(signedPath)
+            ? signedPath
+            : `${env.SUPABASE_URL}/storage/v1${signedPath.startsWith('/') ? '' : '/'}${signedPath}`
+    };
+}
+
+async function finalizeIncidentImageUpload(tokenHash, uploadId) {
+    return callRpc('employee_incident_upload_finalize', {
+        p_token_hash: tokenHash,
+        p_upload_id: uploadId
+    });
+}
+
 async function getMyIncidents(employeeId) {
     try {
         const resource = 'incident_reports'
@@ -198,8 +235,8 @@ async function getMyIncidents(employeeId) {
             }
             const bin = stateStore.latestBins.get(row.device_id) || {};
             return {
-                id: row.id,
-                device_id: row.device_id,
+                id: String(row.id),
+                device_id: String(row.device_id || ''),
                 bin_name: bin.name || row.device_id,
                 bin_location: bin.location || '',
                 reason: row.reason,
@@ -221,10 +258,11 @@ module.exports = {
     validIncidentObjectPath,
     createIncidentSignedUrl,
     createIncident,
+    prepareIncidentImageUpload,
+    finalizeIncidentImageUpload,
     getIncidents,
     getMyIncidents,
     getEmployeeIncidents,
     getIncidentImageRedirect,
     updateIncidentStatus
 };
-

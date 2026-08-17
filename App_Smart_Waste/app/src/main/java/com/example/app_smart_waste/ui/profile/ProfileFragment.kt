@@ -6,6 +6,8 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -16,6 +18,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
@@ -30,6 +33,7 @@ import com.example.app_smart_waste.core.model.SmartBinDto
 import com.example.app_smart_waste.core.utils.applyStatusBarTopPadding
 import com.example.app_smart_waste.databinding.FragmentProfileBinding
 import com.example.app_smart_waste.ui.auth.LoginActivity
+import com.example.app_smart_waste.ui.incident.IncidentHistoryActivity
 import com.example.app_smart_waste.ui.incident.IncidentReportActivity
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -37,6 +41,9 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
 
 class ProfileFragment : Fragment() {
 
@@ -175,7 +182,8 @@ class ProfileFragment : Fragment() {
         // 9. Menu 2: Lịch sử báo cáo sự cố (incident_reports)
         binding.menuIncidentHistory.setOnClickListener {
             it.applyPressEffect {
-                showIncidentHistoryBottomSheet()
+                val intent = Intent(requireContext(), IncidentHistoryActivity::class.java)
+                startActivity(intent)
             }
         }
 
@@ -204,181 +212,6 @@ class ProfileFragment : Fragment() {
     // ==========================================
     // POPUP & BOTTOM SHEET DIALOG IMPLEMENTATIONS
     // ==========================================
-
-    private fun showIncidentHistoryBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext())
-        val view = layoutInflater.inflate(R.layout.dialog_incident_history, null)
-        dialog.setContentView(view)
-
-        val incidents = viewModel.incidentsState.value
-        val container = view.findViewById<LinearLayout>(R.id.llIncidentsListContainer)
-        val tvTotal = view.findViewById<TextView>(R.id.tvIncidentTotalCount)
-
-        tvTotal?.text = "Tổng số: ${incidents.size} sự cố đã gửi"
-        container?.removeAllViews()
-
-        if (incidents.isEmpty()) {
-            val emptyTv = TextView(requireContext()).apply {
-                text = "Bạn chưa gửi báo cáo sự cố nào."
-                setTextColor(Color.parseColor("#64748B"))
-                textSize = 14f
-                setPadding(0, 40, 0, 40)
-                gravity = android.view.Gravity.CENTER
-            }
-            container?.addView(emptyTv)
-        } else {
-            incidents.forEach { item ->
-                val cardView = layoutInflater.inflate(R.layout.item_incident_card, container, false)
-
-                cardView.findViewById<TextView>(R.id.tvIncidentBinName)?.text = item.binName ?: "Thùng #${item.deviceId}"
-                cardView.findViewById<TextView>(R.id.tvIncidentReason)?.text = item.reason
-                cardView.findViewById<TextView>(R.id.tvIncidentDescription)?.text = if (!item.description.isNullOrBlank()) item.description else "Không có mô tả bổ sung"
-                cardView.findViewById<TextView>(R.id.tvIncidentLocation)?.text = if (!item.binLocation.isNullOrBlank()) "📍 ${item.binLocation}" else "📍 Tuyến thu gom Quận 1"
-                val formattedTime = formatIncidentTime(item.createdAt)
-                cardView.findViewById<TextView>(R.id.tvIncidentTime)?.text = formattedTime
-
-                // 3 Status Badges: WAITING (Vàng) | IN_REVIEW (Cam) | RESOLVED (Xanh lá)
-                val tvStatus = cardView.findViewById<TextView>(R.id.tvIncidentStatusBadge)
-                when (item.status.uppercase()) {
-                    "RESOLVED", "DONE" -> {
-                        tvStatus?.text = "ĐÃ XỬ LÝ XONG"
-                        tvStatus?.setTextColor(Color.parseColor("#15803D"))
-                        tvStatus?.setBackgroundColor(Color.parseColor("#DCFCE7"))
-                    }
-                    "IN_REVIEW", "REVIEWING" -> {
-                        tvStatus?.text = "ĐANG KIỂM TRA"
-                        tvStatus?.setTextColor(Color.parseColor("#C2410C"))
-                        tvStatus?.setBackgroundColor(Color.parseColor("#FFEDD5"))
-                    }
-                    else -> { // "WAITING" / "NEW"
-                        tvStatus?.text = "CHỜ TIẾP NHẬN"
-                        tvStatus?.setTextColor(Color.parseColor("#B45309"))
-                        tvStatus?.setBackgroundColor(Color.parseColor("#FEF3C7"))
-                    }
-                }
-
-                val btnPhoto = cardView.findViewById<View>(R.id.btnViewIncidentPhoto)
-                if (item.hasPhoto || !item.imageUrl.isNullOrBlank()) {
-                    btnPhoto?.visibility = View.VISIBLE
-                    btnPhoto?.setOnClickListener {
-                        showPhotoPreviewDialog(item.imageUrl, item.binName ?: item.deviceId)
-                    }
-                } else {
-                    btnPhoto?.visibility = View.GONE
-                }
-
-                container?.addView(cardView)
-            }
-        }
-
-        view.findViewById<ImageView>(R.id.btnCloseIncidents)?.setOnClickListener { dialog.dismiss() }
-        view.findViewById<Button>(R.id.btnDoneIncidents)?.setOnClickListener { dialog.dismiss() }
-
-        // Open + Báo Cáo Sự Cố Mới BottomSheet
-        view.findViewById<Button>(R.id.btnNewIncidentReport)?.setOnClickListener {
-            dialog.dismiss()
-            showCreateIncidentBottomSheet()
-        }
-
-        dialog.show()
-    }
-
-    private fun showCreateIncidentBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext())
-        val view = layoutInflater.inflate(R.layout.dialog_create_incident, null)
-        dialog.setContentView(view)
-
-        val bins = viewModel.binsState.value
-        val spBins = view.findViewById<Spinner>(R.id.spTargetBin)
-        val etDesc = view.findViewById<TextInputEditText>(R.id.etIncidentDescription)
-        val tvCounter = view.findViewById<TextView>(R.id.tvDescCharCounter)
-        val rgReason = view.findViewById<RadioGroup>(R.id.rgIncidentReason)
-        val btnCapture = view.findViewById<Button>(R.id.btnCapturePhoto)
-        val ivPhoto = view.findViewById<ImageView>(R.id.ivIncidentPhotoPreview)
-        val tvPhotoStatus = view.findViewById<TextView>(R.id.tvPhotoStatus)
-        val btnSubmit = view.findViewById<Button>(R.id.btnSubmitEmergencyIncident)
-
-        // Setup Bins Spinner with real dynamic data from Backend
-        val currentBins = viewModel.binsState.value
-        val initialOptions = if (currentBins.isNotEmpty()) {
-            currentBins.map { "${it.deviceId} - ${it.name ?: it.location ?: "Thùng rác thông minh"}" }
-        } else {
-            listOf("Đang tải danh sách thùng rác...")
-        }
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, initialOptions)
-        spBins?.adapter = adapter
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.binsState.collectLatest { freshBins ->
-                if (freshBins.isNotEmpty()) {
-                    val updatedOptions = freshBins.map { "${it.deviceId} - ${it.name ?: it.location ?: "Thùng rác thông minh"}" }
-                    spBins?.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, updatedOptions)
-                }
-            }
-        }
-
-        // Character counter
-        etDesc?.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                tvCounter?.text = "${s?.length ?: 0}/500"
-            }
-            override fun afterTextChanged(s: Editable?) {}
-        })
-
-        // Capture Photo Simulation (Camera intent / compression)
-        var attachedPhotoUrl: String? = null
-        btnCapture?.setOnClickListener {
-            attachedPhotoUrl = "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80"
-            ivPhoto?.setImageResource(R.drawable.login_bg)
-            tvPhotoStatus?.text = "✓ Đã chụp ảnh (Kích thước: 1.2 MB)"
-            tvPhotoStatus?.setTextColor(Color.parseColor("#15803D"))
-            Toast.makeText(requireContext(), "Đã chụp và nén ảnh hiện trường (< 5MB)", Toast.LENGTH_SHORT).show()
-        }
-
-        view.findViewById<ImageView>(R.id.btnCloseCreateIncident)?.setOnClickListener { dialog.dismiss() }
-
-        btnSubmit?.setOnClickListener {
-            val selectedBinText = spBins?.selectedItem?.toString().orEmpty()
-            val binId = selectedBinText.substringBefore(" - ").trim()
-            if (binId.isBlank() || binId.startsWith("Đang tải")) {
-                Toast.makeText(requireContext(), "Vui lòng chọn thùng rác gặp sự cố", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val reason = when (rgReason?.checkedRadioButtonId) {
-                R.id.rbHingeBroken -> "Gãy bản lề / Hỏng nắp thùng"
-                R.id.rbSensorFault -> "Hỏng cảm biến khoảng cách / Báo sai % rác"
-                R.id.rbOverflow -> "Rác tràn đầy miệng thùng"
-                R.id.rbOtherReason -> "Sự cố khác..."
-                else -> "Nắp kẹt không mở / không đóng được"
-            }
-
-            val desc = etDesc?.text?.toString()?.trim().orEmpty()
-            if (desc.isBlank()) {
-                etDesc?.error = "Vui lòng nhập mô tả chi tiết sự cố"
-                return@setOnClickListener
-            }
-
-            btnSubmit.isEnabled = false
-            btnSubmit.text = "Đang gửi báo cáo khẩn cấp..."
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                val res = viewModel.submitIncident(binId, reason, desc, attachedPhotoUrl)
-                if (res.isSuccess) {
-                    dialog.dismiss()
-                    Toast.makeText(requireContext(), "🚨 Đã gửi Báo cáo Sự cố khẩn cấp thành công!", Toast.LENGTH_LONG).show()
-                    showIncidentHistoryBottomSheet()
-                } else {
-                    btnSubmit.isEnabled = true
-                    btnSubmit.text = "🚨 Gửi Báo Cáo Khẩn Cấp"
-                    Toast.makeText(requireContext(), "Gửi thất bại, vui lòng thử lại.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        dialog.show()
-    }
 
     private fun showPhotoPreviewDialog(photoUrl: String?, binTitle: String) {
         val view = layoutInflater.inflate(R.layout.dialog_image_preview, null)
@@ -514,6 +347,75 @@ class ProfileFragment : Fragment() {
         val view = layoutInflater.inflate(R.layout.dialog_system_settings, null)
         dialog.setContentView(view)
 
+        // 1. Bind Phương tiện phụ trách (Default: Xe ép rác, 8 tấn, 100%)
+        val stats = viewModel.statsState.value
+        view.findViewById<TextView>(R.id.tvSettingsVehiclePlate)?.text = "Xe ép rác"
+        view.findViewById<TextView>(R.id.tvSettingsVehicleType)?.text = "Phương tiện thu gom thông minh"
+        view.findViewById<TextView>(R.id.tvSettingsVehicleWeight)?.text = "8 tấn"
+        view.findViewById<TextView>(R.id.tvSettingsVehicleFuel)?.text = "100%"
+
+        // 2. Realtime Shift Countdown & Progress (GMT+7)
+        val tvStartTime = view.findViewById<TextView>(R.id.tvSettingsShiftStartTime)
+        val tvDuration = view.findViewById<TextView>(R.id.tvSettingsShiftDuration)
+        val tvRemaining = view.findViewById<TextView>(R.id.tvSettingsShiftRemainingTime)
+        val tvEndTime = view.findViewById<TextView>(R.id.tvSettingsShiftEndTime)
+        val progressShift = view.findViewById<ProgressBar>(R.id.progressShiftTime)
+
+        tvStartTime?.text = "06:00"
+        tvDuration?.text = "Tự động kết thúc sau 08:00:00"
+
+        val handler = Handler(Looper.getMainLooper())
+        val countdownRunnable = object : Runnable {
+            override fun run() {
+                val tz = TimeZone.getTimeZone("GMT+7")
+                val now = Calendar.getInstance(tz)
+                val hour = now.get(Calendar.HOUR_OF_DAY)
+                val min = now.get(Calendar.MINUTE)
+                val sec = now.get(Calendar.SECOND)
+
+                val currentSecOfDay = hour * 3600 + min * 60 + sec
+                val shiftStartSec = 6 * 3600  // 06:00:00
+                val shiftEndSec = 14 * 3600   // 14:00:00
+                val totalShiftSec = 8 * 3600  // 8 hours = 28800s
+
+                if (currentSecOfDay in shiftStartSec..shiftEndSec) {
+                    val remainingSec = shiftEndSec - currentSecOfDay
+                    val remH = remainingSec / 3600
+                    val remM = (remainingSec % 3600) / 60
+                    val remS = remainingSec % 60
+                    tvRemaining?.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", remH, remM, remS)
+                    tvEndTime?.text = "kết thúc lúc 14:00"
+
+                    val elapsedSec = currentSecOfDay - shiftStartSec
+                    val progressPercent = ((elapsedSec.toDouble() / totalShiftSec.toDouble()) * 100).toInt().coerceIn(0, 100)
+                    progressShift?.progress = progressPercent
+                } else if (currentSecOfDay < shiftStartSec) {
+                    val secUntilStart = shiftStartSec - currentSecOfDay
+                    val remH = secUntilStart / 3600
+                    val remM = (secUntilStart % 3600) / 60
+                    val remS = secUntilStart % 60
+                    tvRemaining?.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", remH, remM, remS)
+                    tvEndTime?.text = "Bắt đầu ca sáng lúc 06:00"
+                    progressShift?.progress = 0
+                } else {
+                    val secUntilNext = (24 * 3600 - currentSecOfDay) + shiftStartSec
+                    val remH = secUntilNext / 3600
+                    val remM = (secUntilNext % 3600) / 60
+                    val remS = secUntilNext % 60
+                    tvRemaining?.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", remH, remM, remS)
+                    tvEndTime?.text = "Ca sáng tiếp theo lúc 06:00"
+                    progressShift?.progress = 100
+                }
+
+                handler.postDelayed(this, 1000)
+            }
+        }
+
+        handler.post(countdownRunnable)
+        dialog.setOnDismissListener {
+            handler.removeCallbacks(countdownRunnable)
+        }
+
         val switchOverload = view.findViewById<MaterialSwitch>(R.id.switchOverloadAlert)
         val switchGps = view.findViewById<MaterialSwitch>(R.id.switchGpsAuto)
         val tvCache = view.findViewById<TextView>(R.id.tvCacheSize)
@@ -555,7 +457,7 @@ class ProfileFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvReportWasteTons)?.text = "${stats.wasteTons} tấn"
         view.findViewById<TextView>(R.id.tvReportDistanceKm)?.text = "${stats.distanceKm.toInt()} km"
         view.findViewById<TextView>(R.id.tvReportWorkHours)?.text = "${stats.workHours} giờ"
-        view.findViewById<TextView>(R.id.tvReportVehicle)?.text = "${stats.vehiclePlate} (${stats.vehicleType})"
+        view.findViewById<TextView>(R.id.tvReportVehicle)?.text = "${stats.vehicleType} (8 tấn)"
 
         view.findViewById<ImageView>(R.id.btnCloseReport)?.setOnClickListener { dialog.dismiss() }
         view.findViewById<Button>(R.id.btnDoneReport)?.setOnClickListener { dialog.dismiss() }
@@ -569,8 +471,8 @@ class ProfileFragment : Fragment() {
         val view = layoutInflater.inflate(R.layout.dialog_vehicle_detail, null)
         dialog.setContentView(view)
 
-        view.findViewById<TextView>(R.id.tvVehiclePlateDetail)?.text = stats.vehiclePlate
         view.findViewById<TextView>(R.id.tvVehicleTypeDetail)?.text = stats.vehicleType
+        view.findViewById<TextView>(R.id.tvVehiclePlateDetail)?.text = "Phương tiện thu gom thông minh"
 
         view.findViewById<ImageView>(R.id.btnCloseVehicleDetail)?.setOnClickListener { dialog.dismiss() }
         view.findViewById<Button>(R.id.btnDoneVehicleDetail)?.setOnClickListener { dialog.dismiss() }

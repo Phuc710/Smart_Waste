@@ -268,7 +268,7 @@
                 android:id="@+id/tvReportVehicle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="51C-234.56 (Xe ép rác 8m³)"
+                android:text="Xe ép rác (8 tấn)"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="13.5sp"
                 android:textStyle="bold" />

@@ -1,6 +1,5 @@
 package com.example.app_smart_waste.ui.jobs
 
-import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -9,63 +8,122 @@ import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.app_smart_waste.R
+import com.example.app_smart_waste.core.model.JobDto
+import com.example.app_smart_waste.data.repository.BinsRepository
+import com.example.app_smart_waste.data.repository.JobsRepository
 import com.example.app_smart_waste.databinding.ActivityJobDetailBinding
+import com.example.app_smart_waste.ui.route.RouteDetailActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class JobDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityJobDetailBinding
-    private val viewModel: JobsViewModel by viewModels()
-    private var jobId: String = "JOB_1723801234"
-    private var jobStatus: String = "ASSIGNED"
+    private val jobsRepo by lazy { JobsRepository(this) }
+    private val binsRepo by lazy { BinsRepository(this) }
+
+    private var jobId: String = ""
+    private var currentJob: JobDto? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityJobDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        jobId = intent.getStringExtra("JOB_ID") ?: "JOB_1723801234"
-        jobStatus = intent.getStringExtra("JOB_STATUS") ?: "ASSIGNED"
-        val code = if (jobId.startsWith("JOB_") || jobId.startsWith("#")) jobId else "#JOB_$jobId"
+        jobId = intent.getStringExtra("JOB_ID").orEmpty()
+        if (jobId.isBlank()) {
+            Toast.makeText(this, "Không tìm thấy mã nhiệm vụ.", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        val displayCode = formatJobCode(jobId)
 
         // 1. Shared Unified Header
         binding.detailAppHeader.configure(
             title = "Chi tiết nhiệm vụ",
-            subtitle = code,
+            subtitle = displayCode,
             navIconRes = R.drawable.ic_arrow_back,
             onNavClick = { finish() }
         )
 
-        bindHeroSummary(code)
-        populateBinsList()
         setupListeners()
         playEntranceAnimation()
+        loadJobData()
     }
 
-    private fun bindHeroSummary(code: String) {
-        binding.tvJobDetailCode.text = code
-        binding.tvJobDetailDispatcher.text = "👤 Điều phối bởi: Nguyễn Văn An (Tổng đài)"
+    override fun onResume() {
+        super.onResume()
+        loadJobData()
+    }
 
-        when (jobStatus) {
+    private fun loadJobData() {
+        lifecycleScope.launch {
+            val jobRes = jobsRepo.getJobDetail(jobId)
+            val job = jobRes.getOrNull()
+            if (job != null) {
+                currentJob = job
+                bindJobDetails(job)
+            } else {
+                binding.tvJobDetailCode.text = "Không tìm thấy ca #$jobId"
+            }
+
+            val binsRes = binsRepo.getBins()
+            val binsMap = binsRes.getOrDefault(emptyList()).associateBy { it.deviceId }
+            populateBinsList(job, binsMap)
+        }
+    }
+
+    private fun bindJobDetails(job: JobDto) {
+        val code = formatJobCode(job.id)
+        binding.tvJobDetailCode.text = code
+        binding.detailAppHeader.setSubtitle("Mã ca: $code")
+
+        // Dispatcher source
+        binding.tvJobDetailDispatcher.text = when {
+            job.employeeName?.isNotBlank() == true -> "Nhiệm vụ: ${job.employeeName}"
+            else -> "Nguồn nhiệm vụ: Điều phối tự động"
+        }
+
+        // Metrics
+        val targetBins = when {
+            !job.targetBinIds.isNullOrEmpty() -> job.targetBinIds!!
+            !job.items.isNullOrEmpty() -> job.items!!.map { it.binId }
+            else -> emptyList()
+        }
+        binding.tvJobDetailStops.text = "${targetBins.size}"
+
+        val distMeters = job.routeData?.distanceMeters
+        binding.tvJobDetailDistance.text = distMeters?.takeIf { it > 0.0 }
+            ?.let { String.format(java.util.Locale.US, "%.1f km", it / 1000.0) }
+            ?: "--"
+
+        val durSecs = job.routeData?.durationSeconds
+        binding.tvJobDetailDuration.text = durSecs?.takeIf { it > 0.0 }
+            ?.let { "${(it / 60.0).roundToInt()} phút" }
+            ?: "--"
+
+        // Status-driven UI
+        when (job.status.uppercase()) {
             "ASSIGNED", "PENDING" -> {
                 val timeoutMinutes = com.example.app_smart_waste.core.storage.AppConfig.getAssignTimeoutMinutes(this)
                 binding.tvJobDetailStatusPill.setTextColor(Color.parseColor("#D97706"))
                 binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_badge_pill_yellow)
                 binding.btnDetailAcceptOrStartJob.text = "Nhận nhiệm vụ"
                 binding.btnDetailRejectJob.visibility = View.VISIBLE
+                binding.layoutDetailBottomActions.visibility = View.VISIBLE
 
                 lifecycleScope.launch {
                     repeatOnLifecycle(Lifecycle.State.STARTED) {
                         while (isActive) {
-                            val remSec = com.example.app_smart_waste.core.utils.TimeUtils.calculateJobCountdownSeconds(null, timeoutMinutes)
+                            val remSec = com.example.app_smart_waste.core.utils.TimeUtils.calculateJobCountdownSeconds(job.assignedAt, timeoutMinutes)
                             binding.tvJobDetailStatusPill.text = com.example.app_smart_waste.core.utils.TimeUtils.formatJobCountdownText(remSec)
                             delay(1000)
                         }
@@ -78,99 +136,150 @@ class JobDetailActivity : AppCompatActivity() {
                 binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_role_badge_pill)
                 binding.btnDetailAcceptOrStartJob.text = "Bắt đầu thu gom"
                 binding.btnDetailRejectJob.visibility = View.GONE
+                binding.layoutDetailBottomActions.visibility = View.VISIBLE
             }
-            else -> {
-                binding.tvJobDetailStatusPill.text = "Đang thực hiện"
+            "IN_PROGRESS", "PAUSED" -> {
+                binding.tvJobDetailStatusPill.text = if (job.status.uppercase() == "PAUSED") "Tạm dừng" else "Đang thực hiện"
                 binding.tvJobDetailStatusPill.setTextColor(Color.parseColor("#1D4ED8"))
                 binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_tag_dang_thuc_hien)
                 binding.btnDetailAcceptOrStartJob.text = "Tiếp tục thu gom"
                 binding.btnDetailRejectJob.visibility = View.GONE
+                binding.layoutDetailBottomActions.visibility = View.VISIBLE
+            }
+            else -> {
+                // Completed, Cancelled, Rejected, Expired -> Read-only
+                binding.tvJobDetailStatusPill.text = job.status
+                binding.tvJobDetailStatusPill.setTextColor(Color.GRAY)
+                binding.tvJobDetailStatusPill.setBackgroundResource(R.drawable.bg_role_badge_pill)
+                binding.layoutDetailBottomActions.visibility = View.GONE
             }
         }
     }
 
-    private fun populateBinsList() {
-        data class BinDetailInfo(
-            val id: String,
-            val name: String,
-            val address: String,
-            val coords: String,
-            val fillLevel: Int,
-            val lidStatus: String,
-            val lastSeen: String
-        )
+    private fun populateBinsList(job: JobDto?, binsMap: Map<String, com.example.app_smart_waste.core.model.SmartBinDto>) {
+        val targetBinIds = when {
+            job?.targetBinIds?.isNotEmpty() == true -> job.targetBinIds!!
+            job?.items?.isNotEmpty() == true -> job.items!!.map { it.binId }
+            else -> emptyList()
+        }
 
-        val bins = listOf(
-            BinDetailInfo(
-                id = "BIN_HCM_04",
-                name = "Thùng rác Landmark 81",
-                address = "Công viên Central Park, Vinhomes Central Park, Bình Thạnh",
-                coords = "10.7950, 106.7219",
-                fillLevel = 88,
-                lidStatus = "🔓 Đang mở",
-                lastSeen = "22:38:53"
-            ),
-            BinDetailInfo(
-                id = "BIN_HCM_01",
-                name = "Thùng rác Chợ Bến Thành",
-                address = "Cổng Tây Chợ Bến Thành, Đường Phan Chu Trinh, Q1",
-                coords = "10.7725, 106.6980",
-                fillLevel = 92,
-                lidStatus = "🔒 Đã đóng",
-                lastSeen = "22:35:10"
-            ),
-            BinDetailInfo(
-                id = "BIN_HCM_07",
-                name = "Thùng rác Cột Cờ Thủ Ngữ",
-                address = "Vườn hoa Bến Bạch Đằng, Tôn Đức Thắng, Q1",
-                coords = "10.7712, 106.7061",
-                fillLevel = 78,
-                lidStatus = "🔓 Đang mở",
-                lastSeen = "22:37:40"
-            )
-        )
-
-        val inflater = LayoutInflater.from(this)
         val container = binding.llBinsDetailContainer
         container.removeAllViews()
+        val inflater = LayoutInflater.from(this)
 
-        bins.forEach { bin ->
+        if (targetBinIds.isEmpty()) {
+            val emptyTv = TextView(this).apply {
+                text = "Không có danh sách điểm thu gom."
+                setTextColor(Color.parseColor("#64748B"))
+                textSize = 14f
+                setPadding(0, 32, 0, 32)
+            }
+            container.addView(emptyTv)
+            return
+        }
+
+        targetBinIds.forEach { binId ->
+            val bin = binsMap[binId]
             val v = inflater.inflate(R.layout.item_bin_detail_preview, container, false)
-            v.findViewById<TextView>(R.id.tvBinPreviewId).text = bin.id
-            v.findViewById<TextView>(R.id.tvBinPreviewName).text = bin.name
-            v.findViewById<TextView>(R.id.tvBinPreviewAddress).text = bin.address
-            v.findViewById<TextView>(R.id.tvBinPreviewCoords).text = "Tọa độ: ${bin.coords}"
-            v.findViewById<TextView>(R.id.tvBinPreviewLevelBadge).text = "${bin.fillLevel}% Đầy"
-            v.findViewById<TextView>(R.id.tvBinPreviewLidStatus).text = bin.lidStatus
-            v.findViewById<TextView>(R.id.tvBinPreviewLastSeen).text = "⏱ ${bin.lastSeen}"
+            v.findViewById<TextView>(R.id.tvBinPreviewId).text = bin?.deviceId ?: binId
+            v.findViewById<TextView>(R.id.tvBinPreviewName).text = bin?.name ?: "Thùng rác $binId"
+            v.findViewById<TextView>(R.id.tvBinPreviewAddress).text = bin?.location ?: "Chưa có thông tin vị trí"
+
+            val lat = bin?.latitude
+            val lng = bin?.longitude
+            v.findViewById<TextView>(R.id.tvBinPreviewCoords).text = if (lat != null && lng != null) "Tọa độ: $lat, $lng" else "Tọa độ: --"
+
+            val level = bin?.levelPercent?.toInt() ?: 0
+            v.findViewById<TextView>(R.id.tvBinPreviewLevelBadge).text = "$level% Đầy"
+
+            val lid = if (bin?.lidStatus?.contains("OPEN", ignoreCase = true) == true) "🔓 Đang mở" else "🔒 Đã đóng"
+            v.findViewById<TextView>(R.id.tvBinPreviewLidStatus).text = lid
+            v.findViewById<TextView>(R.id.tvBinPreviewLastSeen).text = bin?.lastSeen ?: "--"
             container.addView(v)
         }
     }
 
     private fun setupListeners() {
+        // Map Route Button
+        binding.btnDetailViewRouteMap.setOnClickListener {
+            it.applyPressEffect {
+                val job = currentJob ?: return@applyPressEffect
+                val intent = Intent(this, RouteDetailActivity::class.java).apply {
+                    putExtra("JOB_ID", job.id)
+                }
+                startActivity(intent)
+            }
+        }
+
+        // Reject Job
         binding.btnDetailRejectJob.setOnClickListener {
             it.applyPressEffect {
                 com.example.app_smart_waste.ui.common.AppConfirmDialog.showCancelJobWithReason(
                     context = this,
                     jobId = jobId,
                     onConfirm = { reason ->
-                        viewModel.rejectJob(jobId, reason)
-                        Toast.makeText(this, "✓ Đã hủy nhiệm vụ (Lý do: $reason)", Toast.LENGTH_LONG).show()
-                        finish()
+                        lifecycleScope.launch {
+                            val res = jobsRepo.rejectJob(jobId, reason)
+                            if (res.isSuccess) {
+                                Toast.makeText(this@JobDetailActivity, "✓ Đã hủy nhiệm vụ", Toast.LENGTH_SHORT).show()
+                                finish()
+                            } else {
+                                Toast.makeText(this@JobDetailActivity, "Không thể hủy nhiệm vụ.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 )
             }
         }
 
+        // Accept / Start / Continue Job
         binding.btnDetailAcceptOrStartJob.setOnClickListener {
             it.applyPressEffect {
-                viewModel.acceptJob(jobId)
-                val intent = Intent(this, JobExecutionActivity::class.java).apply {
-                    putExtra("JOB_ID", jobId)
+                val status = currentJob?.status?.uppercase() ?: "ASSIGNED"
+                when (status) {
+                    "ASSIGNED", "PENDING" -> {
+                        lifecycleScope.launch {
+                            val res = jobsRepo.acceptJob(jobId)
+                            if (res.isSuccess) {
+                                Toast.makeText(this@JobDetailActivity, "✓ Đã nhận ca thu gom!", Toast.LENGTH_SHORT).show()
+                                loadJobData()
+                            } else {
+                                Toast.makeText(this@JobDetailActivity, "Không thể nhận ca.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    "ACCEPTED" -> {
+                        lifecycleScope.launch {
+                            val res = jobsRepo.startJob(jobId)
+                            if (res.isSuccess) {
+                                val intent = Intent(this@JobDetailActivity, JobExecutionActivity::class.java).apply {
+                                    putExtra("JOB_ID", jobId)
+                                }
+                                startActivity(intent)
+                                finish()
+                            } else {
+                                Toast.makeText(this@JobDetailActivity, "Không thể bắt đầu ca.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    else -> {
+                        // IN_PROGRESS or PAUSED -> Continue
+                        val intent = Intent(this@JobDetailActivity, JobExecutionActivity::class.java).apply {
+                            putExtra("JOB_ID", jobId)
+                        }
+                        startActivity(intent)
+                        finish()
+                    }
                 }
-                startActivity(intent)
-                finish()
             }
+        }
+    }
+
+    private fun formatJobCode(id: String): String {
+        val clean = id.removePrefix("#")
+        return when {
+            clean.startsWith("JOB_") -> "#$clean"
+            else -> "#JOB_$clean"
         }
     }
 

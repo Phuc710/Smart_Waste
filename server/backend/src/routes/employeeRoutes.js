@@ -37,6 +37,25 @@ router.post('/employees', requireAuth, requireAdmin, asyncHandler(async (req, re
     res.status(201).json({ employee });
 }));
 
+// PUT /api/employees/:id - Update employee info (full_name, password, role)
+router.put('/employees/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+    if (!/^[a-f0-9-]{36}$/i.test(req.params.id)) {
+        return res.status(400).json({ error: 'Mã nhân viên không hợp lệ.' });
+    }
+    const fullName = req.body.fullName ? String(req.body.fullName).trim() : null;
+    const password = req.body.password ? String(req.body.password).trim() : null;
+    const role = req.body.role ? String(req.body.role).trim() : null;
+
+    const employee = await employeeService.updateEmployee({
+        tokenHash: req.auth.tokenHash,
+        employeeId: req.params.id,
+        fullName,
+        password,
+        role
+    });
+    res.json({ ok: true, employee });
+}));
+
 // PATCH /api/employees/:id/active - Activate / Deactivate employee
 router.patch('/employees/:id/active', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
     if (!/^[a-f0-9-]{36}$/i.test(req.params.id) || typeof req.body.isActive !== 'boolean') {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SmartWaste Mobile Map</title>
+    <title>SmartWaste Google GIS Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body, html, #map {
@@ -12,51 +12,130 @@
             width: 100%;
             height: 100%;
             background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        .truck-pulse-icon {
+
+        /* 1. Driver Location Dot & Radar Pulse */
+        .driver-marker-container {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .pulse-circle {
-            width: 32px;
-            height: 32px;
-            background: rgba(37, 99, 235, 0.25);
+        .driver-radar-pulse {
+            width: 48px;
+            height: 48px;
+            background: rgba(37, 99, 235, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: pulse-ring 2s infinite ease-out;
+            animation: pulse-ring 2.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
         }
-        .truck-dot {
+        .driver-dot {
             width: 22px;
             height: 22px;
             background: #2563eb;
-            border: 2px solid #ffffff;
+            border: 3px solid #ffffff;
             border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.35);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            font-size: 11px;
-            color: #ffffff;
+        }
+        .driver-heading-arrow {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 8px solid #ffffff;
+            margin-top: -2px;
         }
         @keyframes pulse-ring {
-            0% { transform: scale(0.7); opacity: 1; }
+            0% { transform: scale(0.5); opacity: 1; }
             100% { transform: scale(1.6); opacity: 0; }
         }
-        .bin-pin-badge {
-            width: 26px;
-            height: 26px;
+
+        /* 2. Trash Bin Custom SVG Pin Markers */
+        .bin-pin-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .bin-pin-wrapper:active {
+            transform: scale(0.92);
+        }
+
+        .bin-pin-card {
+            min-width: 32px;
+            height: 36px;
+            border-radius: 12px 12px 4px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 11px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+            border: 1.5px solid #ffffff;
+        }
+
+        /* Colors based on waste level: >85% RED, 70-85% ORANGE, <70% GREEN, OFFLINE GRAY */
+        .bin-critical {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .bin-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .bin-normal {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+        .bin-offline {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        }
+
+        .bin-pin-beak {
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #ffffff;
+            margin-top: -1px;
+        }
+
+        /* 3. Waypoint Route Stop Numbers */
+        .waypoint-badge {
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            color: white;
+            background: #ffffff;
+            border: 2.5px solid #2563eb;
+            color: #2563eb;
             font-weight: 800;
             font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid #ffffff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+        }
+        .waypoint-collected {
+            border-color: #16a34a;
+            color: #ffffff;
+            background: #16a34a;
+        }
+
+        /* 4. Radar Sweep Pulse for Self-Pick */
+        .radar-sweep-circle {
+            animation: radar-sweep 2.8s infinite ease-out;
+        }
+        @keyframes radar-sweep {
+            0% { fill-opacity: 0.18; stroke-opacity: 0.8; stroke-width: 2; }
+            50% { fill-opacity: 0.08; stroke-opacity: 0.4; stroke-width: 3; }
+            100% { fill-opacity: 0.18; stroke-opacity: 0.8; stroke-width: 2; }
         }
     </style>
 </head>
@@ -68,88 +147,222 @@
         var map = L.map('map', {
             zoomControl: false,
             attributionControl: false
-        }).setView([10.7769, 106.7009], 14);
+        }).setView([10.7769, 106.7009], 15);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
-        }).addTo(map);
+        // Tile Layers
+        var defaultLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+        var terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
+        var currentLayer = defaultLayer;
 
-        var truckMarker = null;
+        var driverMarker = null;
         var routePolyline = null;
+        var routeOutline = null;
         var binMarkers = [];
+        var waypointMarkers = [];
+        var radarCircle = null;
 
-        // Update Driver Truck Position
-        function setTruckLocation(lat, lng, heading) {
-            if (!truckMarker) {
+        // 1. Set Driver Location
+        function setDriverLocation(lat, lng, heading) {
+            if (!lat || !lng) return;
+            if (!driverMarker) {
                 var icon = L.divIcon({
-                    className: 'truck-pulse-icon',
-                    html: '<div class="pulse-circle"><div class="truck-dot">🚛</div></div>',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                    className: '',
+                    html: '<div class="driver-marker-container"><div class="driver-radar-pulse"><div class="driver-dot" id="driverDot"><div class="driver-heading-arrow"></div></div></div></div>',
+                    iconSize: [48, 48],
+                    iconAnchor: [24, 24]
                 });
-                truckMarker = L.marker([lat, lng], { icon: icon }).addTo(map);
+                driverMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 }).addTo(map);
             } else {
-                truckMarker.setLatLng([lat, lng]);
+                driverMarker.setLatLng([lat, lng]);
+            }
+            if (heading !== undefined && heading !== null) {
+                var el = document.getElementById('driverDot');
+                if (el) el.style.transform = 'rotate(' + heading + 'deg)';
             }
         }
 
-        // Center on Truck
-        function centerOnTruck() {
-            if (truckMarker) {
-                map.setView(truckMarker.getLatLng(), 15, { animate: true });
+        // 2. Center on Driver Location
+        function centerOnDriver() {
+            if (driverMarker) {
+                map.setView(driverMarker.getLatLng(), 16, { animate: true, duration: 0.6 });
+            } else {
+                map.setView([10.7769, 106.7009], 15, { animate: true });
             }
         }
 
-        // Render Bins along Route
+        // 3. Zoom / Animate to a specific Bin
+        function zoomToBin(lat, lng) {
+            if (lat && lng) {
+                map.setView([lat, lng], 17, { animate: true, duration: 0.5 });
+            }
+        }
+
+        // 4. Render Bins on Map (Color Coded according to Mockup: >85% Red, 70-85% Orange, <70% Green, Offline Gray)
         function setBins(binsJson) {
             binMarkers.forEach(function(m) { map.removeLayer(m); });
             binMarkers = [];
 
             try {
                 var bins = typeof binsJson === 'string' ? JSON.parse(binsJson) : binsJson;
-                var latLngs = [];
-                
-                if (truckMarker) {
-                    latLngs.push(truckMarker.getLatLng());
-                }
+                if (!Array.isArray(bins)) return;
 
-                bins.forEach(function(b, idx) {
-                    var color = b.is_collected ? '#10b981' : (b.level >= 85 ? '#ef4444' : (b.level >= 70 ? '#f59e0b' : '#10b981'));
+                bins.forEach(function(b) {
+                    var level = Math.round(b.level || b.level_percent || 0);
+                    var isOffline = b.is_online === false;
+                    var isDone = b.is_collected || b.status === 'COLLECTED';
+
+                    var cls = 'bin-normal';
+                    if (isOffline) {
+                        cls = 'bin-offline';
+                    } else if (level >= 85) {
+                        cls = 'bin-critical';
+                    } else if (level >= 70) {
+                        cls = 'bin-warning';
+                    }
+
+                    var iconText = isDone ? '✓' : (level + '%');
+
+                    var html = '<div class="bin-pin-wrapper">' +
+                               '<div class="bin-pin-card ' + cls + '">' +
+                               '<span>🗑 ' + iconText + '</span>' +
+                               '</div>' +
+                               '<div class="bin-pin-beak"></div>' +
+                               '</div>';
+
                     var icon = L.divIcon({
                         className: '',
-                        html: '<div class="bin-pin-badge" style="background-color:' + color + ';">' + (idx + 1) + '</div>',
-                        iconSize: [26, 26],
-                        iconAnchor: [13, 13]
+                        html: html,
+                        iconSize: [42, 44],
+                        iconAnchor: [21, 42]
                     });
 
-                    var marker = L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
+                    var marker = L.marker([b.lat || b.latitude, b.lng || b.longitude], { icon: icon }).addTo(map);
                     marker.on('click', function() {
                         if (window.AndroidBridge && window.AndroidBridge.onBinClicked) {
-                            window.AndroidBridge.onBinClicked(b.id);
+                            window.AndroidBridge.onBinClicked(b.id || b.device_id);
                         }
                     });
                     binMarkers.push(marker);
-                    latLngs.push([b.lat, b.lng]);
                 });
-
-                // Draw OSRM Blue Route Polyline
-                if (routePolyline) map.removeLayer(routePolyline);
-                if (latLngs.length >= 2) {
-                    routePolyline = L.polyline(latLngs, {
-                        color: '#2563eb',
-                        weight: 6,
-                        opacity: 0.9,
-                        lineJoin: 'round'
-                    }).addTo(map);
-                    map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
-                }
             } catch(e) {
-                console.error(e);
+                console.error("setBins error: ", e);
             }
         }
 
-        // Initialize default view
-        setTruckLocation(10.7769, 106.7009, 0);
+        // 5. Draw Polyline Route with Waypoints
+        function drawRoute(routeCoordsJson, waypointsJson) {
+            if (routePolyline) map.removeLayer(routePolyline);
+            if (routeOutline) map.removeLayer(routeOutline);
+            waypointMarkers.forEach(function(m) { map.removeLayer(m); });
+            waypointMarkers = [];
+            routePolyline = null;
+            routeOutline = null;
+
+            try {
+                var coords = typeof routeCoordsJson === 'string' ? JSON.parse(routeCoordsJson) : routeCoordsJson;
+                if (!coords || coords.length < 2) return;
+
+                // Outer Soft Glow Casing
+                routeOutline = L.polyline(coords, {
+                    color: '#93c5fd',
+                    weight: 8,
+                    opacity: 0.6,
+                    lineJoin: 'round',
+                    lineCap: 'round'
+                }).addTo(map);
+
+                // Inner Main Vivid Polyline
+                routePolyline = L.polyline(coords, {
+                    color: '#2563eb',
+                    weight: 5,
+                    opacity: 0.95,
+                    lineJoin: 'round',
+                    lineCap: 'round'
+                }).addTo(map);
+
+                // Waypoints markers
+                if (waypointsJson) {
+                    var waypoints = typeof waypointsJson === 'string' ? JSON.parse(waypointsJson) : waypointsJson;
+                    if (Array.isArray(waypoints)) {
+                        waypoints.forEach(function(wp, idx) {
+                            var isDone = wp.is_collected || wp.status === 'COLLECTED';
+                            var label = isDone ? '✓' : (idx + 1 < 10 ? '0' + (idx + 1) : (idx + 1));
+                            var icon = L.divIcon({
+                                className: '',
+                                html: '<div class="waypoint-badge ' + (isDone ? 'waypoint-collected' : '') + '">' + label + '</div>',
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
+                            });
+                            var wm = L.marker([wp.lat || wp.latitude, wp.lng || wp.longitude], { icon: icon, zIndexOffset: 500 }).addTo(map);
+                            waypointMarkers.push(wm);
+                        });
+                    }
+                }
+
+                map.fitBounds(routePolyline.getBounds(), { padding: [70, 70], animate: true });
+            } catch(e) {
+                console.error("drawRoute error: ", e);
+            }
+        }
+
+        // 6. Clear Route Polyline
+        function clearRoute() {
+            if (routePolyline) map.removeLayer(routePolyline);
+            if (routeOutline) map.removeLayer(routeOutline);
+            waypointMarkers.forEach(function(m) { map.removeLayer(m); });
+            waypointMarkers = [];
+            routePolyline = null;
+            routeOutline = null;
+        }
+
+        // 7. Radar Pulse Circle for Self-Pick (1km radius)
+        function setRadarCircle(lat, lng, radiusMeters, enabled) {
+            if (radarCircle) {
+                map.removeLayer(radarCircle);
+                radarCircle = null;
+            }
+            if (enabled && lat && lng) {
+                radarCircle = L.circle([lat, lng], {
+                    radius: radiusMeters || 1000,
+                    color: '#16a34a',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.15,
+                    weight: 2,
+                    className: 'radar-sweep-circle'
+                }).addTo(map);
+                map.setView([lat, lng], 15, { animate: true });
+            }
+        }
+
+        // 8. Map Layers Toggle: 'default' | 'satellite' | 'terrain'
+        function setMapLayer(type) {
+            if (currentLayer) map.removeLayer(currentLayer);
+            if (type === 'satellite') {
+                satelliteLayer.addTo(map);
+                currentLayer = satelliteLayer;
+            } else if (type === 'terrain') {
+                terrainLayer.addTo(map);
+                currentLayer = terrainLayer;
+            } else {
+                defaultLayer.addTo(map);
+                currentLayer = defaultLayer;
+            }
+        }
+
+        // Map Click Listener
+        map.on('click', function(e) {
+            if (window.AndroidBridge && window.AndroidBridge.onMapClicked) {
+                window.AndroidBridge.onMapClicked(e.latlng.lat, e.latlng.lng);
+            }
+        });
+
+        // Notify Android Map is ready
+        setTimeout(function() {
+            if (window.AndroidBridge && window.AndroidBridge.onMapReady) {
+                window.AndroidBridge.onMapReady();
+            }
+        }, 300);
     </script>
 </body>
 </html>

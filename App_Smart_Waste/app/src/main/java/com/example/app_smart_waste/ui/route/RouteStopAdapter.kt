@@ -44,18 +44,12 @@ class RouteStopAdapter(
 
             binding.tvStopNumber.text = seq.toString()
 
-            val displayCode = when (bin?.deviceId ?: item.binId) {
-                "BIN_HCM_01" -> "BIN-023"
-                "BIN_HCM_02" -> "BIN-041"
-                "BIN_HCM_03" -> "BIN-055"
-                "BIN_HCM_04" -> "BIN-012"
-                else -> (bin?.deviceId ?: item.binId).replace("BIN_HCM_", "BIN-0")
-            }
+            val displayCode = bin?.name ?: bin?.deviceId ?: item.binId
 
-            binding.tvStopTitle.text = "Thùng $seq – $displayCode"
-            binding.tvStopAddress.text = bin?.location ?: bin?.name ?: "Đường Nguyễn Văn Linh, Quận 7"
+            binding.tvStopTitle.text = "Điểm $seq – $displayCode"
+            binding.tvStopAddress.text = bin?.location ?: bin?.name ?: "Chưa có thông tin vị trí"
 
-            val level = (bin?.levelPercent ?: 80.0).roundToInt()
+            val level = (bin?.levelPercent ?: 0.0).roundToInt()
             binding.tvStopLevel.text = "$level%"
 
             val isCollected = item.status == "COLLECTED" || bin?.collectionStatus == "COLLECTED"
@@ -65,7 +59,7 @@ class RouteStopAdapter(
                 binding.tvStopStatusBadge.text = "Đã thu gom"
                 binding.tvStopStatusBadge.setBackgroundResource(R.drawable.bg_badge_collected)
                 binding.tvStopStatusBadge.setTextColor(ContextCompat.getColor(itemView.context, R.color.primary_600))
-                binding.tvStopTime.text = "08:30"
+                binding.tvStopTime.text = item.collectedAt ?: "--"
             } else {
                 if (level >= 85) {
                     binding.tvStopNumber.setBackgroundResource(R.drawable.bg_stop_num_red)
@@ -78,11 +72,7 @@ class RouteStopAdapter(
                 binding.tvStopStatusBadge.text = "Chưa thu gom"
                 binding.tvStopStatusBadge.setBackgroundResource(R.drawable.bg_badge_pending)
                 binding.tvStopStatusBadge.setTextColor(ContextCompat.getColor(itemView.context, R.color.navy_600))
-                binding.tvStopTime.text = when (seq) {
-                    2 -> "08:45"
-                    3 -> "09:05"
-                    else -> "09:20"
-                }
+                binding.tvStopTime.text = "--"
             }
 
             binding.root.setOnClickListener {

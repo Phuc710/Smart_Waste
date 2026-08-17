@@ -76,13 +76,18 @@ function initMqttBroker() {
                     }
                 }
 
-                stateStore.emitTo('admins', 'binOverfullAlert', {
+                const alert = {
                     binId,
                     name: binObj.name || binId,
                     location: binObj.location || '',
                     levelPercent,
-                    suggestedNearestTruck: nearestTruck
-                });
+                    suggestedNearestTruck: nearestTruck,
+                    occurredAt: new Date().toISOString()
+                };
+                stateStore.emitTo('admins', 'binOverfullAlert', alert);
+                if (nearestTruck?.employee_id) {
+                    stateStore.emitTo(`employee_${nearestTruck.employee_id}`, 'binOverfullAlert', alert);
+                }
             }
 
             // Throttling telemetry DB history saves to 30 seconds

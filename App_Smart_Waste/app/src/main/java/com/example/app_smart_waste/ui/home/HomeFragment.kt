@@ -6,32 +6,45 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.app_smart_waste.R
 import com.example.app_smart_waste.core.model.JobDto
+import com.example.app_smart_waste.core.model.SmartBinDto
 import com.example.app_smart_waste.core.model.UiState
+import com.example.app_smart_waste.core.network.RealtimeManager
 import com.example.app_smart_waste.core.storage.SecureTokenStorage
+import com.example.app_smart_waste.core.utils.applyStatusBarTopPadding
 import com.example.app_smart_waste.databinding.FragmentHomeBinding
-import com.example.app_smart_waste.ui.bin.BinDetailActivity
+import com.example.app_smart_waste.ui.incident.IncidentHistoryActivity
+import com.example.app_smart_waste.ui.incident.IncidentReportActivity
+import com.example.app_smart_waste.ui.jobs.JobDetailActivity
+import com.example.app_smart_waste.ui.jobs.JobExecutionActivity
 import com.example.app_smart_waste.ui.main.MainActivity
-import com.example.app_smart_waste.ui.route.RouteDetailActivity
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+
     private val viewModel: HomeViewModel by viewModels()
-    private var currentActiveJob: JobDto? = null
+    private val realtimeManager by lazy { RealtimeManager(requireContext()) }
+
+    private var activeJob: JobDto? = null
+    private var currentBinId: String? = null
+
+    companion object {
+        private const val ESTIMATED_KG_PER_BIN = 40.0
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,189 +58,347 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val storage = SecureTokenStorage.getInstance(requireContext())
-        val fullName = storage.getFullName()
-        val displayName = if (!fullName.isNullOrBlank()) fullName else "Nguyễn Văn A"
+        // Status bar top spacing
+        binding.homeHeaderContainer.applyStatusBarTopPadding(12)
 
-        // Setup Shared AppHeader
-        binding.appHeader.configure(
-            title = "Xin chào, $displayName",
-            subtitle = "Tài xế thu gom",
-            navIconRes = R.drawable.ic_menu_hamburger,
-            onNavClick = {
-                (activity as? MainActivity)?.switchTab(R.id.navItemProfile)
-            },
-            actionIconRes = R.drawable.ic_bell,
-            actionBadgeCount = 3,
-            onActionClick = {
-                (activity as? MainActivity)?.switchTab(R.id.navItemJobs)
-            }
-        )
-
-        setupListeners()
-        observeViewModel()
+        bindUserInfo()
+        configureActions()
+        observeState()
         playEntranceAnimation()
+
+        viewModel.loadHomeData()
     }
 
     override fun onResume() {
         super.onResume()
+        bindUserInfo()
         viewModel.loadHomeData()
-    }
-
-    private fun playEntranceAnimation() {
-        val views = listOf(
-            binding.appHeader,
-            binding.vehicleCard,
-            binding.containerRecentJobs
-        )
-        views.forEachIndexed { i, v ->
-            v.alpha = 0f
-            v.translationY = 12f
-            v.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setStartDelay((i * 60).toLong())
-                .setDuration(260)
-                .setInterpolator(DecelerateInterpolator())
-                .start()
+        if (viewModel.isAvailable.value) {
+            com.example.app_smart_waste.core.location.GpsTracker.getInstance(requireContext()).startTracking()
         }
     }
 
-    private fun setupListeners() {
-        // Pull to refresh
-        binding.swipeRefresh.setColorSchemeResources(android.R.color.holo_green_dark)
-        binding.swipeRefresh.setOnRefreshListener {
-            viewModel.loadHomeData()
+    override fun onStart() {
+        super.onStart()
+        realtimeManager.connect(object : RealtimeManager.Listener {
+            override fun onJobUpdated() {
+                activity?.runOnUiThread { viewModel.loadHomeData() }
+            }
+
+            override fun onBinOverfullAlert(alert: RealtimeManager.BinOverfullAlert) {
+                activity?.runOnUiThread { renderOverfullAlert(alert) }
+            }
+        })
+    }
+
+    override fun onStop() {
+        realtimeManager.disconnect()
+        super.onStop()
+    }
+
+    private fun bindUserInfo() {
+        val tokenStore = SecureTokenStorage.getInstance(requireContext())
+        val fullName = tokenStore.getFullName()?.trim()?.ifBlank { null }
+        val username = tokenStore.getUsername()?.trim()?.ifBlank { null }
+        val isUserActive = tokenStore.isActive()
+
+        val displayName = fullName ?: username ?: "Người dùng"
+        val displayEmpId = username?.uppercase() ?: "--"
+
+        binding.tvHomeGreeting.text = "Xin chào, 👋"
+        binding.tvHomeFullName.text = "$displayName"    
+
+        updateStatusBadge(isUserActive, viewModel.isAvailable.value)
+    }
+
+    private fun updateStatusBadge(isUserActive: Boolean, isAvailable: Boolean) {
+        if (!isUserActive) {
+            binding.badgeStatusPill.setBackgroundResource(R.drawable.bg_badge_status_inactive)
+            binding.tvHomeStatusBadge.text = "🔴 Tài khoản bị khóa"
+            binding.tvHomeStatusBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_secondary))
+        } else if (isAvailable) {
+            binding.badgeStatusPill.setBackgroundResource(R.drawable.bg_badge_status_active)
+            binding.tvHomeStatusBadge.text = "🟢 Đang hoạt động"
+            binding.tvHomeStatusBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_green_primary))
+        } else {
+            binding.badgeStatusPill.setBackgroundResource(R.drawable.bg_badge_status_inactive)
+            binding.tvHomeStatusBadge.text = "⚪ Tạm dừng nhận việc"
+            binding.tvHomeStatusBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_secondary))
+        }
+    }
+
+    private fun updateAvailabilityUi(isAvailable: Boolean) {
+        if (isAvailable) {
+            binding.dotAvailabilityWork.setBackgroundResource(R.drawable.bg_dot_active_green)
+            binding.tvAvailabilityWorkTitle.text = "Sẵn sàng nhận việc"
+            binding.tvAvailabilityWorkTitle.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_green_primary))
+            binding.tvAvailabilityWorkDesc.text = "Bạn đang sẵn sàng nhận nhiệm vụ thu gom mới."
+        } else {
+            binding.dotAvailabilityWork.setBackgroundResource(R.drawable.bg_dot_inactive_red)
+            binding.tvAvailabilityWorkTitle.text = "Tạm nghỉ / Đang bận"
+            binding.tvAvailabilityWorkTitle.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_secondary))
+            binding.tvAvailabilityWorkDesc.text = "Hệ thống sẽ tạm dừng phân phối nhiệm vụ mới."
+        }
+        val tokenStore = SecureTokenStorage.getInstance(requireContext())
+        updateStatusBadge(tokenStore.isActive(), isAvailable)
+    }
+
+    private fun configureActions() {
+        binding.swipeRefresh.setOnRefreshListener { viewModel.loadHomeData() }
+
+        // Work Availability Switch
+        binding.switchHomeAvailability.setOnCheckedChangeListener { _, isChecked ->
+            if (viewModel.isAvailable.value != isChecked) {
+                viewModel.updateAvailability(isChecked)
+                if (isChecked) {
+                    Toast.makeText(requireContext(), "🟢 Đã BẬT trạng thái sẵn sàng nhận việc", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "⚪ Đã TẮT nhận nhiệm vụ", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
-        // Xem chi tiết & Xem tất cả → chuyển tab Jobs
-        binding.btnViewDetail.setOnClickListener {
-            (activity as? MainActivity)?.navigateToTab(R.id.navigation_jobs)
+        // Header Action Buttons
+        binding.btnHomeBell.setOnClickListener {
+            it.applyPressEffect {
+                (activity as? MainActivity)?.selectTab(R.id.navItemJobs)
+            }
         }
 
+        binding.btnHomeChat.setOnClickListener {
+            it.applyPressEffect {
+                Toast.makeText(requireContext(), "💬 Kênh liên lạc điều phối viên: Đang trực tuyến", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Quick Actions
+        binding.quickActionIncident.setOnClickListener {
+            it.applyPressEffect {
+                val intent = Intent(requireContext(), IncidentHistoryActivity::class.java).apply {
+                    currentBinId?.let { binId -> putExtra("BIN_ID", binId) }
+                }
+                startActivity(intent)
+            }
+        }
+
+        binding.quickActionRadar.setOnClickListener {
+            it.applyPressEffect {
+                (activity as? MainActivity)?.selectTab(R.id.navItemMap)
+            }
+        }
+
+        // View All Buttons
         binding.btnViewAllJobs.setOnClickListener {
-            (activity as? MainActivity)?.navigateToTab(R.id.navigation_jobs)
+            it.applyPressEffect {
+                (activity as? MainActivity)?.selectTab(R.id.navItemJobs)
+            }
         }
 
-        // Map Preview Click → chuyển sang Tab Map
-        binding.mapPreviewContainer.setOnClickListener {
-            (activity as? MainActivity)?.navigateToTab(R.id.navigation_map)
+        binding.btnViewAllAlerts.setOnClickListener {
+            it.applyPressEffect {
+                (activity as? MainActivity)?.selectTab(R.id.navItemMap)
+            }
         }
 
-        // Xem tuyến
-        binding.btnViewRoute.setOnClickListener {
-            openRouteDetail()
+        // Current Job Cards
+        binding.cardCurrentJob.setOnClickListener {
+            it.applyPressEffect { openActiveJob() }
         }
 
-        // Bắt đầu tuyến CTA
-        binding.btnStartRouteHome.setOnClickListener {
-            it.animate().scaleX(0.97f).scaleY(0.97f).setDuration(80).withEndAction {
-                it.animate().scaleX(1f).scaleY(1f).setDuration(80).start()
-            }.start()
-            openRouteDetail()
+        binding.btnOpenJob.setOnClickListener {
+            it.applyPressEffect { openActiveJob() }
         }
     }
 
-    private fun openBinDetail(binId: String) {
-        val intent = Intent(requireContext(), BinDetailActivity::class.java).apply {
-            putExtra("BIN_ID", binId)
-            currentActiveJob?.id?.let { putExtra("JOB_ID", it) }
-        }
-        startActivity(intent)
-    }
-
-    private fun openRouteDetail() {
-        val job = currentActiveJob
-        val intent = Intent(requireContext(), RouteDetailActivity::class.java)
-        if (job != null) {
-            intent.putExtra("JOB_ID", job.id)
-        }
-        startActivity(intent)
-    }
-
-    private fun observeViewModel() {
+    private fun observeState() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.homeState.collectLatest { state ->
-                binding.swipeRefresh.isRefreshing = (state is UiState.Loading)
-
-                if (state is UiState.Success) {
-                    val data = state.data
-                    currentActiveJob = data.activeJob
-
-                    // 1. Overview KPIs
-                    binding.tvStatTotal.text = data.totalTasks.toString()
-                    binding.tvStatPending.text = data.pendingTasks.toString()
-                    binding.tvStatProgress.text = data.inProgressTasks.toString()
-                    binding.tvStatDone.text = data.doneTasks.toString()
-
-                    // 2. Vehicle Card
-                    binding.tvTruckPlate.text = data.truckPlate
-                    binding.tvFuelPercent.text = "${data.fuelPercent}%"
-                    binding.progressFuel.progress = data.fuelPercent
-
-                    // 3. Route Card
-                    binding.tvRoutePoints.text = "${data.routePointsCount} điểm thu gom"
-                    binding.tvRouteDistance.text = "${data.routeDistanceKm} km"
-                    binding.tvRouteDuration.text = "${data.routeDurationMinutes} phút"
-
-                    // 4. Dynamic Recent Tasks from Database + Phone GPS
-                    val tasks = data.recentTasks
-                    if (tasks.isNotEmpty()) {
-                        tasks.getOrNull(0)?.let { item ->
-                            bindTaskRow(item, binding.jobRow1, binding.icJob1Indicator, binding.tvJob1Name, binding.tvJob1Location, binding.tvJob1Level, binding.tvJob1Distance)
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.homeState.collectLatest { state ->
+                        binding.swipeRefresh.isRefreshing = state is UiState.Loading
+                        when (state) {
+                            is UiState.Success -> render(state.data)
+                            is UiState.Error -> {
+                                renderFallbackState()
+                            }
+                            else -> Unit
                         }
-                        tasks.getOrNull(1)?.let { item ->
-                            bindTaskRow(item, binding.jobRow2, binding.icJob2Indicator, binding.tvJob2Name, binding.tvJob2Location, binding.tvJob2Level, binding.tvJob2Distance)
+                    }
+                }
+
+                launch {
+                    viewModel.isAvailable.collectLatest { isAvailable ->
+                        if (binding.switchHomeAvailability.isChecked != isAvailable) {
+                            binding.switchHomeAvailability.isChecked = isAvailable
                         }
-                        tasks.getOrNull(2)?.let { item ->
-                            bindTaskRow(item, binding.jobRow3, binding.icJob3Indicator, binding.tvJob3Name, binding.tvJob3Location, binding.tvJob3Level, binding.tvJob3Distance)
-                        }
-                        tasks.getOrNull(3)?.let { item ->
-                            bindTaskRow(item, binding.jobRow4, binding.icJob4Indicator, binding.tvJob4Name, binding.tvJob4Location, binding.tvJob4Level, binding.tvJob4Distance)
-                        }
+                        updateAvailabilityUi(isAvailable)
                     }
                 }
             }
         }
     }
 
-    private fun bindTaskRow(
-        item: RecentTaskItem,
-        rowView: View,
-        indicator: ImageView,
-        tvName: TextView,
-        tvLocation: TextView,
-        tvLevel: TextView,
-        tvDistance: TextView
-    ) {
-        tvName.text = item.displayCode
-        tvLocation.text = item.location
+    private fun render(data: HomeData) {
+        // 1. Stats Strip (Real data from API)
+        val collections = data.stats.collectionCount
+        val distanceKm = data.stats.distanceMeters / 1000.0
+        val weightKg = data.stats.estimatedWeightKg
 
-        if (item.isCompleted) {
-            indicator.setImageResource(R.drawable.ic_indicator_green)
-            tvLevel.text = "Đã hoàn thành"
-            tvLevel.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_600))
-            tvDistance.text = item.completedTime ?: "08:45"
+        binding.tvDailyCollections.text = collections.toString()
+        binding.tvDailyDistance.text = String.format(java.util.Locale.US, "%.1f", distanceKm)
+        binding.tvDailyWeight.text = formatNumber(weightKg)
+
+        // 2. Realtime Alerts (Bảng tin cảnh báo nóng từ danh sách thùng thật)
+        val highBins = data.allBins.sortedByDescending { it.levelPercent ?: 0.0 }
+        if (highBins.isNotEmpty()) {
+            val b1 = highBins[0]
+            val pct1 = b1.levelPercent?.toInt() ?: 0
+            binding.tvAlert1Title.text = "${b1.name ?: b1.deviceId} vượt mức $pct1%"
+            binding.tvAlert1Meta.text = b1.location ?: "Khu vực thu gom"
+        }
+        if (highBins.size > 1) {
+            val b2 = highBins[1]
+            val pct2 = b2.levelPercent?.toInt() ?: 0
+            binding.tvAlert2Title.text = "${b2.name ?: b2.deviceId} vượt mức $pct2%"
+            binding.tvAlert2Meta.text = b2.location ?: "Khu vực thu gom"
+        }
+        if (highBins.size > 2) {
+            val b3 = highBins[2]
+            val pct3 = b3.levelPercent?.toInt() ?: 0
+            binding.tvAlert3Title.text = "${b3.name ?: b3.deviceId} đạt mức $pct3%"
+            binding.tvAlert3Meta.text = b3.location ?: "Khu vực thu gom"
+        }
+
+        // 3. Active Job Section
+        val job = data.activeJob
+        if (job != null && job.status in listOf("ASSIGNED", "PENDING", "ACCEPTED", "IN_PROGRESS", "PAUSED")) {
+            activeJob = job
+            currentBinId = data.currentBin?.deviceId
+
+            binding.cardCurrentJob.isVisible = true
+            binding.emptyJobState.isVisible = false
+
+            val progress = job.progress
+            val total = progress?.total ?: job.targetBinIds.orEmpty().size
+            val collected = progress?.collected ?: job.completedBinIds.orEmpty().size
+            val percent = progress?.percent ?: if (total > 0) (collected * 100 / total) else 0
+
+            val distanceMeters = job.routeData?.distanceMeters
+            val durationSeconds = job.routeData?.durationSeconds
+            val kgPerBin = if (data.stats.estimateKgPerCollection > 0) data.stats.estimateKgPerCollection else ESTIMATED_KG_PER_BIN
+            val estWeight = total * kgPerBin
+
+            binding.tvJobStatus.text = statusLabel(job.status)
+            binding.tvJobCode.text = if (job.id.startsWith("#")) job.id else "#${job.id}"
+            binding.tvJobProgress.text = "$collected / $total điểm đã hoàn thành"
+            binding.progressJob.progress = percent.coerceIn(0, 100)
+            binding.tvJobPercent.text = "$percent%"
+            binding.tvJobStops.text = "$total"
+            binding.tvJobDistance.text = distanceMeters?.let { formatDistance(it.roundToInt()) } ?: "--"
+            binding.tvJobDuration.text = durationSeconds?.let {
+                "${maxOf(1, (it / 60.0).roundToInt())} phút"
+            } ?: "--"
+            binding.tvJobWeight.text = if (total > 0) "~${estWeight.toInt()} kg" else "--"
+
+            binding.tvCurrentBin.text = data.currentBin?.let { bin ->
+                buildString {
+                    append(bin.deviceId)
+                    bin.location?.takeIf { it.isNotBlank() }?.let {
+                        append(" - ")
+                        append(it)
+                    }
+                }
+            } ?: if (job.targetBinIds?.isNotEmpty() == true) "Điểm đầu: ${job.targetBinIds!!.first()}" else "Chưa có điểm thu gom"
         } else {
-            if (item.levelPercent >= 85) {
-                indicator.setImageResource(R.drawable.ic_indicator_red)
-                tvLevel.text = "${item.levelPercent}%"
-                tvLevel.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_danger_main))
-            } else if (item.levelPercent >= 70) {
-                indicator.setImageResource(R.drawable.ic_indicator_yellow)
-                tvLevel.text = "${item.levelPercent}%"
-                tvLevel.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_warning_main))
-            } else {
-                indicator.setImageResource(R.drawable.ic_indicator_green)
-                tvLevel.text = "${item.levelPercent}%"
-                tvLevel.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_600))
-            }
-            tvDistance.text = "${item.distanceKm} km"
-        }
+            activeJob = null
+            currentBinId = null
 
-        rowView.setOnClickListener {
-            openBinDetail(item.binId)
+            binding.cardCurrentJob.isVisible = false
+            binding.emptyJobState.isVisible = true
         }
+    }
+
+    private fun renderFallbackState() {
+        activeJob = null
+        currentBinId = null
+
+        binding.cardCurrentJob.isVisible = false
+        binding.emptyJobState.isVisible = true
+    }
+
+    private fun openActiveJob() {
+        val job = activeJob ?: return
+        if (job.status in listOf("ASSIGNED", "PENDING")) {
+            val intent = Intent(requireContext(), JobDetailActivity::class.java).apply {
+                putExtra("JOB_ID", job.id)
+                putExtra("JOB_STATUS", job.status)
+            }
+            startActivity(intent)
+        } else {
+            val intent = Intent(requireContext(), JobExecutionActivity::class.java).apply {
+                putExtra("JOB_ID", job.id)
+            }
+            startActivity(intent)
+        }
+    }
+
+    private fun renderOverfullAlert(alert: RealtimeManager.BinOverfullAlert) {
+        val title = if (alert.name.isNotBlank()) alert.name else alert.binId
+        binding.tvAlert1Title.text = "$title vượt mức ${alert.levelPercent}%"
+        binding.tvAlert1Meta.text = if (alert.location.isNotBlank()) alert.location else "Chưa có thông tin vị trí"
+        binding.tvAlert1Time.text = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+        binding.tvHomeBellBadge.isVisible = true
+    }
+
+    private fun playEntranceAnimation() {
+        val views = listOf(
+            binding.homeHeaderContainer,
+            binding.cardWorkAvailability,
+            binding.tvDailyCollections,
+            binding.quickActionIncident,
+            binding.quickActionRadar,
+            binding.cardCurrentJob
+        )
+        views.forEachIndexed { i, v ->
+            v.alpha = 0f
+            v.translationY = 16f
+            v.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setStartDelay((i * 45).toLong())
+                .setDuration(280)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+    }
+
+    private fun View.applyPressEffect(onEnd: () -> Unit) {
+        this.animate().scaleX(0.96f).scaleY(0.96f).setDuration(85).withEndAction {
+            this.animate().scaleX(1f).scaleY(1f).setDuration(85).withEndAction { onEnd() }.start()
+        }.start()
+    }
+
+    private fun formatDistance(meters: Int): String = when {
+        meters <= 0 -> "0 km"
+        else -> "${String.format(java.util.Locale.US, "%.1f", meters / 1000.0)} km"
+    }
+
+    private fun formatNumber(value: Double): String {
+        return if (value >= 1000.0) {
+            String.format(java.util.Locale.US, "%.1fk", value / 1000.0)
+        } else {
+            value.roundToInt().toString()
+        }
+    }
+
+    private fun statusLabel(status: String): String = when (status) {
+        "ASSIGNED", "PENDING" -> "Mới được giao"
+        "ACCEPTED" -> "Đã nhận nhiệm vụ"
+        "IN_PROGRESS" -> "Đang thực hiện"
+        "PAUSED" -> "Tạm dừng"
+        "COMPLETED" -> "Hoàn thành"
+        "CANCELLED" -> "Đã hủy"
+        else -> status
     }
 
     override fun onDestroyView() {

@@ -234,7 +234,7 @@ class RouteDetailActivity : AppCompatActivity() {
                 stopsList.add(RouteStopUiModel(item, bin, index + 1))
             }
         } else {
-            val targetIds = job.targetBinIds ?: listOf("BIN_HCM_01", "BIN_HCM_02", "BIN_HCM_03", "BIN_HCM_04")
+            val targetIds = job.targetBinIds ?: emptyList()
             val completedIds = job.completedBinIds ?: emptyList()
             targetIds.forEachIndexed { index, binId ->
                 val bin = binMap[binId]
@@ -242,7 +242,7 @@ class RouteDetailActivity : AppCompatActivity() {
                 val item = JobItemDto(
                     binId = binId,
                     status = if (isDone) "COLLECTED" else "PENDING",
-                    collectedAt = if (isDone) "08:30" else null
+                    collectedAt = if (isDone) (job.completedAt ?: "Đã gom") else null
                 )
                 stopsList.add(RouteStopUiModel(item, bin, index + 1))
             }
@@ -261,7 +261,7 @@ class RouteDetailActivity : AppCompatActivity() {
             val km = (distMeters / 100.0).roundToInt() / 10.0
             binding.tvRouteDistance.text = "$km km"
         } else {
-            binding.tvRouteDistance.text = "12.7 km"
+            binding.tvRouteDistance.text = "--"
         }
 
         val durSecs = job.routeData?.durationSeconds
@@ -269,7 +269,7 @@ class RouteDetailActivity : AppCompatActivity() {
             val mins = (durSecs / 60.0).roundToInt()
             binding.tvRouteDuration.text = "$mins phút"
         } else {
-            binding.tvRouteDuration.text = "32 phút"
+            binding.tvRouteDuration.text = "--"
         }
 
         // Action Button State

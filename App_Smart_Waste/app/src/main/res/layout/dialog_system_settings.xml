@@ -130,7 +130,7 @@
                                 android:id="@+id/tvSettingsShiftStartTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="08:15"
+                                android:text="06:00"
                                 android:textColor="@color/profile_text_primary"
                                 android:textSize="22sp"
                                 android:textStyle="bold" />
@@ -196,7 +196,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="kết thúc lúc 16:15"
+                                android:text="kết thúc lúc 14:00"
                                 android:textColor="@color/profile_text_secondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -264,7 +264,7 @@
                             android:id="@+id/tvSettingsVehiclePlate"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="...-..."
+                            android:text="Xe ép rác"
                             android:textColor="@color/profile_text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -274,7 +274,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Xe đang cập nhật..."
+                            android:text="Phương tiện thu gom thông minh"
                             android:textColor="@color/profile_text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -320,7 +320,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="..."
+                            android:text="8 tấn"
                             android:textColor="@color/profile_text_primary"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
@@ -351,7 +351,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="..."
+                            android:text="100%"
                             android:textColor="@color/profile_green_primary"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />

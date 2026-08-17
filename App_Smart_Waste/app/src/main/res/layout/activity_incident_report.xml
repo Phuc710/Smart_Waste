@@ -1,58 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/surface_bg"
+    android:background="@color/app_bg"
     android:orientation="vertical">
 
-    <!-- Top Bar -->
-    <LinearLayout
+    <!-- 1. Shared Unified AppHeader -->
+    <com.example.app_smart_waste.ui.common.AppHeaderView
+        android:id="@+id/reportAppHeader"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="@color/white"
-        android:elevation="2dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp">
+        android:layout_height="wrap_content" />
 
-        <ImageView
-            android:id="@+id/btnBack"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="4dp"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/navy_950" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:text="Báo cáo sự cố thùng rác"
-            android:textColor="@color/navy_950"
-            android:textSize="17sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:paddingHorizontal="@dimen/screen_horizontal_padding"
+            android:paddingVertical="16dp">
 
+            <!-- 2. Chọn Thùng Rác (Bin Selector Card) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Loại sự cố gặp phải"
-                android:textColor="@color/navy_950"
+                android:text="Điểm thùng rác gặp sự cố *"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="14.5sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_dialog_item_field"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="Thùng"
+                    android:src="@drawable/ic_stat_trash_green" />
+
+                <Spinner
+                    android:id="@+id/spIncidentBinPicker"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:background="@null"
+                    android:spinnerMode="dropdown" />
+            </LinearLayout>
+
+            <!-- 3. Chọn Loại Sự Cố (Issue Type Card) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="Loại sự cố gặp phải *"
+                android:textColor="@color/profile_text_primary"
                 android:textSize="14.5sp"
                 android:textStyle="bold" />
 
@@ -60,68 +75,136 @@
                 android:id="@+id/rgIncidentType"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_card_white"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_card_profile"
+                android:elevation="1dp"
                 android:padding="12dp">
-
-                <RadioButton
-                    android:id="@+id/rbLidBroken"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:text="🔧 Nắp thùng bị hỏng / kẹt cơ học"
-                    android:textColor="@color/navy_900"
-                    android:textSize="13.5sp" />
-
-                <RadioButton
-                    android:id="@+id/rbSensorFault"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="📡 Cảm biến báo sai mức rác"
-                    android:textColor="@color/navy_900"
-                    android:textSize="13.5sp" />
 
                 <RadioButton
                     android:id="@+id/rbOverflow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="⚠️ Rác quá tải tràn ra ngoài"
-                    android:textColor="@color/navy_900"
-                    android:textSize="13.5sp" />
+                    android:checked="true"
+                    android:paddingVertical="4dp"
+                    android:text="⚠️ Rác quá đầy tràn ra ngoài"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp" />
+
+                <RadioButton
+                    android:id="@+id/rbLidBroken"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="4dp"
+                    android:text="🔧 Nắp thùng bị hỏng / kẹt cơ học"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp" />
+
+                <RadioButton
+                    android:id="@+id/rbSensorFault"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="4dp"
+                    android:text="📡 Cảm biến báo sai mức rác"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp" />
 
                 <RadioButton
                     android:id="@+id/rbBlocked"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🚧 Đường bị chặn, không thể tiếp cận"
-                    android:textColor="@color/navy_900"
-                    android:textSize="13.5sp" />
+                    android:paddingVertical="4dp"
+                    android:text="🚧 Đường bị chặn / Không thể tiếp cận"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp" />
+
+                <RadioButton
+                    android:id="@+id/rbOther"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="4dp"
+                    android:text="❓ Sự cố khác"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp" />
             </RadioGroup>
 
+            <!-- 4. Mô Tả Chi Tiết (Description Field) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="Mô tả chi tiết"
-                android:textColor="@color/navy_950"
+                android:layout_marginTop="18dp"
+                android:text="Mô tả chi tiết sự cố *"
+                android:textColor="@color/profile_text_primary"
                 android:textSize="14.5sp"
                 android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/etIncidentDesc"
                 android:layout_width="match_parent"
-                android:layout_height="100dp"
+                android:layout_height="110dp"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/bg_input_field"
+                android:background="@drawable/bg_dialog_item_field"
                 android:gravity="top|start"
-                android:hint="Nhập thông tin mô tả sự cố để Admin xử lý..."
-                android:padding="12dp"
-                android:textColor="@color/navy_900"
-                android:textColorHint="@color/navy_400"
+                android:hint="Nhập mô tả cụ thể về tình trạng sự cố để trung tâm điều phối nắm bắt..."
+                android:padding="14dp"
+                android:textColor="@color/profile_text_primary"
+                android:textColorHint="@color/profile_text_tertiary"
                 android:textSize="13.5sp" />
 
+            <!-- 5. Chụp Ảnh Minh Chứng (Photo Evidence) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="Ảnh minh chứng (Tùy chọn)"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="14.5sp"
+                android:textStyle="bold" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnCaptureIncident"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_dialog_item_field"
+                android:drawableStart="@drawable/ic_camera_white"
+                android:drawableTint="@color/profile_green_primary"
+                android:drawablePadding="8dp"
+                android:text="📷 Chụp ảnh hiện trường"
+                android:textAllCaps="false"
+                android:textColor="@color/profile_green_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/layoutPhotoPreview"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:layout_marginTop="10dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivIncidentPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_card_profile"
+                    android:contentDescription="Ảnh minh chứng"
+                    android:scaleType="centerCrop" />
+
+                <ImageView
+                    android:id="@+id/btnRemovePhoto"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/bg_circle_notif_red"
+                    android:contentDescription="Xóa ảnh"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_close_gray"
+                    app:tint="@color/white" />
+            </FrameLayout>
+
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
     <!-- Bottom Submit Button -->
     <LinearLayout
@@ -134,12 +217,12 @@
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnSubmitIncident"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:background="@drawable/btn_primary"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_btn_primary_green"
             android:text="Gửi Báo Cáo Sự Cố"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="14.5sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 

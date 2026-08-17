@@ -55,10 +55,10 @@
             android:id="@+id/tvInProgressPercentText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="67%"
             android:textColor="@color/profile_green_primary"
             android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="67%" />
     </LinearLayout>
 
     <!-- Job ID -->
@@ -67,10 +67,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="#JOB_1723801234"
         android:textColor="@color/profile_text_primary"
         android:textSize="18sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        tools:text="#JOB_1723801234" />
 
     <!-- Progress Summary -->
     <TextView
@@ -78,9 +78,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="2 / 3 điểm đã hoàn thành"
         android:textColor="@color/profile_text_secondary"
-        android:textSize="13sp" />
+        android:textSize="13sp"
+        tools:text="2 / 3 điểm đã hoàn thành" />
 
     <!-- Progress Bar -->
     <ProgressBar
@@ -90,7 +90,7 @@
         android:layout_height="6dp"
         android:layout_marginTop="8dp"
         android:max="100"
-        android:progress="67"
+        android:progress="0"
         android:progressDrawable="@drawable/bg_bin_percent_green" />
 
     <!-- Current Target Point info -->
@@ -119,10 +119,10 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Điểm hiện tại: BIN_HCM_04 (Nguyễn Huệ)"
             android:textColor="@color/profile_text_primary"
             android:textSize="12.5sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="Điểm hiện tại: BIN-001" />
     </LinearLayout>
 
     <!-- Action Button: [ Tiếp tục ca ] -->

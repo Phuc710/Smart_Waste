@@ -2,6 +2,8 @@ package com.example.app_smart_waste.core.network
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
@@ -10,10 +12,23 @@ import org.json.JSONObject
 
 class PersistentCookieJar(context: Context) : CookieJar {
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("smartwaste_cookies_storage", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
 
-    // Map: Host -> (CookieName -> Cookie)
+        EncryptedSharedPreferences.create(
+            context,
+            "smartwaste_secure_cookies_storage",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (_: Exception) {
+        context.getSharedPreferences("smartwaste_cookies_storage", Context.MODE_PRIVATE)
+    }
+
+    // Map: Host/Domain Key -> (CookieName -> Cookie)
     private val memoryStore: MutableMap<String, MutableMap<String, Cookie>> = mutableMapOf()
 
     init {
@@ -45,30 +60,38 @@ class PersistentCookieJar(context: Context) : CookieJar {
 
     @Synchronized
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        val host = url.host
-        val hostMap = memoryStore[host] ?: return emptyList()
-
         val now = System.currentTimeMillis()
         val validCookies = mutableListOf<Cookie>()
-        val expiredNames = mutableListOf<String>()
+        val expiredEntries = mutableListOf<Pair<String, String>>() // (hostKey, cookieName)
 
-        for ((name, cookie) in hostMap) {
-            if (cookie.expiresAt > now) {
-                validCookies.add(cookie)
-            } else {
-                expiredNames.add(name)
+        for ((hostKey, hostMap) in memoryStore) {
+            for ((name, cookie) in hostMap) {
+                if (cookie.expiresAt <= now) {
+                    expiredEntries.add(hostKey to name)
+                } else if (cookie.matches(url)) {
+                    validCookies.add(cookie)
+                }
             }
         }
 
-        if (expiredNames.isNotEmpty()) {
-            for (name in expiredNames) {
-                hostMap.remove(name)
+        if (expiredEntries.isNotEmpty()) {
+            val affectedHosts = mutableSetOf<String>()
+            for ((hostKey, name) in expiredEntries) {
+                memoryStore[hostKey]?.remove(name)
+                affectedHosts.add(hostKey)
             }
-            persistHostToPreferences(host)
+            for (hostKey in affectedHosts) {
+                persistHostToPreferences(hostKey)
+            }
         }
 
         return validCookies
     }
+
+    @Synchronized
+    fun getCookieHeader(url: HttpUrl): String? = loadForRequest(url)
+        .joinToString("; ") { "${it.name}=${it.value}" }
+        .takeIf { it.isNotBlank() }
 
     @Synchronized
     fun clear() {

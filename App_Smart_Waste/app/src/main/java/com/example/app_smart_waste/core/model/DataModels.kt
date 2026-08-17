@@ -42,7 +42,13 @@ data class SmartBinDto(
     @SerializedName("is_online") val isOnline: Boolean? = true,
     @SerializedName("collection_status") val collectionStatus: String? = "IDLE",
     @SerializedName("last_telemetry") val lastTelemetry: String? = null
-)
+) {
+    val fillLevel: Int get() = (levelPercent ?: 0.0).toInt()
+    val lidStatus: String get() = if (lidState?.contains("OPEN", ignoreCase = true) == true) "🔓 Đang mở" else "🔒 Đã đóng"
+    val lastSeen: String?
+        get() = lastTelemetry ?: "Chưa có dữ liệu"
+    val status: String get() = collectionStatus ?: "IDLE"
+}
 
 // 3. Collection Job Models
 data class JobItemDto(
@@ -91,6 +97,20 @@ data class ActiveJobResponse(
     @SerializedName("job") val job: JobDto?
 )
 
+data class DailyDriverStatsDto(
+    @SerializedName("collectionCount") val collectionCount: Int = 0,
+    @SerializedName("distanceMeters") val distanceMeters: Int = 0,
+    @SerializedName("estimatedWeightKg") val estimatedWeightKg: Double = 0.0,
+    @SerializedName("estimateKgPerCollection") val estimateKgPerCollection: Double = 0.0,
+    @SerializedName("day") val day: String? = null,
+    @SerializedName("timezone") val timezone: String? = null
+)
+
+data class MobileHomeResponse(
+    @SerializedName("job") val job: JobDto? = null,
+    @SerializedName("stats") val stats: DailyDriverStatsDto = DailyDriverStatsDto()
+)
+
 data class CollectBinRequest(
     @SerializedName("binId") val binId: String,
     @SerializedName("status") val status: String = "COLLECTED",
@@ -124,6 +144,23 @@ data class IncidentRequest(
     @SerializedName("issue_type") val issueType: String,
     @SerializedName("description") val description: String,
     @SerializedName("photo_url") val photoUrl: String? = null
+)
+
+data class IncidentUploadRequest(
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("issueType") val issueType: String,
+    @SerializedName("description") val description: String
+)
+
+data class IncidentUploadDto(
+    @SerializedName("uploadId") val uploadId: String,
+    @SerializedName("uploadUrl") val uploadUrl: String,
+    @SerializedName("objectPath") val objectPath: String
+)
+
+data class IncidentUploadResponse(
+    @SerializedName("ok") val ok: Boolean,
+    @SerializedName("upload") val upload: IncidentUploadDto?
 )
 
 data class IncidentReportDto(
@@ -202,23 +239,23 @@ data class JobDisplayModel(
 
 // 9. Work Shift & Vehicle Info Models
 data class WorkShiftModel(
-    val id: String = "SHIFT_001",
-    val title: String = "Ca trực 8 tiếng",
-    val startTime: String = "08:15",
-    val endTime: String = "16:15",
-    val durationText: String = "08:00:00",
-    val routeName: String = "Quận 1 — Tuyến 04",
+    val id: String = "SHIFT-01",
+    val title: String = "Sáng",
+    val startTime: String = "06:00",
+    val endTime: String = "14:00",
+    val durationText: String = "8 tiếng",
+    val routeName: String = "Tuyến Quận 1",
     val totalBins: Int = 14,
-    val supervisor: String = "Nguyễn Văn A (0909 123 456)"
+    val supervisor: String = "Nguyễn Văn Quản Lý"
 )
 
 data class VehicleModel(
-    val plate: String = "51C-234.56",
+    val plate: String = "--",
     val id: String = "XE-2345",
-    val type: String = "Xe ép rác chuyên dụng 8m³",
-    val capacity: String = "8.0 m³",
-    val weight: String = "5.5 Tấn",
-    val fuelLevel: Int = 78,
+    val type: String = "Xe ép rác",
+    val capacity: String = "8 m³",
+    val weight: String = "8 tấn",
+    val fuelLevel: Int = 100,
     val isGpsConnected: Boolean = true
 )
 
@@ -236,3 +273,17 @@ data class SystemSettingsResponse(
     @SerializedName("ok") val ok: Boolean? = true,
     @SerializedName("settings") val settings: SystemSettingsDto?
 )
+
+// 11. Map & Route Models
+data class RouteRequest(
+    @SerializedName("coordinates") val coordinates: List<List<Double>>
+)
+
+data class RouteResponse(
+    @SerializedName("provider") val provider: String? = "osrm",
+    @SerializedName("distanceMeters") val distanceMeters: Double? = 0.0,
+    @SerializedName("durationSeconds") val durationSeconds: Double? = 0.0,
+    @SerializedName("coordinates") val coordinates: List<List<Double>>? = emptyList(),
+    @SerializedName("optimizedOrder") val optimizedOrder: List<Int>? = emptyList()
+)
+

@@ -130,7 +130,7 @@ class BinDetailActivity : AppCompatActivity() {
         val level = (bin.levelPercent ?: 0.0).roundToInt()
         binding.tvBinLevelBig.text = "$level%"
         binding.pbBinLevel.progress = level
-        binding.tvBinLocation.text = bin.location ?: "Quận 1, TP. Hồ Chí Minh"
+        binding.tvBinLocation.text = bin.location ?: "Chưa có thông tin vị trí"
 
         if (level >= 85) {
             binding.tvBinLevelBig.setTextColor(ContextCompat.getColor(this, R.color.status_danger_main))

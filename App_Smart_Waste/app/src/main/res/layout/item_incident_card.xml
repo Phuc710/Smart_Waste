@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardIncidentRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    android:background="@drawable/bg_dialog_item_field"
+    android:background="@drawable/bg_card_profile"
+    android:clickable="true"
+    android:elevation="1dp"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="16dp">
 
-    <!-- Card Header: Device + Status Badge -->
+    <!-- Top Row: Code & Status Pill -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -16,50 +22,54 @@
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/tvIncidentBinName"
+            android:id="@+id/tvIncidentCode"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Thùng rác #BIN-002"
+            android:text="#INC_102"
             android:textColor="@color/profile_text_primary"
-            android:textSize="14sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvIncidentStatusBadge"
+            android:id="@+id/tvIncidentStatusPill"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_role_badge_pill"
-            android:paddingHorizontal="8dp"
+            android:background="@drawable/bg_badge_pill_red"
+            android:paddingHorizontal="10dp"
             android:paddingVertical="3dp"
-            android:text="ĐANG KIỂM TRA"
-            android:textColor="@color/profile_green_primary"
+            android:text="MỚI TIẾP NHẬN"
+            android:textColor="#DC2626"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Reason -->
-    <TextView
-        android:id="@+id/tvIncidentReason"
+    <!-- Bin Info Row -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Nắp kẹt không mở được"
-        android:textColor="@color/profile_green_dark"
-        android:textSize="14.5sp"
-        android:textStyle="bold" />
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <!-- Description -->
-    <TextView
-        android:id="@+id/tvIncidentDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="Nắp thùng bị kẹt cơ học do vật lạ chặn khe cảm biến."
-        android:textColor="@color/profile_text_secondary"
-        android:textSize="12.5sp" />
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="Thùng rác"
+            android:src="@drawable/ic_stat_trash_green" />
 
-    <!-- Location & Timestamp -->
+        <TextView
+            android:id="@+id/tvIncidentBinName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="BIN_HCM_02 - Phố Đi Bộ Nguyễn Huệ"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Reason Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -67,55 +77,73 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:contentDescription="Lý do"
+            android:src="@drawable/ic_warning_triangle"
+            app:tint="#D97706" />
+
         <TextView
-            android:id="@+id/tvIncidentLocation"
-            android:layout_width="0dp"
+            android:id="@+id/tvIncidentReason"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="📍 Nhà thờ Đức Bà, Quận 1"
-            android:textColor="@color/profile_text_tertiary"
-            android:textSize="11.5sp" />
+            android:layout_marginStart="6dp"
+            android:text="Rác quá đầy tràn ra ngoài"
+            android:textColor="#D97706"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Description -->
+    <TextView
+        android:id="@+id/tvIncidentDesc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:lineSpacingExtra="2dp"
+        android:maxLines="2"
+        android:text="Thùng rác phố đi bộ quá tải vào giờ cao điểm, rác tràn nắp..."
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="12.5sp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="8dp"
+        android:background="#F1F5F9" />
+
+    <!-- Bottom Row: Time & Photo Indicator -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
         <TextView
             android:id="@+id/tvIncidentTime"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Hôm nay, 08:15"
+            android:layout_weight="1"
+            android:text="🕒 Gửi lúc: 14:32 • Hôm nay"
             android:textColor="@color/profile_text_tertiary"
             android:textSize="11.5sp" />
-    </LinearLayout>
-
-    <!-- Photo Signed URL Action Button (If photo attached) -->
-    <LinearLayout
-        android:id="@+id/btnViewIncidentPhoto"
-        android:layout_width="wrap_content"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/bg_role_badge_pill"
-        android:backgroundTint="#EFF6FF"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="10dp">
-
-        <ImageView
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:contentDescription="Ảnh"
-            android:src="@drawable/ic_image_photo"
-            app:tint="#1976D2" />
 
         <TextView
+            android:id="@+id/tvIncidentHasPhoto"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="Xem ảnh minh chứng (Signed URL)"
-            android:textColor="#1976D2"
+            android:drawableStart="@drawable/ic_camera_white"
+            android:drawableTint="@color/profile_green_primary"
+            android:drawablePadding="4dp"
+            android:text="Có ảnh"
+            android:textColor="@color/profile_green_primary"
             android:textSize="11.5sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="gone" />
     </LinearLayout>
 
 </LinearLayout>

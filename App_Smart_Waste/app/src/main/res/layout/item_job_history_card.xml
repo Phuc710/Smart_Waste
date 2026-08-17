@@ -31,19 +31,19 @@
                 android:id="@+id/tvHistoryJobCode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="#JOB_17238001"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="#JOB_17238001" />
 
             <TextView
                 android:id="@+id/tvHistoryDateTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="17/05/2026 • 08:30 - 09:15"
                 android:textColor="@color/profile_text_secondary"
-                android:textSize="12.5sp" />
+                android:textSize="12.5sp"
+                tools:text="17/05/2026 • 08:30 - 09:15" />
         </LinearLayout>
 
         <LinearLayout
@@ -59,10 +59,10 @@
                 android:background="@drawable/bg_status_completed_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="4dp"
-                android:text="Hoàn thành"
                 android:textColor="#166534"
                 android:textSize="12sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="Hoàn thành" />
         </LinearLayout>
 
         <ImageView
@@ -99,10 +99,10 @@
                 android:id="@+id/tvHistoryBinsCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="3/3"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="3/3" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -124,10 +124,10 @@
                 android:id="@+id/tvHistoryDistance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="5.2 km"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="5.2 km" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -149,10 +149,10 @@
                 android:id="@+id/tvHistoryDuration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="45 phút"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="45 phút" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -174,10 +174,10 @@
                 android:id="@+id/tvHistoryWeight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="~250 kg"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="~250 kg" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -210,9 +210,9 @@
             android:id="@+id/tvHistoryReason"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hoàn thành tất cả điểm thu gom"
             android:textColor="@color/profile_text_secondary"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            tools:text="Hoàn thành tất cả điểm thu gom" />
     </LinearLayout>
 
 </LinearLayout>

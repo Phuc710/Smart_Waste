@@ -116,6 +116,7 @@
     <color name="profile_border">#E2E8F0</color>
     <color name="profile_border_card">#E5E7EB</color>
     <color name="profile_danger">#E53935</color>
+    <color name="profile_warning">#D97706</color>
     <color name="profile_stat_blue">#1976D2</color>
     <color name="profile_stat_blue_bg">#E3F2FD</color>
     <color name="profile_stat_green">#2E7D32</color>

@@ -239,7 +239,8 @@ export default function App() {
   };
 
   const handleSelectBinForMap = (bin) => {
-    setSelectedBinForMap(bin);
+    if (!bin) return;
+    setSelectedBinForMap({ ...bin, _focusTs: Date.now() });
     setActiveView('map');
   };
 
@@ -526,6 +527,8 @@ export default function App() {
           <OperationsPage
             bins={bins}
             onNotify={notify}
+            onNavigateTab={(tab) => setActiveView(tab)}
+            onSelectBinForMap={handleSelectBinForMap}
           />
         )}
 
@@ -533,6 +536,7 @@ export default function App() {
           <EmployeesPage
             currentUser={user}
             onNotify={notify}
+            onUpdateCurrentUser={(updated) => setUser(prev => ({ ...prev, ...updated }))}
           />
         )}
 

@@ -11,7 +11,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.app_smart_waste.R
@@ -39,12 +38,18 @@ class JobHistoryDetailActivity : AppCompatActivity() {
         binding = ActivityJobHistoryDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val jobId = intent.getStringExtra("JOB_ID") ?: "JOB_17238001"
+        val jobId = intent.getStringExtra("JOB_ID").orEmpty()
+        if (jobId.isBlank()) {
+            finish()
+            return
+        }
+
+        val displayCode = formatJobCode(jobId)
 
         // Setup Shared AppHeader
         binding.detailAppHeader.configure(
             title = "Chi tiết lịch sử ca",
-            subtitle = "#$jobId",
+            subtitle = displayCode,
             navIconRes = R.drawable.ic_arrow_back,
             onNavClick = { finish() }
         )
@@ -61,8 +66,9 @@ class JobHistoryDetailActivity : AppCompatActivity() {
 
         binding.btnViewRouteMap.setOnClickListener {
             it.applyPressEffect {
+                val job = currentJob ?: return@applyPressEffect
                 val intent = Intent(this, RouteDetailActivity::class.java).apply {
-                    putExtra("JOB_ID", currentJob?.id ?: "JOB_17238001")
+                    putExtra("JOB_ID", job.id)
                 }
                 startActivity(intent)
             }
@@ -76,15 +82,18 @@ class JobHistoryDetailActivity : AppCompatActivity() {
             allBinsMap = bins.associateBy { it.deviceId }
 
             val jobRes = jobsRepo.getJobDetail(jobId)
-            val job = jobRes.getOrNull() ?: createSampleHistoryJob(jobId)
-            currentJob = job
-
-            bindJobData(job)
+            val job = jobRes.getOrNull()
+            if (job != null) {
+                currentJob = job
+                bindJobData(job)
+            } else {
+                binding.tvDetailJobTitle.text = "Không tìm thấy dữ liệu ca #$jobId"
+            }
         }
     }
 
     private fun bindJobData(job: JobDto) {
-        val displayCode = if (job.id.startsWith("JOB_") || job.id.startsWith("#")) job.id else "#JOB_${job.id}"
+        val displayCode = formatJobCode(job.id)
         binding.tvDetailJobTitle.text = "Nhiệm vụ $displayCode"
         binding.detailAppHeader.setSubtitle("Mã ca: $displayCode")
 
@@ -92,58 +101,96 @@ class JobHistoryDetailActivity : AppCompatActivity() {
         val timeStr = TimeUtils.formatJobTimeRange(job.startedAt ?: job.assignedAt, job.completedAt)
         binding.tvDetailJobTimeVn.text = timeStr
 
-        // 2. Status Badge
-        val isCompleted = job.status == "COMPLETED"
-        if (isCompleted) {
-            binding.tvDetailStatusBadge.text = "Hoàn thành"
-            binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#166534"))
-            binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_completed_pill)
-        } else {
-            binding.tvDetailStatusBadge.text = "Đã hủy"
-            binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#991B1B"))
-            binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_cancelled_pill)
+        // 2. Status Badge with when (strictly avoiding blanket "Đã hủy")
+        when (job.status.uppercase()) {
+            "COMPLETED", "DONE", "SUCCESS", "FINISHED" -> {
+                binding.tvDetailStatusBadge.text = "Hoàn thành"
+                binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#166534"))
+                binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_completed_pill)
+            }
+            "CANCELLED", "CANCELED", "REJECTED" -> {
+                binding.tvDetailStatusBadge.text = "Đã hủy"
+                binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#991B1B"))
+                binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_cancelled_pill)
+            }
+            "EXPIRED" -> {
+                binding.tvDetailStatusBadge.text = "Hết hạn"
+                binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#9A3412"))
+                binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_status_expired_pill)
+            }
+            "IN_PROGRESS", "PAUSED", "ASSIGNED", "ACCEPTED" -> {
+                binding.tvDetailStatusBadge.text = "Đang thực hiện"
+                binding.tvDetailStatusBadge.setTextColor(Color.parseColor("#1D4ED8"))
+                binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_tag_dang_thuc_hien)
+            }
+            else -> {
+                binding.tvDetailStatusBadge.text = job.status
+                binding.tvDetailStatusBadge.setTextColor(Color.GRAY)
+                binding.tvDetailStatusBadge.setBackgroundResource(R.drawable.bg_role_badge_pill)
+            }
         }
 
         // 3. Vehicle & Dispatcher
-        binding.tvDetailVehiclePlate.text = "51C-234.56 (8m³)"
-        binding.tvDetailDispatcher.text = job.employeeName ?: "Admin Điều phối"
+        binding.tvDetailVehiclePlate.text = "--"
+        binding.tvDetailDispatcher.text = job.employeeName?.takeIf { it.isNotBlank() } ?: "--"
 
         // 4. 4 KPI Statistics
-        val totalStops = job.targetBinIds?.size ?: (job.items?.size ?: 3)
-        val doneStops = if (isCompleted) totalStops else (job.completedBinIds?.size ?: 0)
+        val targetBins = when {
+            !job.targetBinIds.isNullOrEmpty() -> job.targetBinIds!!
+            !job.items.isNullOrEmpty() -> job.items!!.map { it.binId }
+            else -> emptyList()
+        }
+        val totalStops = targetBins.size
+        val completedIds = job.completedBinIds.orEmpty()
+        val isJobCompleted = job.status.uppercase() in listOf("COMPLETED", "DONE", "SUCCESS", "FINISHED")
+        val doneStops = if (completedIds.isNotEmpty()) {
+            completedIds.size
+        } else if (isJobCompleted) {
+            totalStops
+        } else {
+            0
+        }
         binding.tvDetailStatPoints.text = "$doneStops / $totalStops"
 
-        val distKm = if ((job.routeData?.distanceMeters ?: 0.0) > 0.0) {
-            (job.routeData!!.distanceMeters!! / 100.0).roundToInt() / 10.0
-        } else {
-            5.2
-        }
-        binding.tvDetailStatDistance.text = "$distKm km"
+        binding.tvDetailStatDistance.text =
+            job.routeData?.distanceMeters
+                ?.takeIf { it >= 0.0 }
+                ?.let {
+                    String.format(
+                        java.util.Locale.US,
+                        "%.1f km",
+                        it / 1000.0
+                    )
+                }
+                ?: "--"
 
-        val durMins = if ((job.routeData?.durationSeconds ?: 0.0) > 0.0) {
-            (job.routeData!!.durationSeconds!! / 60.0).roundToInt()
-        } else {
-            45
-        }
-        binding.tvDetailStatDuration.text = "$durMins phút"
+        binding.tvDetailStatDuration.text =
+            job.routeData?.durationSeconds
+                ?.takeIf { it >= 0.0 }
+                ?.let {
+                    "${(it / 60.0).roundToInt()} phút"
+                }
+                ?: "--"
 
-        val estKg = (doneStops * 83).coerceAtLeast(150)
-        binding.tvDetailStatWaste.text = "~$estKg kg"
+        binding.tvDetailStatWaste.text = "--"
 
         // 5. Stops Timeline List
-        renderStopsList(job, totalStops)
+        renderStopsList(job, targetBins)
     }
 
-    private fun renderStopsList(job: JobDto, totalStops: Int) {
+    private fun renderStopsList(job: JobDto, targetBins: List<String>) {
         val container = binding.llHistoryStopsContainer
         container.removeAllViews()
 
-        binding.tvDetailStopCountBadge.text = "$totalStops điểm dừng"
+        binding.tvDetailStopCountBadge.text = "${targetBins.size} điểm dừng"
 
-        val targetBins = job.targetBinIds ?: listOf("BIN_HCM_01", "BIN_HCM_02", "BIN_HCM_04")
+        val itemsByBin = job.items?.associateBy { it.binId }.orEmpty()
+        val completedIds = job.completedBinIds.orEmpty()
+        val isJobCompleted = job.status.uppercase() in listOf("COMPLETED", "DONE", "SUCCESS", "FINISHED")
 
         targetBins.forEachIndexed { index, binId ->
             val bin = allBinsMap[binId]
+            val itemDto = itemsByBin[binId]
             val itemView = layoutInflater.inflate(R.layout.item_history_detail_stop, container, false)
 
             val tvStep = itemView.findViewById<TextView>(R.id.tvStopStepNumber)
@@ -154,14 +201,19 @@ class JobHistoryDetailActivity : AppCompatActivity() {
             val tvTime = itemView.findViewById<TextView>(R.id.tvStopCollectedTime)
             val tvWeight = itemView.findViewById<TextView>(R.id.tvStopWeight)
             val photoContainer = itemView.findViewById<View>(R.id.layoutStopPhotoContainer)
-            val ivThumb = itemView.findViewById<ImageView>(R.id.ivStopEvidenceThumb)
 
             val stepNum = index + 1
             tvStep.text = "$stepNum"
             tvBinId.text = bin?.deviceId ?: binId
-            tvAddress.text = bin?.location ?: bin?.name ?: "Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1"
+            tvAddress.text = bin?.location ?: bin?.name ?: "Chưa có thông tin vị trí"
 
-            val isDone = job.status == "COMPLETED" || (job.completedBinIds?.contains(binId) == true)
+            val isDone = when {
+                itemDto?.status == "COLLECTED" -> true
+                completedIds.isNotEmpty() -> completedIds.contains(binId)
+                isJobCompleted -> true
+                else -> false
+            }
+
             if (isDone) {
                 tvStatus.text = "✓ Đã thu gom"
                 tvStatus.setTextColor(Color.parseColor("#15803D"))
@@ -172,22 +224,20 @@ class JobHistoryDetailActivity : AppCompatActivity() {
                 tvStatus.setBackgroundResource(R.drawable.bg_dialog_item_field)
             }
 
-            val level = (85 + index * 4).coerceAtMost(98)
-            tvLevel.text = "$level% → 0%"
+            tvLevel.text = "--"
+            tvTime.text = itemDto?.collectedAt ?: "--"
+            tvWeight.text = "--"
 
-            val baseHour = 8
-            val baseMinute = 30 + index * 12
-            val collectedTimeStr = String.format("%02d:%02d:15", baseHour, baseMinute)
-            tvTime.text = collectedTimeStr
-
-            val binWeight = 75 + index * 15
-            tvWeight.text = "~$binWeight kg"
-
-            // Photo Evidence
-            photoContainer.setOnClickListener {
-                it.applyPressEffect {
-                    showPhotoPreviewDialog(bin?.deviceId ?: binId, collectedTimeStr)
+            val photoUrl = itemDto?.photoUrl
+            if (!photoUrl.isNullOrBlank()) {
+                photoContainer.visibility = View.VISIBLE
+                photoContainer.setOnClickListener {
+                    it.applyPressEffect {
+                        showPhotoPreviewDialog(bin?.deviceId ?: binId, itemDto.collectedAt ?: "--")
+                    }
                 }
+            } else {
+                photoContainer.visibility = View.GONE
             }
 
             container.addView(itemView)
@@ -209,18 +259,12 @@ class JobHistoryDetailActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun createSampleHistoryJob(jobId: String): JobDto {
-        return JobDto(
-            id = jobId,
-            status = "COMPLETED",
-            employeeId = "NV-1024",
-            employeeName = "Admin Tổng đài",
-            targetBinIds = listOf("BIN_HCM_01", "BIN_HCM_02", "BIN_HCM_04"),
-            completedBinIds = listOf("BIN_HCM_01", "BIN_HCM_02", "BIN_HCM_04"),
-            assignedAt = "2026-05-17T01:30:00.000Z",
-            startedAt = "2026-05-17T01:30:00.000Z",
-            completedAt = "2026-05-17T02:15:00.000Z"
-        )
+    private fun formatJobCode(id: String): String {
+        val clean = id.removePrefix("#")
+        return when {
+            clean.startsWith("JOB_") -> "#$clean"
+            else -> "#JOB_$clean"
+        }
     }
 
     private fun playEntranceAnimation() {
@@ -252,11 +296,11 @@ class JobHistoryDetailActivity : AppCompatActivity() {
             .setDuration(80)
             .withEndAction {
                 this.animate()
-                .scaleX(1.0f)
-                .scaleY(1.0f)
-                .setDuration(90)
-                .withEndAction { onEnd() }
-                .start()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(90)
+                    .withEndAction { onEnd() }
+                    .start()
             }
             .start()
     }

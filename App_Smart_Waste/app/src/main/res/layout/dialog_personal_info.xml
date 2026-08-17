@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet_rounded"
@@ -75,20 +76,20 @@
                 android:id="@+id/dialogName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nguyễn Văn A"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="Người dùng" />
 
             <TextView
                 android:id="@+id/dialogRoleBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="Nhân viên thu gom"
                 android:textColor="@color/profile_green_primary"
                 android:textSize="13sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="Nhân viên thu gom" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -129,10 +130,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="NV-1024"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="NV-1024" />
         </LinearLayout>
 
         <!-- Field 2: Tên đăng nhập -->
@@ -157,10 +158,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="driver01"
                 android:textColor="@color/profile_text_primary"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="driver01" />
         </LinearLayout>
 
         <!-- Field 3: Đội vận hành -->
@@ -184,9 +185,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Đội xe thu gom rác Quận 1 - Tuyến 04"
                 android:textColor="@color/profile_text_primary"
-                android:textSize="15sp" />
+                android:textSize="15sp"
+                tools:text="Đội xe thu gom thông minh" />
         </LinearLayout>
 
         <!-- Field 4: Giấy phép -->
@@ -209,9 +210,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Hạng C (Xe tải chuyên dụng > 3.5T)"
                 android:textColor="@color/profile_text_primary"
-                android:textSize="15sp" />
+                android:textSize="15sp"
+                tools:text="Hạng C (Xe tải chuyên dụng > 3.5T)" />
         </LinearLayout>
     </LinearLayout>
 

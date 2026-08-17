@@ -288,7 +288,7 @@
                             android:id="@+id/tvVehiclePlateNum"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="51C-234.56"
+                            android:text="Xe ép rác"
                             android:textColor="@color/profile_text_primary"
                             android:textSize="17.5sp"
                             android:textStyle="bold" />
@@ -298,7 +298,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="Xe ép rác chuyên dụng 8m³ (XE-2345)"
+                            android:text="Phương tiện thu gom thông minh"
                             android:textColor="@color/profile_text_secondary"
                             android:textSize="12.5sp" />
                     </LinearLayout>
@@ -347,7 +347,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="5.5 Tấn"
+                            android:text="8 Tấn"
                             android:textColor="@color/profile_text_primary"
                             android:textSize="13.5sp"
                             android:textStyle="bold" />
@@ -377,7 +377,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="78% (Đầy)"
+                            android:text="100%"
                             android:textColor="@color/profile_green_primary"
                             android:textSize="13.5sp"
                             android:textStyle="bold" />

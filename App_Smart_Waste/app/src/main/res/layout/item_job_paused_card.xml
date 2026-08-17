@@ -55,10 +55,10 @@
             android:id="@+id/tvPausedDurationTimer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Đã dừng: 00:14:20"
             android:textColor="#B45309"
             android:textSize="12sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="Đã dừng: 00:14:20" />
     </LinearLayout>
 
     <!-- Job ID -->
@@ -67,10 +67,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="#JOB_1723801234"
         android:textColor="@color/profile_text_primary"
         android:textSize="18sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        tools:text="#JOB_1723801234" />
 
     <!-- Reason box -->
     <LinearLayout
@@ -96,9 +96,9 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="Lý do: Kẹt xe giờ cao điểm"
             android:textColor="@color/profile_text_secondary"
-            android:textSize="12.5sp" />
+            android:textSize="12.5sp"
+            tools:text="Lý do: Tạm dừng" />
     </LinearLayout>
 
     <!-- Action Button: [ Tiếp tục ca ] -->

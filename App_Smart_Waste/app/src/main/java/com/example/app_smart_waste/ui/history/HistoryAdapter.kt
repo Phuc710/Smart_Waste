@@ -4,7 +4,6 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -37,9 +36,11 @@ class HistoryAdapter(
         private val tvReason = itemView.findViewById<TextView>(R.id.tvHistoryReason)
 
         fun bind(item: JobDisplayModel) {
-            val code = if (item.rawJob.id.startsWith("JOB_") || item.rawJob.id.startsWith("#")) item.rawJob.id else "#JOB_${item.rawJob.id}"
-            tvCode.text = code
+            tvCode.text = formatJobCode(item.rawJob.id)
             tvDateTime.text = item.timeLabel
+
+            val doneCount = item.rawJob.completedBinIds?.size ?: item.collectedBins
+            val totalCount = item.totalBins
 
             when (item.statusType.uppercase()) {
                 "COMPLETED" -> {
@@ -47,11 +48,10 @@ class HistoryAdapter(
                     tvStatusBadge.text = "Hoàn thành"
                     tvStatusBadge.setTextColor(Color.parseColor("#166534"))
                     tvStatusBadge.setBackgroundResource(R.drawable.bg_status_completed_pill)
-                    tvBinsCount.text = "${item.totalBins}/${item.totalBins}"
-                    tvDistance.text = "${item.distanceKm} km"
-                    tvDuration.text = "${item.durationMinutes} phút"
-                    val estKg = (item.totalBins * 83).coerceAtLeast(150)
-                    tvWeight.text = "~$estKg kg"
+                    tvBinsCount.text = "$doneCount/$totalCount"
+                    tvDistance.text = if (item.distanceKm > 0) "${item.distanceKm} km" else "--"
+                    tvDuration.text = if (item.durationMinutes > 0) "${item.durationMinutes} phút" else "--"
+                    tvWeight.text = "--"
                     tvReason.text = "Hoàn thành tất cả điểm thu gom"
                 }
                 "CANCELLED", "CANCELED", "REJECTED" -> {
@@ -59,28 +59,32 @@ class HistoryAdapter(
                     tvStatusBadge.text = "Đã hủy"
                     tvStatusBadge.setTextColor(Color.parseColor("#991B1B"))
                     tvStatusBadge.setBackgroundResource(R.drawable.bg_status_cancelled_pill)
-                    tvBinsCount.text = "0/${item.totalBins}"
-                    tvDistance.text = "${item.distanceKm} km"
-                    tvDuration.text = "${item.durationMinutes} phút"
-                    tvWeight.text = "—"
-                    tvReason.text = item.cancelReason ?: "Thẻ bị khóa, không thể thu gom"
+                    tvBinsCount.text = "$doneCount/$totalCount"
+                    tvDistance.text = if (item.distanceKm > 0) "${item.distanceKm} km" else "--"
+                    tvDuration.text = if (item.durationMinutes > 0) "${item.durationMinutes} phút" else "--"
+                    tvWeight.text = "--"
+                    tvReason.text = item.cancelReason ?: "Đã hủy nhiệm vụ"
                 }
                 "EXPIRED" -> {
                     root.setBackgroundResource(R.drawable.bg_history_card_expired)
                     tvStatusBadge.text = "Hết hạn"
                     tvStatusBadge.setTextColor(Color.parseColor("#9A3412"))
                     tvStatusBadge.setBackgroundResource(R.drawable.bg_status_expired_pill)
-                    tvBinsCount.text = "0/${item.totalBins}"
-                    tvDistance.text = "—"
-                    tvDuration.text = "—"
-                    tvWeight.text = "—"
-                    tvReason.text = "Hết thời gian nhận ca (5 phút)"
+                    tvBinsCount.text = "$doneCount/$totalCount"
+                    tvDistance.text = if (item.distanceKm > 0) "${item.distanceKm} km" else "--"
+                    tvDuration.text = if (item.durationMinutes > 0) "${item.durationMinutes} phút" else "--"
+                    tvWeight.text = "--"
+                    tvReason.text = "Hết thời gian nhận ca"
                 }
                 else -> {
                     root.setBackgroundResource(R.drawable.bg_card_profile)
                     tvStatusBadge.text = item.statusBadgeText
                     tvStatusBadge.setTextColor(Color.GRAY)
                     tvStatusBadge.setBackgroundResource(R.drawable.bg_role_badge_pill)
+                    tvBinsCount.text = "$doneCount/$totalCount"
+                    tvDistance.text = if (item.distanceKm > 0) "${item.distanceKm} km" else "--"
+                    tvDuration.text = if (item.durationMinutes > 0) "${item.durationMinutes} phút" else "--"
+                    tvWeight.text = "--"
                     tvReason.text = "Trạng thái khác"
                 }
             }
@@ -89,6 +93,14 @@ class HistoryAdapter(
                 it.applyPressEffect {
                     onJobClick(item)
                 }
+            }
+        }
+
+        private fun formatJobCode(id: String): String {
+            val clean = id.removePrefix("#")
+            return when {
+                clean.startsWith("JOB_") -> "#$clean"
+                else -> "#JOB_$clean"
             }
         }
 

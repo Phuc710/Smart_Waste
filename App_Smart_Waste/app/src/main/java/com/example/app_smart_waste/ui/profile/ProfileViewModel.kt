@@ -17,24 +17,24 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 data class UserProfileData(
-    val id: String = "NV-1024",
-    val username: String = "driver01",
-    val fullName: String = "Nguyễn Văn A",
+    val id: String = "--",
+    val username: String = "",
+    val fullName: String = "Người dùng",
     val role: String = "Nhân viên thu gom",
-    val department: String = "Đội xe thu gom rác Quận 1 - Tuyến 04",
-    val license: String = "Hạng C (Xe tải chuyên dụng > 3.5T)",
-    val vehiclePlate: String = "51C-234.56",
+    val department: String = "--",
+    val license: String = "--",
+    val vehiclePlate: String = "--",
     val isActive: Boolean = true
 )
 
 data class ProfileWorkStats(
-    val completedTasks: Int = 12,
-    val wasteTons: Double = 24.6,
-    val distanceKm: Double = 156.0,
-    val workHours: Double = 38.5,
-    val vehiclePlate: String = "51C-234.56",
-    val vehicleType: String = "Xe ép rác 8m³",
-    val shiftName: String = "Ca sáng",
+    val completedTasks: Int = 0,
+    val wasteTons: Double = 0.0,
+    val distanceKm: Double = 0.0,
+    val workHours: Double = 0.0,
+    val vehiclePlate: String = "8 tấn • 8 m³",
+    val vehicleType: String = "Xe ép rác",
+    val shiftName: String = "Sáng",
     val shiftTime: String = "06:00 - 14:00"
 )
 
@@ -93,31 +93,29 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             authRepo.checkSession()
             val rawName = storage.getFullName()
-            val rawUsername = storage.getUsername() ?: "driver01"
+            val rawUsername = storage.getUsername() ?: ""
             val rawRole = storage.getRole() ?: "staff"
             val rawId = storage.getUserId()
 
             val displayName = if (!rawName.isNullOrBlank() && rawName != "test" && rawName != "test12345") {
                 rawName
+            } else if (rawUsername.isNotBlank()) {
+                rawUsername
             } else {
-                "Nguyễn Văn A"
+                "Người dùng"
             }
 
             val roleDisplay = if (rawRole == "admin") "Quản trị viên" else "Nhân viên thu gom"
-            val staffCode = if (!rawId.isNullOrBlank() && rawId.length >= 4) "NV-${rawId.takeLast(4).uppercase()}" else "NV-1024"
-
-            // Use data from dynamic models instead of hardcoded strings
-            val defaultShift = com.example.app_smart_waste.core.model.WorkShiftModel()
-            val defaultVehicle = com.example.app_smart_waste.core.model.VehicleModel()
+            val staffCode = if (!rawId.isNullOrBlank() && rawId.length >= 4) "NV-${rawId.takeLast(4).uppercase()}" else if (!rawId.isNullOrBlank()) "NV-$rawId" else "--"
 
             _userState.value = UserProfileData(
                 id = staffCode,
                 username = rawUsername,
                 fullName = displayName,
                 role = roleDisplay,
-                department = "Đội xe thu gom rác ${defaultShift.routeName}",
-                license = "Hạng C (Xe tải chuyên dụng > 3.5T)",
-                vehiclePlate = defaultVehicle.plate,
+                department = "Đội xe thu gom thông minh",
+                license = "Hạng C (Xe tải chuyên dụng)",
+                vehiclePlate = "--",
                 isActive = storage.isActive()
             )
         }
@@ -149,51 +147,29 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val historyRes = jobsRepo.getHistory(100)
             val history = historyRes.getOrNull() ?: emptyList()
-            val completedJobs = history.filter { it.status == "COMPLETED" }
+            val completedJobs = history.filter { it.status == "COMPLETED" || it.completedAt != null }
 
-            val (completedCount, tons, km, hours) = when (filterPeriod) {
-                "Hôm nay" -> {
-                    val count = completedJobs.size.coerceAtLeast(2)
-                    val estTons = (count * 2.05 * 10).roundToInt() / 10.0
-                    val estKm = (count * 14.0 * 10).roundToInt() / 10.0
-                    val estHours = (count * 3.5 * 10).roundToInt() / 10.0
-                    Quadruple(count, estTons, estKm, estHours)
-                }
-                "30 ngày qua" -> {
-                    val count = if (completedJobs.size > 12) completedJobs.size * 4 else 48
-                    val estTons = (count * 2.05 * 10).roundToInt() / 10.0
-                    val estKm = (count * 13.0 * 10).roundToInt() / 10.0
-                    val estHours = (count * 3.2 * 10).roundToInt() / 10.0
-                    Quadruple(count, estTons, estKm, estHours)
-                }
-                "Tháng này" -> {
-                    val count = if (completedJobs.size > 12) completedJobs.size * 4 + 4 else 52
-                    val estTons = (count * 2.05 * 10).roundToInt() / 10.0
-                    val estKm = (count * 13.0 * 10).roundToInt() / 10.0
-                    val estHours = (count * 3.2 * 10).roundToInt() / 10.0
-                    Quadruple(count, estTons, estKm, estHours)
-                }
-                else -> { // "7 ngày qua"
-                    val count = if (completedJobs.isNotEmpty()) completedJobs.size.coerceAtLeast(12) else 12
-                    val estTons = 24.6
-                    val estKm = 156.0
-                    val estHours = 38.5
-                    Quadruple(count, estTons, estKm, estHours)
-                }
+            val totalTasks = completedJobs.size
+            var totalDistMeters = 0.0
+            var totalDurSecs = 0.0
+
+            completedJobs.forEach { job ->
+                totalDistMeters += (job.routeData?.distanceMeters ?: 0.0)
+                totalDurSecs += (job.routeData?.durationSeconds ?: 0.0)
             }
 
-            val activeJob = jobsRepo.getActiveJob().getOrNull()
-            val defaultVehicle = com.example.app_smart_waste.core.model.VehicleModel()
-            val plate = activeJob?.employeeId?.let { defaultVehicle.plate } ?: defaultVehicle.plate
+            val totalKm = ((totalDistMeters / 1000.0) * 10.0).roundToInt() / 10.0
+            val totalHours = ((totalDurSecs / 3600.0) * 10.0).roundToInt() / 10.0
+            val totalTons = ((totalTasks * 0.45) * 10.0).roundToInt() / 10.0
 
             _statsState.value = ProfileWorkStats(
-                completedTasks = completedCount,
-                wasteTons = tons,
-                distanceKm = km,
-                workHours = hours,
-                vehiclePlate = plate,
-                vehicleType = defaultVehicle.type,
-                shiftName = "Ca sáng",
+                completedTasks = totalTasks,
+                wasteTons = totalTons,
+                distanceKm = totalKm,
+                workHours = totalHours,
+                vehiclePlate = "8 tấn • 8 m³",
+                vehicleType = "Xe ép rác",
+                shiftName = "Sáng",
                 shiftTime = "06:00 - 14:00"
             )
         }

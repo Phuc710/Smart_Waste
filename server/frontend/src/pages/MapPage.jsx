@@ -669,17 +669,28 @@ export default function MapPage({ bins = [], selectedBin: initialSelectedBin, em
     }
   }, [employeeLocations]);
 
-  // Handle Initial Selected Bin ONLY ONCE upon prop change
+  // Handle Initial Selected Bin upon prop change
   useEffect(() => {
     if (!initialSelectedBin?.device_id) return;
-    if (initialHandledBinIdRef.current === initialSelectedBin.device_id) return;
-    initialHandledBinIdRef.current = initialSelectedBin.device_id;
+    const bId = initialSelectedBin.device_id;
+    setSelectedBinId(bId);
+    setSelectedTruckId(null);
+    setSelectedJobId(null);
+    setPanelMode('bin');
+    setListTab('bins');
 
-    const timer = setTimeout(() => {
+    const timer1 = setTimeout(() => {
       handleSelectBin(initialSelectedBin, true);
-    }, 200);
+    }, 120);
 
-    return () => clearTimeout(timer);
+    const timer2 = setTimeout(() => {
+      handleSelectBin(initialSelectedBin, true);
+    }, 450);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
   }, [initialSelectedBin, handleSelectBin]);
 
   // Default selection if nothing is selected on first data load
@@ -874,8 +885,19 @@ export default function MapPage({ bins = [], selectedBin: initialSelectedBin, em
       binMarkersRef.current.set(bin.device_id, marker);
     });
 
-    // Auto fit bounds ONCE on initial mount
-    if (validCoordsCount > 0 && !initialBoundsFittedRef.current && !initialSelectedBin) {
+    const activeTargetBinId = selectedBinId || initialSelectedBin?.device_id;
+    if (activeTargetBinId && binMarkersRef.current.has(activeTargetBinId)) {
+      const activeMarker = binMarkersRef.current.get(activeTargetBinId);
+      const activeBin = (bins || []).find(b => b.device_id === activeTargetBinId) || initialSelectedBin;
+      if (activeMarker) {
+        setTimeout(() => {
+          activeMarker.openPopup();
+        }, 150);
+      }
+      if (activeBin && Number(activeBin.latitude) && Number(activeBin.longitude)) {
+        map.flyTo([Number(activeBin.latitude), Number(activeBin.longitude)], 16, { animate: true, duration: 0.5 });
+      }
+    } else if (validCoordsCount > 0 && !initialBoundsFittedRef.current && !initialSelectedBin) {
       initialBoundsFittedRef.current = true;
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
     }
