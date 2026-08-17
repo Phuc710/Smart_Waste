@@ -351,19 +351,19 @@ class JobsFragment : Fragment() {
                     viewModel.isAvailableForSelfPick.collectLatest { available ->
                         if (available) {
                             binding.cardWorkAvailability.setBackgroundResource(R.drawable.bg_card_availability_on)
-                            binding.tvAvailabilityStatusLabel.text = "🟢 Sẵn sàng nhận việc"
-                            binding.tvAvailabilityStatusLabel.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_green_primary))
-                            binding.tvAvailabilityDesc.text = "Bạn đang sẵn sàng nhận nhiệm vụ tự chọn."
-                            binding.badgeShiftActive.visibility = View.VISIBLE
+                            binding.dotAvailabilityIndicator.setBackgroundResource(R.drawable.bg_dot_active_green)
+                            binding.tvAvailabilityStatusLabel.text = "Sẵn sàng nhận việc"
+                            binding.tvAvailabilityStatusLabel.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_primary))
+                            binding.tvAvailabilityDesc.text = "Hệ thống tự động điều phối nhiệm vụ thu gom tối ưu về xe của bạn."
                             if (!binding.switchAvailability.isChecked) {
                                 binding.switchAvailability.isChecked = true
                             }
                         } else {
                             binding.cardWorkAvailability.setBackgroundResource(R.drawable.bg_card_availability_off)
-                            binding.tvAvailabilityStatusLabel.text = "⚪ Tạm nghỉ"
+                            binding.dotAvailabilityIndicator.setBackgroundResource(R.drawable.bg_dot_inactive_gray)
+                            binding.tvAvailabilityStatusLabel.text = "Tạm nghỉ"
                             binding.tvAvailabilityStatusLabel.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_secondary))
-                            binding.tvAvailabilityDesc.text = "Tắt chế độ tự nhận nhiệm vụ từ bản đồ. (Admin vẫn có thể giao việc realtime)"
-                            binding.badgeShiftActive.visibility = View.GONE
+                            binding.tvAvailabilityDesc.text = "Gạt công tắc để bắt đầu ca và nhận nhiệm vụ thu gom mới."
                             if (binding.switchAvailability.isChecked) {
                                 binding.switchAvailability.isChecked = false
                             }
@@ -371,14 +371,7 @@ class JobsFragment : Fragment() {
                     }
                 }
 
-                // 2. Shift Time Range (Dynamic ON + 8 Hours)
-                launch {
-                    viewModel.shiftTimeRange.collectLatest { timeRange ->
-                        binding.tvShiftTimeRange.text = timeRange
-                    }
-                }
-
-                // 3. Sub-Filter Counts
+                // 2. Sub-Filter Counts
                 launch {
                     viewModel.allActiveCount.collectLatest { count ->
                         binding.chipActiveSubAll.text = "Tất cả ($count)"
@@ -399,7 +392,7 @@ class JobsFragment : Fragment() {
                     }
                 }
 
-                // 4. Displayed Active Jobs
+                // 3. Displayed Active Jobs
                 launch {
                     viewModel.displayedActiveJobs.collectLatest { activeList ->
                         activeJobsAdapter.submitList(activeList)
@@ -413,15 +406,11 @@ class JobsFragment : Fragment() {
                     }
                 }
 
-                // 5. History Jobs List & Filtering (Image 1)
+                // 4. History Jobs List & Filtering
                 launch {
                     viewModel.historyJobs.collectLatest { historyList ->
                         filterAndSubmitHistory(historyList, viewModel.historyFilter.value)
                         binding.tvHistoryTabCountBadge.text = historyList.size.toString()
-                    }
-                }
-                            binding.tvAvailabilityDesc.text = "Gạt công tắc để bắt đầu ca và nhận nhiệm vụ mới."
-                        }
                     }
                 }
             }

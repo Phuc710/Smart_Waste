@@ -34,14 +34,14 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="@dimen/screen_horizontal_padding">
 
-                <!-- 2. WORK AVAILABILITY CARD (Grab-Style On/Off) -->
+                <!-- 2. WORK AVAILABILITY CARD (Modern Clean Material 3 Card) -->
                 <LinearLayout
                     android:id="@+id/cardWorkAvailability"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:background="@drawable/bg_card_availability_on"
-                    android:elevation="0.5dp"
+                    android:elevation="1dp"
                     android:orientation="vertical"
                     android:padding="16dp">
 
@@ -60,20 +60,35 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Trạng thái làm việc"
-                                android:textColor="@color/profile_text_secondary"
-                                android:textSize="12sp"
+                                android:letterSpacing="0.04"
+                                android:text="TRẠNG THÁI LÀM VIỆC"
+                                android:textColor="@color/navy_500"
+                                android:textSize="11sp"
                                 android:textStyle="bold" />
 
-                            <TextView
-                                android:id="@+id/tvAvailabilityStatusLabel"
+                            <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:text="🟢 Sẵn sàng nhận việc"
-                                android:textColor="@color/profile_green_primary"
-                                android:textSize="15.5sp"
-                                android:textStyle="bold" />
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <View
+                                    android:id="@+id/dotAvailabilityIndicator"
+                                    android:layout_width="8dp"
+                                    android:layout_height="8dp"
+                                    android:background="@drawable/bg_dot_active_green" />
+
+                                <TextView
+                                    android:id="@+id/tvAvailabilityStatusLabel"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="Sẵn sàng nhận việc"
+                                    android:textColor="@color/profile_text_primary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
@@ -81,18 +96,19 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            app:thumbTint="@color/white"
-                            app:trackTint="@color/profile_green_primary" />
+                            app:thumbTint="@color/switch_thumb_selector"
+                            app:trackTint="@color/switch_track_selector" />
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/tvAvailabilityDesc"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Bạn đang sẵn sàng nhận nhiệm vụ tự chọn."
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingExtra="2dp"
+                        android:text="Hệ thống tự động điều phối nhiệm vụ thu gom tối ưu về xe của bạn."
                         android:textColor="@color/profile_text_secondary"
-                        android:textSize="12.5sp" />
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <!-- 3. PRIMARY TOP SEGMENTED CONTROL ( [ Đang xử lý (🔴 2) ]  [ Lịch sử ] ) -->

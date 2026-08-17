@@ -115,7 +115,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:lineSpacingExtra="3dp"
-            android:text="• Khu vực phụ trách: Quận 1 - Tuyến Thu gom 04\n• Số điểm thùng rác: 14 điểm cảm biến IoT\n• Trưởng ca điều phối: Trần Văn B (0909 123 456)\n• Trạng thái: Đang diễn ra"
+            android:text="• Khu vực phụ trách: Quận 1 - Tuyến Thu gom 04\n• Số điểm thùng rác: 14 điểm cảm biến IoT\n• Trạng thái: Đang diễn ra"
             android:textColor="@color/profile_text_secondary"
             android:textSize="12.5sp" />
     </LinearLayout>
