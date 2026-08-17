@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:orientation="vertical"
+    android:paddingBottom="28dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="38dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp">
+
+        <!-- Header -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:text="Lớp bản đồ"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btnCloseLayersSheet"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Đóng"
+                android:padding="6dp"
+                android:src="@drawable/ic_close_gray" />
+        </RelativeLayout>
+
+        <!-- 1. Default Vector Layer -->
+        <LinearLayout
+            android:id="@+id/btnLayerDefault"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_card_clean"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_chip_filter_active"
+                android:gravity="center"
+                android:text="🗺️"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mặc định (Vector Clean)"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bản đồ đường phố tiêu chuẩn, tối ưu pin"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ivCheckDefault"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_check_circle_green"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <!-- 2. Satellite Layer -->
+        <LinearLayout
+            android:id="@+id/btnLayerSatellite"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_card_clean"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_chip_filter_inactive"
+                android:gravity="center"
+                android:text="🛰️"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vệ tinh (Satellite)"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hình ảnh chụp từ vệ tinh thực tế độ phân giải cao"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ivCheckSatellite"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_check_circle_green"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- 3. Terrain Layer -->
+        <LinearLayout
+            android:id="@+id/btnLayerTerrain"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_card_clean"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_chip_filter_inactive"
+                android:gravity="center"
+                android:text="⛰️"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Địa hình (Terrain)"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hiển thị độ cao, đồi dốc và địa hình tự nhiên"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ivCheckTerrain"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_check_circle_green"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

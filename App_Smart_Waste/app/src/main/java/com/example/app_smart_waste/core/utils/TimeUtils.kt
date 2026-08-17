@@ -108,6 +108,14 @@ object TimeUtils {
     }
 
     /**
+     * Formats ISO timestamp to Vietnam display format: "18/05/2026 • 09:39"
+     */
+    fun formatDisplayDateTime(isoString: String?): String {
+        val date = parseIsoDate(isoString) ?: return "Chưa có dữ liệu"
+        return vnDisplayDateTimeFormat.format(date)
+    }
+
+    /**
      * Formats current time in Vietnam Timezone: "08:30:00"
      */
     fun getCurrentVnFullTime(): String {

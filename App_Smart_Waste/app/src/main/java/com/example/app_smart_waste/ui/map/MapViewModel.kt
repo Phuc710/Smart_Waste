@@ -3,29 +3,312 @@ package com.example.app_smart_waste.ui.map
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app_smart_waste.core.model.BinCommandResult
+import com.example.app_smart_waste.core.model.GeoCoordinate
+import com.example.app_smart_waste.core.model.IncidentAttachmentState
+import com.example.app_smart_waste.core.model.IncidentReason
+import com.example.app_smart_waste.core.model.IncidentSubmissionState
+import com.example.app_smart_waste.core.model.JobActionType
 import com.example.app_smart_waste.core.model.JobDto
+import com.example.app_smart_waste.core.model.JobRouteUiModel
+import com.example.app_smart_waste.core.model.JobStatus
+import com.example.app_smart_waste.core.model.JobStopStatus
+import com.example.app_smart_waste.core.model.JobStopUiModel
+import com.example.app_smart_waste.core.model.JobTransitionPolicy
+import com.example.app_smart_waste.core.model.LocationPayload
 import com.example.app_smart_waste.core.model.SmartBinDto
+import com.example.app_smart_waste.core.model.SystemSettingsDto
 import com.example.app_smart_waste.data.repository.BinsRepository
 import com.example.app_smart_waste.data.repository.IncidentRepository
 import com.example.app_smart_waste.data.repository.JobsRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.math.sqrt
+
+// =============================================================================
+// 1. DATA MODELS & ENUMS
+// =============================================================================
+
+enum class MapMode {
+    IDLE,              // Case 01: Default map view, browsing bins
+    BIN_SELECTED,      // Case 02: Bin focused with preview card
+    ACTIVE_JOB,        // Case 03: Live collection job route & stops
+    NAVIGATION,        // Case 04: Turn-by-turn navigation mode
+    RADAR,             // Case 05: 500m radar self-pick mode
+    EMPTY_RESULT,      // Case 06: Zero bins matching filter/search
+    GPS_UNAVAILABLE,   // Case 07A: GPS permission denied or disabled (only when Idle)
+    OFFLINE            // Case 07B: Network offline / backend disconnected (only when Idle)
+}
+
+enum class MapLayer {
+    DEFAULT,
+    SATELLITE,
+    TERRAIN;
+
+    fun toJsString(): String = when (this) {
+        DEFAULT -> "default"
+        SATELLITE -> "satellite"
+        TERRAIN -> "terrain"
+    }
+
+    companion object {
+        fun fromString(value: String): MapLayer = when (value.lowercase(java.util.Locale.ROOT)) {
+            "satellite" -> SATELLITE
+            "terrain" -> TERRAIN
+            else -> DEFAULT
+        }
+    }
+}
+
+data class MapCoordinate(
+    val latitude: Double,
+    val longitude: Double
+) {
+    val isValid: Boolean
+        get() = MapStatePolicy.isValidCoordinate(latitude, longitude)
+}
+
+sealed interface GpsState {
+    data object Available : GpsState
+    data object Disabled : GpsState
+    data object PermissionDenied : GpsState
+    data object PermanentlyDenied : GpsState
+    data object Unavailable : GpsState
+}
+
+sealed interface NetworkState {
+    data object Online : NetworkState
+    data object NoInternet : NetworkState
+    data object BackendUnavailable : NetworkState
+    data object Reconnecting : NetworkState
+}
+
+sealed interface ActiveJobState {
+    data object None : ActiveJobState
+    data object Loading : ActiveJobState
+    data class Available(
+        val job: JobDto,
+        val route: JobRouteUiModel,
+        val completedStops: Int,
+        val totalStops: Int,
+        val nextStop: JobStopUiModel?
+    ) : ActiveJobState
+    data class Error(
+        val message: String,
+        val cached: Available? = null
+    ) : ActiveJobState
+}
+
+sealed interface NavigationState {
+    data object Inactive : NavigationState
+    data class Preparing(val targetBinId: String) : NavigationState
+    data class Active(
+        val targetBinId: String,
+        val targetBin: SmartBinDto,
+        val route: JobRouteUiModel,
+        val remainingDistanceMeters: Int?,
+        val estimatedDurationSeconds: Int?,
+        val distanceText: String = "--",
+        val etaText: String = "--",
+        val nextTurnInstruction: String = "Đi theo tuyến đường đã định",
+        val nextTurnDistanceMeters: Int = 0,
+        val isMuted: Boolean = false
+    ) : NavigationState
+    data class Failed(
+        val targetBinId: String?,
+        val message: String
+    ) : NavigationState
+}
+
+sealed interface RadarState {
+    data object Disabled : RadarState
+    data class Active(
+        val radiusMeters: Double = 500.0,
+        val eligibleBins: List<SmartBinDto> = emptyList(),
+        val criticalBinsCount: Int = 0
+    ) : RadarState
+}
+
+sealed interface SelfPickState {
+    data object Idle : SelfPickState
+    data class Confirming(
+        val binIds: List<String>,
+        val eligibleBins: List<SmartBinDto>,
+        val estimatedDistanceMeters: Int? = null,
+        val estimatedDurationSeconds: Int? = null
+    ) : SelfPickState
+    data class Submitting(val binIds: List<String>) : SelfPickState
+    data class Failed(val binIds: List<String>, val message: String) : SelfPickState
+}
+
+sealed interface MapLoadingState {
+    data object Idle : MapLoadingState
+    data object LoadingMap : MapLoadingState
+    data object LoadingRoute : MapLoadingState
+    data object SubmittingSelfPick : MapLoadingState
+    data object ExecutingLidCommand : MapLoadingState
+    data object SubmittingIncident : MapLoadingState
+    data object ExecutingJobTransition : MapLoadingState
+}
+
+sealed interface BinDetailState {
+    data object Closed : BinDetailState
+    data class Loading(val binId: String) : BinDetailState
+    data class Content(
+        val binId: String,
+        val bin: SmartBinDto,
+        val isRefreshing: Boolean = false
+    ) : BinDetailState
+    data class Error(
+        val binId: String,
+        val message: String,
+        val cachedBin: SmartBinDto? = null
+    ) : BinDetailState
+}
+
+enum class LidCommandFailure {
+    TIMEOUT,
+    DEVICE_OFFLINE,
+    UNAUTHORIZED,
+    NETWORK_ERROR,
+    SERVER_ERROR
+}
+
+sealed interface LidCommandState {
+    data object Idle : LidCommandState
+    data class Executing(val binId: String) : LidCommandState
+    data class Succeeded(
+        val binId: String,
+        val confirmedStatus: String?,
+        val message: String
+    ) : LidCommandState
+    data class Failed(
+        val binId: String,
+        val failureType: LidCommandFailure,
+        val message: String
+    ) : LidCommandState
+}
+
+/**
+ * Unified Immutable Map UI State (Single Source of Truth)
+ */
+data class MapUiState(
+    val mode: MapMode = MapMode.IDLE,
+    val allBins: List<SmartBinDto> = emptyList(),
+    val displayedBins: List<SmartBinDto> = emptyList(),
+    val selectedBin: SmartBinDto? = null,
+    val binDetailState: BinDetailState = BinDetailState.Closed,
+    val lidCommandState: LidCommandState = LidCommandState.Idle,
+    val activeJobState: ActiveJobState = ActiveJobState.None,
+    val activeJob: JobDto? = null,
+    val activeJobRoute: JobRouteUiModel? = null,
+    val navigationState: NavigationState = NavigationState.Inactive,
+    val radarState: RadarState = RadarState.Disabled,
+    val selfPickState: SelfPickState = SelfPickState.Idle,
+    val driverLocation: MapCoordinate? = null,
+    val driverHeading: Float = 0f,
+    val searchInput: String = "",
+    val appliedSearchQuery: String = "",
+    val filters: MapFilters = MapFilters(),
+    val thresholds: BinThresholds = BinThresholds.FALLBACK,
+    val routeCoordinates: List<List<Double>> = emptyList(),
+    val routeWaypoints: List<SmartBinDto> = emptyList(),
+    val routeWaypointModels: List<JobStopUiModel> = emptyList(),
+    val mapLayer: MapLayer = MapLayer.DEFAULT,
+    val networkState: NetworkState = NetworkState.Online,
+    val gpsState: GpsState = GpsState.Available,
+    val loadingState: MapLoadingState = MapLoadingState.Idle,
+    val incidentReason: IncidentReason = IncidentReason.BROKEN_BIN,
+    val incidentDescription: String = "",
+    val incidentAttachmentState: IncidentAttachmentState = IncidentAttachmentState.None,
+    val incidentSubmissionState: IncidentSubmissionState = IncidentSubmissionState.Idle
+) {
+    val activeChips: List<ActiveFilterChip>
+        get() = MapStatePolicy.deriveActiveChips(this, thresholds)
+}
+
+// =============================================================================
+// 2. USER INTENTS / MAP ACTIONS (PURE DATA ONLY)
+// =============================================================================
+
+sealed interface MapAction {
+    data class LoadData(val targetJobId: String? = null) : MapAction
+    data object RefreshActiveJob : MapAction
+    data object RetryMapData : MapAction
+    data object RetryRealtime : MapAction
+    data class SearchInputChanged(val input: String) : MapAction
+    data object ClearSearch : MapAction
+    data class ApplyFilter(val filters: MapFilters) : MapAction
+    data object ResetFilter : MapAction
+    data class RemoveFilterChip(val chipId: MapFilterChipId) : MapAction
+    data class SelectBin(val binId: String) : MapAction
+    data object ClearSelection : MapAction
+    data class SelectJobStop(val binId: String) : MapAction
+    data class OpenBinDetail(val binId: String) : MapAction
+    data object CloseBinDetail : MapAction
+    data class RefreshBinDetail(val binId: String) : MapAction
+    data class ConfirmOpenLid(val binId: String) : MapAction
+    data object DismissLidCommandState : MapAction
+    data class OpenIncidentSheet(val binId: String) : MapAction
+    data object CloseIncidentSheet : MapAction
+    data class SelectIncidentReason(val reason: IncidentReason) : MapAction
+    data class ChangeIncidentDescription(val value: String) : MapAction
+    data class SelectIncidentAttachment(val uriString: String, val displayName: String? = null, val sizeBytes: Long? = null) : MapAction
+    data object RemoveIncidentAttachment : MapAction
+    data class SubmitIncident(val binId: String, val jpegBytes: ByteArray? = null) : MapAction
+    data object RetryIncidentSubmission : MapAction
+    data class OpenIncidentForBin(val binId: String) : MapAction
+    data class StartNavigation(val binId: String) : MapAction
+    data class StartNavigationToBin(val binId: String) : MapAction
+    data class StartNavigationToNextJobStop(val jobId: String) : MapAction
+    data object StopNavigation : MapAction
+    data class EnableRadar(val radiusMeters: Double = 500.0) : MapAction
+    data object DisableRadar : MapAction
+    data object ToggleRadar : MapAction
+    data class OpenSelfPickConfirmation(val binIds: List<String>) : MapAction
+    data object CloseSelfPickConfirmation : MapAction
+    data class ConfirmSelfPick(val binIds: List<String>) : MapAction
+    data class CreateSelfPickJob(val binIds: List<String>) : MapAction
+    data class AcceptJob(val jobId: String) : MapAction
+    data class StartJob(val jobId: String) : MapAction
+    data class PauseJob(val jobId: String, val reason: String = "Tạm dừng") : MapAction
+    data class ResumeJob(val jobId: String) : MapAction
+    data class UpdateDriverLocation(val lat: Double, val lng: Double, val heading: Float = 0f, val accuracy: Double? = null, val speed: Double? = null) : MapAction
+    data class SetGpsState(val state: GpsState) : MapAction
+    data class SetNetworkState(val state: NetworkState) : MapAction
+    data class SetMapLayer(val layer: MapLayer) : MapAction
+    data class UpdateThresholds(val thresholds: BinThresholds) : MapAction
+}
+
+// =============================================================================
+// 3. ONE-SHOT MAP EFFECTS
+// =============================================================================
+
+sealed interface MapEffect {
+    data class ShowToast(val message: String) : MapEffect
+    data class NavigateToIncident(val binId: String) : MapEffect
+    data class IncidentSubmissionSuccess(val binId: String, val message: String) : MapEffect
+    data class SelfPickSuccess(val jobId: String?, val message: String) : MapEffect
+    data class LidCommandResultEffect(val binId: String, val isSuccess: Boolean, val message: String) : MapEffect
+    data class OperationFailed(val operation: String, val message: String) : MapEffect
+}
+
+// =============================================================================
+// 4. MAP VIEW MODEL
+// =============================================================================
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -33,685 +316,1187 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val jobsRepo = JobsRepository(application)
     private val incidentRepo = IncidentRepository(application)
 
-    // =========================================================================
-    // DATA STATE
-    // =========================================================================
+    // Single Source of Truth
+    private val _uiState = MutableStateFlow(MapUiState())
+    val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
 
-    private val _allBins = MutableStateFlow<List<SmartBinDto>>(emptyList())
-    val allBins: StateFlow<List<SmartBinDto>> = _allBins.asStateFlow()
+    // Side Effects Channel
+    private val _effectChannel = Channel<MapEffect>(Channel.BUFFERED)
+    val effects: Flow<MapEffect> = _effectChannel.receiveAsFlow()
 
-    private val _activeJob = MutableStateFlow<JobDto?>(null)
-    val activeJob: StateFlow<JobDto?> = _activeJob.asStateFlow()
+    // Cancellable Search Debounce Job
+    private var searchDebounceJob: Job? = null
 
-    private val _selectedBin = MutableStateFlow<SmartBinDto?>(null)
-    val selectedBin: StateFlow<SmartBinDto?> = _selectedBin.asStateFlow()
+    // In-flight command tracking
+    private var inFlightCommandBinId: String? = null
+    private var isSubmittingSelfPick: Boolean = false
+    private var isJobTransitionInFlight: Boolean = false
+    private var isSubmittingIncident: Boolean = false
 
-    // =========================================================================
-    // SEARCH / FILTER
-    // =========================================================================
+    // Realtime update debouncer
+    private var realtimeRefreshJob: Job? = null
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
-    private val _filterLevels = MutableStateFlow(
-        setOf("CRITICAL", "WARNING", "NORMAL")
-    )
-    val filterLevels: StateFlow<Set<String>> = _filterLevels.asStateFlow()
-
-    // =========================================================================
-    // DRIVER / RADAR
-    // =========================================================================
-
-    private val _driverLocation =
-        MutableStateFlow<Pair<Double, Double>?>(null)
-
-    private val _isRadarMode = MutableStateFlow(false)
-    val isRadarMode: StateFlow<Boolean> = _isRadarMode.asStateFlow()
-
-    private val _radarRadiusMeters = MutableStateFlow(1000.0)
-    val radarRadiusMeters: StateFlow<Double> =
-        _radarRadiusMeters.asStateFlow()
+    // GPS location upload throttle tracking
+    private var lastUploadedLat: Double = 0.0
+    private var lastUploadedLng: Double = 0.0
+    private var lastLocationUploadTimestamp: Long = 0L
 
     // =========================================================================
-    // NAVIGATION
+    // 5. REDUCER / ACTION DISPATCHER
     // =========================================================================
 
-    private val _isNavigating = MutableStateFlow(false)
-    val isNavigating: StateFlow<Boolean> = _isNavigating.asStateFlow()
+    fun handleAction(action: MapAction) {
+        when (action) {
+            is MapAction.LoadData,
+            is MapAction.RetryMapData -> executeLoadData(if (action is MapAction.LoadData) action.targetJobId else null)
 
-    private val _navTargetBin = MutableStateFlow<SmartBinDto?>(null)
-    val navTargetBin: StateFlow<SmartBinDto?> = _navTargetBin.asStateFlow()
-
-    // Không dùng số demo khi chưa có route thật.
-    private val _navDistanceText = MutableStateFlow("--")
-    val navDistanceText: StateFlow<String> = _navDistanceText.asStateFlow()
-
-    private val _navEtaText = MutableStateFlow("--")
-    val navEtaText: StateFlow<String> = _navEtaText.asStateFlow()
-
-    // =========================================================================
-    // MAP / NETWORK
-    // =========================================================================
-
-    private val _currentMapLayer = MutableStateFlow("default")
-    val currentMapLayer: StateFlow<String> =
-        _currentMapLayer.asStateFlow()
-
-    private val _isOffline = MutableStateFlow(false)
-    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
-
-    val displayedBins: StateFlow<List<SmartBinDto>> = combine(
-        _allBins,
-        _searchQuery,
-        _filterLevels,
-        _isRadarMode,
-        _driverLocation
-    ) { bins, query, levels, isRadar, driverLocation ->
-
-        var result = bins
-
-        if (query.isNotBlank()) {
-            val normalized = query.trim().lowercase()
-
-            result = result.filter { bin ->
-                bin.name
-                    ?.lowercase()
-                    ?.contains(normalized) == true ||
-                    bin.deviceId
-                        .lowercase()
-                        .contains(normalized) ||
-                    bin.location
-                        ?.lowercase()
-                        ?.contains(normalized) == true
+            is MapAction.RetryRealtime -> {
+                sendEffect(MapEffect.ShowToast("Đang kết nối lại dịch vụ thời gian thực..."))
+                executeLoadData(null)
             }
-        }
 
-        if (isRadar) {
-            val driver = driverLocation
-
-            result = if (driver == null) {
-                emptyList()
-            } else {
-                result.filter { bin ->
-                    val level = bin.levelPercent
-                    val lat = bin.latitude
-                    val lng = bin.longitude
-
-                    level != null &&
-                        level >= 85.0 &&
-                        lat != null &&
-                        lng != null &&
-                        calculateHaversineDistance(
-                            driver.first,
-                            driver.second,
-                            lat,
-                            lng
-                        ) <= _radarRadiusMeters.value
+            is MapAction.RefreshActiveJob -> {
+                realtimeRefreshJob?.cancel()
+                realtimeRefreshJob = viewModelScope.launch {
+                    delay(250) // Debounce realtime refresh storm
+                    executeLoadData(null)
                 }
             }
-        }
 
-        result = result.filter { bin ->
-            if (bin.isOnline == false) {
-                levels.contains("OFFLINE")
-            } else {
-                val level = bin.levelPercent
-
-                when {
-                    level == null -> true
-                    level >= 85.0 -> levels.contains("CRITICAL")
-                    level >= 70.0 -> levels.contains("WARNING")
-                    else -> levels.contains("NORMAL")
+            is MapAction.SearchInputChanged -> {
+                val input = action.input
+                _uiState.update { it.copy(searchInput = input) }
+                searchDebounceJob?.cancel()
+                searchDebounceJob = viewModelScope.launch {
+                    delay(300)
+                    val trimmed = input.trim()
+                    updateState { it.copy(appliedSearchQuery = trimmed) }
                 }
             }
+
+            is MapAction.ClearSearch -> {
+                searchDebounceJob?.cancel()
+                updateState {
+                    it.copy(
+                        searchInput = "",
+                        appliedSearchQuery = "",
+                        selectedBin = null
+                    )
+                }
+            }
+
+            is MapAction.ApplyFilter -> {
+                updateState { it.copy(filters = action.filters) }
+            }
+
+            is MapAction.ResetFilter -> {
+                searchDebounceJob?.cancel()
+                updateState {
+                    it.copy(
+                        filters = MapFilters(),
+                        searchInput = "",
+                        appliedSearchQuery = "",
+                        selectedBin = null,
+                        radarState = RadarState.Disabled
+                    )
+                }
+            }
+
+            is MapAction.RemoveFilterChip -> {
+                when (action.chipId) {
+                    MapFilterChipId.SEARCH_QUERY -> {
+                        searchDebounceJob?.cancel()
+                        updateState { it.copy(searchInput = "", appliedSearchQuery = "") }
+                    }
+                    MapFilterChipId.OFFLINE_ONLY,
+                    MapFilterChipId.ONLINE_ONLY -> {
+                        updateState { it.copy(filters = it.filters.copy(connectivity = ConnectivityFilter.ALL)) }
+                    }
+                    MapFilterChipId.CRITICAL_ONLY,
+                    MapFilterChipId.WARNING_ONLY,
+                    MapFilterChipId.NORMAL_ONLY -> {
+                        updateState {
+                            it.copy(
+                                filters = it.filters.copy(
+                                    showCritical = true,
+                                    showWarning = true,
+                                    showNormal = true
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            is MapAction.SelectBin -> {
+                val found = _uiState.value.allBins.find { it.deviceId == action.binId }
+                updateState { it.copy(selectedBin = found) }
+            }
+
+            is MapAction.SelectJobStop -> {
+                val found = _uiState.value.allBins.find { it.deviceId == action.binId }
+                updateState { it.copy(selectedBin = found) }
+            }
+
+            is MapAction.ClearSelection -> {
+                updateState { it.copy(selectedBin = null) }
+            }
+
+            is MapAction.OpenBinDetail -> {
+                val found = _uiState.value.allBins.find { it.deviceId == action.binId }
+                updateState {
+                    it.copy(
+                        selectedBin = found ?: it.selectedBin,
+                        binDetailState = if (found != null) {
+                            BinDetailState.Content(action.binId, found, isRefreshing = false)
+                        } else {
+                            BinDetailState.Loading(action.binId)
+                        }
+                    )
+                }
+                executeRefreshBinDetail(action.binId)
+            }
+
+            is MapAction.CloseBinDetail -> {
+                updateState {
+                    it.copy(
+                        binDetailState = BinDetailState.Closed,
+                        lidCommandState = LidCommandState.Idle
+                    )
+                }
+            }
+
+            is MapAction.RefreshBinDetail -> {
+                executeRefreshBinDetail(action.binId)
+            }
+
+            is MapAction.ConfirmOpenLid -> {
+                executeConfirmOpenLid(action.binId)
+            }
+
+            is MapAction.DismissLidCommandState -> {
+                updateState { it.copy(lidCommandState = LidCommandState.Idle) }
+            }
+
+            // Incident Flow
+            is MapAction.OpenIncidentSheet -> {
+                val found = _uiState.value.allBins.find { it.deviceId == action.binId }
+                updateState {
+                    it.copy(
+                        selectedBin = found ?: it.selectedBin,
+                        incidentReason = IncidentReason.BROKEN_BIN,
+                        incidentDescription = "",
+                        incidentAttachmentState = IncidentAttachmentState.None,
+                        incidentSubmissionState = IncidentSubmissionState.Idle
+                    )
+                }
+            }
+
+            is MapAction.CloseIncidentSheet -> {
+                updateState {
+                    it.copy(incidentSubmissionState = IncidentSubmissionState.Idle)
+                }
+            }
+
+            is MapAction.SelectIncidentReason -> {
+                updateState { it.copy(incidentReason = action.reason) }
+            }
+
+            is MapAction.ChangeIncidentDescription -> {
+                updateState { it.copy(incidentDescription = action.value) }
+            }
+
+            is MapAction.SelectIncidentAttachment -> {
+                updateState {
+                    it.copy(
+                        incidentAttachmentState = IncidentAttachmentState.Selected(
+                            uriString = action.uriString,
+                            displayName = action.displayName,
+                            sizeBytes = action.sizeBytes
+                        )
+                    )
+                }
+            }
+
+            is MapAction.RemoveIncidentAttachment -> {
+                updateState { it.copy(incidentAttachmentState = IncidentAttachmentState.None) }
+            }
+
+            is MapAction.SubmitIncident -> {
+                executeSubmitIncident(action.binId, action.jpegBytes)
+            }
+
+            is MapAction.RetryIncidentSubmission -> {
+                val binId = _uiState.value.selectedBin?.deviceId.orEmpty()
+                if (binId.isNotBlank()) {
+                    executeSubmitIncident(binId, null)
+                }
+            }
+
+            is MapAction.OpenIncidentForBin -> {
+                if (action.binId.isNotBlank()) {
+                    sendEffect(MapEffect.NavigateToIncident(action.binId))
+                } else {
+                    sendEffect(MapEffect.ShowToast("Không xác định được mã thùng rác để báo sự cố."))
+                }
+            }
+
+            is MapAction.StartNavigation,
+            is MapAction.StartNavigationToBin -> {
+                val binId = if (action is MapAction.StartNavigation) action.binId else (action as MapAction.StartNavigationToBin).binId
+                executeStartNavigation(binId)
+            }
+
+            is MapAction.StartNavigationToNextJobStop -> {
+                val nextStop = (_uiState.value.activeJobState as? ActiveJobState.Available)?.nextStop
+                if (nextStop != null) {
+                    executeStartNavigation(nextStop.binId)
+                } else {
+                    sendEffect(MapEffect.ShowToast("Tất cả các điểm trong ca đã được thu gom hoàn tất."))
+                }
+            }
+
+            is MapAction.StopNavigation -> {
+                executeStopNavigation()
+            }
+
+            is MapAction.EnableRadar -> {
+                executeEnableRadar(action.radiusMeters)
+            }
+
+            is MapAction.DisableRadar -> {
+                updateState { it.copy(radarState = RadarState.Disabled) }
+            }
+
+            is MapAction.ToggleRadar -> {
+                if (_uiState.value.radarState is RadarState.Active) {
+                    updateState { it.copy(radarState = RadarState.Disabled) }
+                } else {
+                    executeEnableRadar(500.0)
+                }
+            }
+
+            is MapAction.OpenSelfPickConfirmation -> {
+                executeOpenSelfPickConfirmation(action.binIds)
+            }
+
+            is MapAction.CloseSelfPickConfirmation -> {
+                updateState { it.copy(selfPickState = SelfPickState.Idle) }
+            }
+
+            is MapAction.ConfirmSelfPick,
+            is MapAction.CreateSelfPickJob -> {
+                val binIds = if (action is MapAction.ConfirmSelfPick) action.binIds else (action as MapAction.CreateSelfPickJob).binIds
+                executeCreateSelfPickJob(binIds)
+            }
+
+            is MapAction.AcceptJob -> executeJobTransition(action.jobId, JobActionType.ACCEPT)
+            is MapAction.StartJob -> executeJobTransition(action.jobId, JobActionType.START)
+            is MapAction.PauseJob -> executeJobTransition(action.jobId, JobActionType.PAUSE, action.reason)
+            is MapAction.ResumeJob -> executeJobTransition(action.jobId, JobActionType.RESUME)
+
+            is MapAction.UpdateDriverLocation -> {
+                val coord = MapCoordinate(action.lat, action.lng)
+                if (coord.isValid) {
+                    updateState { current ->
+                        val updated = current.copy(
+                            driverLocation = coord,
+                            driverHeading = action.heading
+                        )
+                        // If radar is active, update eligible bins based on new driver location
+                        if (updated.radarState is RadarState.Active) {
+                            val eligible = MapStatePolicy.filterEligibleRadarBins(
+                                allBins = updated.allBins,
+                                driverLocation = coord,
+                                radiusMeters = updated.radarState.radiusMeters,
+                                thresholds = updated.thresholds
+                            )
+                            val critCount = eligible.count { (it.levelPercent ?: 0.0) >= updated.thresholds.critical }
+                            updated.copy(
+                                radarState = RadarState.Active(
+                                    radiusMeters = updated.radarState.radiusMeters,
+                                    eligibleBins = eligible,
+                                    criticalBinsCount = critCount
+                                )
+                            )
+                        } else {
+                            updated
+                        }
+                    }
+
+                    // Background GPS upload throttle (min 10 meters or min 15 seconds)
+                    val now = System.currentTimeMillis()
+                    val distMoved = MapStatePolicy.calculateHaversineDistance(lastUploadedLat, lastUploadedLng, action.lat, action.lng)
+                    if (distMoved > 10.0 || (now - lastLocationUploadTimestamp > 15000L)) {
+                        lastUploadedLat = action.lat
+                        lastUploadedLng = action.lng
+                        lastLocationUploadTimestamp = now
+                        viewModelScope.launch {
+                            try {
+                                binsRepo.updateLocation(
+                                    LocationPayload(
+                                        latitude = action.lat,
+                                        longitude = action.lng,
+                                        heading = action.heading.toDouble(),
+                                        speed = action.speed,
+                                        accuracy = action.accuracy
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                // Upload failure is non-fatal: does not block local driver marker or change GPS state
+                            }
+                        }
+                    }
+                }
+            }
+
+            is MapAction.SetGpsState -> {
+                updateState { it.copy(gpsState = action.state) }
+            }
+
+            is MapAction.SetNetworkState -> {
+                updateState { it.copy(networkState = action.state) }
+            }
+
+            is MapAction.SetMapLayer -> {
+                updateState { it.copy(mapLayer = action.layer) }
+            }
+
+            is MapAction.UpdateThresholds -> {
+                updateState { it.copy(thresholds = action.thresholds) }
+            }
         }
+    }
 
-        result
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        emptyList()
-    )
-
-    // =========================================================================
-    // ROUTE
-    // =========================================================================
-
-    private val _routeCoordinates =
-        MutableStateFlow<List<List<Double>>>(emptyList())
-    val routeCoordinates: StateFlow<List<List<Double>>> =
-        _routeCoordinates.asStateFlow()
-
-    private val _routeWaypoints =
-        MutableStateFlow<List<SmartBinDto>>(emptyList())
-    val routeWaypoints: StateFlow<List<SmartBinDto>> =
-        _routeWaypoints.asStateFlow()
-
-    // =========================================================================
-    // UI STATE
-    // =========================================================================
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _toastMessage = MutableSharedFlow<String>()
-    val toastMessage: SharedFlow<String> =
-        _toastMessage.asSharedFlow()
+    /**
+     * Centralized Atomic State Mutation with Pure Derived State Resolution
+     */
+    private fun updateState(transform: (MapUiState) -> MapUiState) {
+        _uiState.update { currentState ->
+            val intermediate = transform(currentState)
+            val computedBins = MapStatePolicy.filterBins(
+                bins = intermediate.allBins,
+                query = intermediate.appliedSearchQuery,
+                filters = intermediate.filters,
+                radarState = intermediate.radarState,
+                driverLocation = intermediate.driverLocation,
+                thresholds = intermediate.thresholds
+            )
+            val resolvedMode = MapStatePolicy.resolveOperationalMode(intermediate, computedBins)
+            intermediate.copy(
+                displayedBins = computedBins,
+                mode = resolvedMode
+            )
+        }
+    }
 
     // =========================================================================
-    // LOAD DATA
+    // 6. ASYNC REPOSITORY OPERATIONS
     // =========================================================================
 
-    fun loadMapData(targetJobId: String? = null) {
-        if (_isLoading.value) return
+    private fun executeLoadData(targetJobId: String?) {
+        if (_uiState.value.loadingState == MapLoadingState.LoadingMap) return
 
-        _isLoading.value = true
+        updateState { it.copy(loadingState = MapLoadingState.LoadingMap) }
 
         viewModelScope.launch {
             try {
                 val binsDeferred = async { binsRepo.getBins() }
                 val activeJobDeferred = async { jobsRepo.getActiveJob() }
+                val settingsDeferred = async { jobsRepo.getSystemSettings() }
 
                 val binsResult = binsDeferred.await()
                 val activeJobResult = activeJobDeferred.await()
+                val settingsResult = settingsDeferred.await()
 
-                if (binsResult.isSuccess) {
-                    _allBins.value =
-                        binsResult.getOrDefault(emptyList())
-                    _isOffline.value = false
+                // 1. Process System Settings & Dynamic Thresholds
+                val dynamicThresholds = if (settingsResult.isSuccess) {
+                    val settings = settingsResult.getOrNull()
+                    BinThresholds.createSafe(
+                        warning = settings?.fillThresholdWarning?.toDouble(),
+                        critical = settings?.fillThresholdCritical?.toDouble()
+                    )
                 } else {
-                    _isOffline.value = true
-
-                    if (_allBins.value.isEmpty()) {
-                        _toastMessage.emit(
-                            "Không thể tải dữ liệu thùng rác."
-                        )
-                    }
+                    _uiState.value.thresholds
                 }
 
-                _activeJob.value =
-                    if (!targetJobId.isNullOrBlank()) {
-                        val detailResult =
-                            jobsRepo.getJobDetail(targetJobId)
+                // 2. Process Bins
+                val freshBins = if (binsResult.isSuccess) {
+                    binsResult.getOrDefault(emptyList())
+                } else {
+                    _uiState.value.allBins
+                }
 
-                        if (detailResult.isFailure) {
-                            _toastMessage.emit(
-                                "Không thể tải nhiệm vụ $targetJobId."
-                            )
-                        }
+                if (binsResult.isFailure && _uiState.value.allBins.isEmpty()) {
+                    updateState { it.copy(networkState = NetworkState.BackendUnavailable) }
+                    sendEffect(MapEffect.ShowToast("Không thể tải dữ liệu thùng rác từ máy chủ."))
+                } else if (binsResult.isSuccess) {
+                    updateState { it.copy(networkState = NetworkState.Online) }
+                }
 
-                        // Không thay một job được yêu cầu bằng job khác.
-                        detailResult.getOrNull()
-                    } else {
-                        activeJobResult.getOrNull()
+                // 3. Process Active Job
+                val rawJob = if (!targetJobId.isNullOrBlank()) {
+                    val detailResult = jobsRepo.getJobDetail(targetJobId)
+                    if (detailResult.isFailure) {
+                        sendEffect(MapEffect.ShowToast("Không thể tải chi tiết nhiệm vụ $targetJobId."))
                     }
+                    detailResult.getOrNull()
+                } else {
+                    activeJobResult.getOrNull()
+                }
+
+                val jobRoute = rawJob?.let { MapStatePolicy.parseJobRoute(it, freshBins) }
+                val totalStops = jobRoute?.stops?.size ?: (rawJob?.targetBinIds?.size ?: 0)
+                val completedStops = jobRoute?.stops?.count { it.status == JobStopStatus.COLLECTED } ?: (rawJob?.completedBinIds?.size ?: 0)
+                val nextStop = jobRoute?.stops?.firstOrNull { it.isNext }
+
+                val activeJobState = if (rawJob != null && rawJob.status in listOf("ASSIGNED", "ACCEPTED", "IN_PROGRESS", "PAUSED")) {
+                    ActiveJobState.Available(
+                        job = rawJob,
+                        route = jobRoute ?: JobRouteUiModel(emptyList(), emptyList(), null, null),
+                        completedStops = completedStops,
+                        totalStops = totalStops,
+                        nextStop = nextStop
+                    )
+                } else if (activeJobResult.isFailure && _uiState.value.activeJobState is ActiveJobState.Available) {
+                    ActiveJobState.Error(
+                        message = activeJobResult.exceptionOrNull()?.message ?: "Lỗi làm mới nhiệm vụ",
+                        cached = _uiState.value.activeJobState as ActiveJobState.Available
+                    )
+                } else {
+                    ActiveJobState.None
+                }
+
+                // 4. Atomic Unified State Update
+                updateState { current ->
+                    val reconciledSelected = current.selectedBin?.let { sel ->
+                        freshBins.find { it.deviceId == sel.deviceId }
+                    }
+                    val reconciledDetail = when (val detail = current.binDetailState) {
+                        is BinDetailState.Content -> {
+                            val fresh = freshBins.find { it.deviceId == detail.binId }
+                            if (fresh != null) BinDetailState.Content(detail.binId, fresh, false) else detail
+                        }
+                        is BinDetailState.Loading -> {
+                            val fresh = freshBins.find { it.deviceId == detail.binId }
+                            if (fresh != null) BinDetailState.Content(detail.binId, fresh, false) else detail
+                        }
+                        else -> detail
+                    }
+
+                    // Determine route coordinates and waypoints based on current navigation vs active job
+                    val (routeCoords, routeWps, routeWpModels) = if (current.navigationState is NavigationState.Active) {
+                        Triple(current.routeCoordinates, current.routeWaypoints, current.routeWaypointModels)
+                    } else if (jobRoute != null && jobRoute.coordinates.isNotEmpty()) {
+                        val coords = jobRoute.coordinates.map { listOf(it.latitude, it.longitude) }
+                        val wps = jobRoute.stops.mapNotNull { it.bin }
+                        Triple(coords, wps, jobRoute.stops)
+                    } else {
+                        Triple(emptyList<List<Double>>(), emptyList<SmartBinDto>(), emptyList<JobStopUiModel>())
+                    }
+
+                    current.copy(
+                        allBins = freshBins,
+                        thresholds = dynamicThresholds,
+                        selectedBin = reconciledSelected,
+                        binDetailState = reconciledDetail,
+                        activeJob = rawJob,
+                        activeJobRoute = jobRoute,
+                        activeJobState = activeJobState,
+                        routeCoordinates = routeCoords,
+                        routeWaypoints = routeWps,
+                        routeWaypointModels = routeWpModels
+                    )
+                }
 
             } catch (e: Exception) {
-                _isOffline.value = true
-                _toastMessage.emit(
-                    "Không thể cập nhật dữ liệu bản đồ."
-                )
+                updateState { it.copy(networkState = NetworkState.BackendUnavailable) }
+                sendEffect(MapEffect.ShowToast("Lỗi nạp dữ liệu: ${e.message ?: "Không rõ"}"))
             } finally {
-                _isLoading.value = false
+                updateState { it.copy(loadingState = MapLoadingState.Idle) }
             }
         }
     }
 
-    // =========================================================================
-    // SEARCH / FILTER
-    // =========================================================================
+    private fun executeRefreshBinDetail(binId: String) {
+        viewModelScope.launch {
+            try {
+                updateState { current ->
+                    if (current.binDetailState is BinDetailState.Content && current.binDetailState.binId == binId) {
+                        current.copy(binDetailState = current.binDetailState.copy(isRefreshing = true))
+                    } else {
+                        current
+                    }
+                }
 
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
+                val result = binsRepo.getBinDetail(binId)
+                if (result.isSuccess) {
+                    val freshBin = result.getOrNull()
+                    if (freshBin != null) {
+                        updateState { current ->
+                            val updatedAllBins = current.allBins.map { if (it.deviceId == binId) freshBin else it }
+                            val updatedSelected = if (current.selectedBin?.deviceId == binId) freshBin else current.selectedBin
+                            current.copy(
+                                allBins = updatedAllBins,
+                                selectedBin = updatedSelected,
+                                binDetailState = BinDetailState.Content(binId, freshBin, isRefreshing = false)
+                            )
+                        }
+                    }
+                } else {
+                    updateState { current ->
+                        val cached = (current.binDetailState as? BinDetailState.Content)?.bin ?: current.allBins.find { it.deviceId == binId }
+                        current.copy(
+                            binDetailState = BinDetailState.Error(
+                                binId = binId,
+                                message = result.exceptionOrNull()?.message ?: "Lỗi tải thông tin chi tiết",
+                                cachedBin = cached
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                updateState { current ->
+                    val cached = (current.binDetailState as? BinDetailState.Content)?.bin ?: current.allBins.find { it.deviceId == binId }
+                    current.copy(
+                        binDetailState = BinDetailState.Error(
+                            binId = binId,
+                            message = e.message ?: "Lỗi kết nối",
+                            cachedBin = cached
+                        )
+                    )
+                }
+            }
+        }
+    }
 
-        if (query.isBlank()) {
-            _selectedBin.value = null
+    private fun executeSubmitIncident(binId: String, jpegBytes: ByteArray?) {
+        val targetId = binId.trim()
+        if (targetId.isBlank()) {
+            sendEffect(MapEffect.ShowToast("Vui lòng chọn thùng rác cần báo sự cố."))
             return
         }
 
-        val matched = _allBins.value.find { bin ->
-            bin.deviceId.contains(
-                query,
-                ignoreCase = true
-            ) ||
-                bin.name?.contains(
-                    query,
-                    ignoreCase = true
-                ) == true ||
-                bin.location?.contains(
-                    query,
-                    ignoreCase = true
-                ) == true
+        if (isSubmittingIncident || _uiState.value.incidentSubmissionState is IncidentSubmissionState.Submitting) {
+            return
         }
 
-        _selectedBin.value = matched
+        if (_uiState.value.networkState is NetworkState.NoInternet) {
+            updateState {
+                it.copy(
+                    incidentSubmissionState = IncidentSubmissionState.Failed("Đang ngoại tuyến. Vui lòng kết nối Internet để gửi báo cáo.", retryable = true)
+                )
+            }
+            sendEffect(MapEffect.ShowToast("Đang ngoại tuyến. Đã lưu bản nháp để gửi lại."))
+            return
+        }
+
+        val reason = _uiState.value.incidentReason
+        val description = _uiState.value.incidentDescription.trim()
+
+        if (reason == IncidentReason.OTHER && description.isBlank()) {
+            sendEffect(MapEffect.ShowToast("Vui lòng nhập mô tả chi tiết cho loại sự cố 'Khác'."))
+            return
+        }
+
+        isSubmittingIncident = true
+        updateState {
+            it.copy(
+                incidentSubmissionState = IncidentSubmissionState.Submitting,
+                loadingState = MapLoadingState.SubmittingIncident
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val result = if (jpegBytes != null && jpegBytes.isNotEmpty()) {
+                    incidentRepo.reportIncidentWithPhoto(
+                        binId = targetId,
+                        issueType = reason.toVietnamese(),
+                        description = description,
+                        jpegBytes = jpegBytes
+                    )
+                } else {
+                    incidentRepo.reportIncident(
+                        binId = targetId,
+                        issueType = reason.toVietnamese(),
+                        description = description,
+                        photoUrl = null
+                    )
+                }
+
+                if (result.isSuccess) {
+                    updateState {
+                        it.copy(
+                            incidentSubmissionState = IncidentSubmissionState.Succeeded(null, "Báo cáo sự cố #${targetId} đã được gửi thành công!"),
+                            incidentDescription = "",
+                            incidentAttachmentState = IncidentAttachmentState.None,
+                            loadingState = MapLoadingState.Idle
+                        )
+                    }
+                    sendEffect(MapEffect.IncidentSubmissionSuccess(targetId, "✓ Báo cáo sự cố #${targetId} đã được gửi thành công!"))
+                } else {
+                    val errMsg = result.exceptionOrNull()?.message ?: "Lỗi gửi báo cáo sự cố"
+                    updateState {
+                        it.copy(
+                            incidentSubmissionState = IncidentSubmissionState.Failed(errMsg, retryable = true),
+                            loadingState = MapLoadingState.Idle
+                        )
+                    }
+                    sendEffect(MapEffect.OperationFailed("Incident", errMsg))
+                }
+            } catch (e: Exception) {
+                val errMsg = e.message ?: "Lỗi kết nối máy chủ"
+                updateState {
+                    it.copy(
+                        incidentSubmissionState = IncidentSubmissionState.Failed(errMsg, retryable = true),
+                        loadingState = MapLoadingState.Idle
+                    )
+                }
+                sendEffect(MapEffect.OperationFailed("Incident", errMsg))
+            } finally {
+                isSubmittingIncident = false
+            }
+        }
     }
 
-    fun applyFilterSettings(levels: Set<String>) {
-        _filterLevels.value = levels
+    private fun executeConfirmOpenLid(binId: String) {
+        if (binId.isBlank()) {
+            sendEffect(MapEffect.ShowToast("Không xác định được mã thùng rác."))
+            return
+        }
+
+        if (_uiState.value.lidCommandState is LidCommandState.Executing || inFlightCommandBinId != null) {
+            return
+        }
+
+        val targetBin = _uiState.value.allBins.find { it.deviceId == binId }
+        if (targetBin?.isOnline == false) {
+            updateState {
+                it.copy(
+                    lidCommandState = LidCommandState.Failed(
+                        binId = binId,
+                        failureType = LidCommandFailure.DEVICE_OFFLINE,
+                        message = "Thùng #$binId đang ngoại tuyến (Offline), không thể mở nắp từ xa."
+                    )
+                )
+            }
+            sendEffect(MapEffect.LidCommandResultEffect(binId, false, "Thùng #$binId đang ngoại tuyến."))
+            return
+        }
+
+        inFlightCommandBinId = binId
+        updateState {
+            it.copy(
+                lidCommandState = LidCommandState.Executing(binId),
+                loadingState = MapLoadingState.ExecutingLidCommand
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                when (val result = binsRepo.openLid(binId)) {
+                    is BinCommandResult.Executed -> {
+                        val ackBin = result.bin
+                        val confirmedLid = ackBin?.lidState ?: ackBin?.state ?: "OPEN"
+                        val updatedFill = ackBin?.levelPercent
+                        val updatedOnline = ackBin?.isOnline ?: true
+
+                        updateState { current ->
+                            val updatedAll = current.allBins.map { b ->
+                                if (b.deviceId == binId) {
+                                    b.copy(
+                                        lidState = confirmedLid,
+                                        levelPercent = updatedFill ?: b.levelPercent,
+                                        isOnline = updatedOnline
+                                    )
+                                } else b
+                            }
+                            val updatedSel = if (current.selectedBin?.deviceId == binId) {
+                                current.selectedBin.copy(
+                                    lidState = confirmedLid,
+                                    levelPercent = updatedFill ?: current.selectedBin.levelPercent,
+                                    isOnline = updatedOnline
+                                )
+                            } else current.selectedBin
+
+                            val updatedDetail = if (current.binDetailState is BinDetailState.Content && current.binDetailState.binId == binId) {
+                                BinDetailState.Content(
+                                    binId = binId,
+                                    bin = updatedSel ?: current.binDetailState.bin,
+                                    isRefreshing = false
+                                )
+                            } else current.binDetailState
+
+                            current.copy(
+                                allBins = updatedAll,
+                                selectedBin = updatedSel,
+                                binDetailState = updatedDetail,
+                                lidCommandState = LidCommandState.Succeeded(
+                                    binId = binId,
+                                    confirmedStatus = confirmedLid,
+                                    message = result.message
+                                ),
+                                loadingState = MapLoadingState.Idle
+                            )
+                        }
+                        sendEffect(MapEffect.LidCommandResultEffect(binId, true, result.message))
+                    }
+
+                    is BinCommandResult.Timeout -> {
+                        updateState {
+                            it.copy(
+                                lidCommandState = LidCommandState.Failed(
+                                    binId = binId,
+                                    failureType = LidCommandFailure.TIMEOUT,
+                                    message = result.message
+                                ),
+                                loadingState = MapLoadingState.Idle
+                            )
+                        }
+                        sendEffect(MapEffect.LidCommandResultEffect(binId, false, result.message))
+                    }
+
+                    is BinCommandResult.DeviceOffline -> {
+                        updateState {
+                            it.copy(
+                                lidCommandState = LidCommandState.Failed(
+                                    binId = binId,
+                                    failureType = LidCommandFailure.DEVICE_OFFLINE,
+                                    message = result.message
+                                ),
+                                loadingState = MapLoadingState.Idle
+                            )
+                        }
+                        sendEffect(MapEffect.LidCommandResultEffect(binId, false, result.message))
+                    }
+
+                    is BinCommandResult.Unauthorized -> {
+                        updateState {
+                            it.copy(
+                                lidCommandState = LidCommandState.Failed(
+                                    binId = binId,
+                                    failureType = LidCommandFailure.UNAUTHORIZED,
+                                    message = result.message
+                                ),
+                                loadingState = MapLoadingState.Idle
+                            )
+                        }
+                        sendEffect(MapEffect.LidCommandResultEffect(binId, false, result.message))
+                    }
+
+                    is BinCommandResult.NetworkError -> {
+                        updateState {
+                            it.copy(
+                                lidCommandState = LidCommandState.Failed(
+                                    binId = binId,
+                                    failureType = LidCommandFailure.NETWORK_ERROR,
+                                    message = result.message
+                                ),
+                                loadingState = MapLoadingState.Idle
+                            )
+                        }
+                        sendEffect(MapEffect.LidCommandResultEffect(binId, false, result.message))
+                    }
+
+                    is BinCommandResult.ServerError -> {
+                        updateState {
+                            it.copy(
+                                lidCommandState = LidCommandState.Failed(
+                                    binId = binId,
+                                    failureType = LidCommandFailure.SERVER_ERROR,
+                                    message = result.message
+                                ),
+                                loadingState = MapLoadingState.Idle
+                            )
+                        }
+                        sendEffect(MapEffect.LidCommandResultEffect(binId, false, result.message))
+                    }
+                }
+            } catch (e: Exception) {
+                updateState {
+                    it.copy(
+                        lidCommandState = LidCommandState.Failed(
+                            binId = binId,
+                            failureType = LidCommandFailure.SERVER_ERROR,
+                            message = "Lỗi thực thi lệnh: ${e.message}"
+                        ),
+                        loadingState = MapLoadingState.Idle
+                    )
+                }
+                sendEffect(MapEffect.LidCommandResultEffect(binId, false, "Lỗi thực thi: ${e.message}"))
+            } finally {
+                inFlightCommandBinId = null
+            }
+        }
     }
 
-    fun resetFilters() {
-        _filterLevels.value =
-            setOf("CRITICAL", "WARNING", "NORMAL")
-        _searchQuery.value = ""
-        _selectedBin.value = null
-        _isRadarMode.value = false
-    }
+    private fun executeStartNavigation(binId: String) {
+        val driver = _uiState.value.driverLocation
+        if (driver == null || !driver.isValid || _uiState.value.gpsState is GpsState.Disabled || _uiState.value.gpsState is GpsState.PermissionDenied) {
+            sendEffect(MapEffect.ShowToast("Vui lòng bật GPS để xác định vị trí bắt đầu dẫn đường."))
+            return
+        }
 
-    // =========================================================================
-    // DRIVER / RADAR
-    // =========================================================================
+        val bin = _uiState.value.allBins.find { it.deviceId == binId }
+        if (bin == null) {
+            sendEffect(MapEffect.ShowToast("Không tìm thấy dữ liệu thùng #$binId."))
+            return
+        }
 
-    fun updateDriverLocation(
-        latitude: Double,
-        longitude: Double
-    ) {
-        _driverLocation.value = latitude to longitude
-    }
-
-    fun toggleRadarMode() {
-        _isRadarMode.value = !_isRadarMode.value
-    }
-
-    // =========================================================================
-    // BIN SELECTION / MAP LAYER
-    // =========================================================================
-
-    fun selectBin(binId: String) {
-        _selectedBin.value =
-            _allBins.value.find { it.deviceId == binId }
-    }
-
-    fun clearSelectedBin() {
-        _selectedBin.value = null
-    }
-
-    fun setMapLayer(layer: String) {
-        _currentMapLayer.value = layer
-    }
-
-    // =========================================================================
-    // NAVIGATION
-    // =========================================================================
-
-    fun startNavigationToBin(
-        bin: SmartBinDto,
-        driverLat: Double,
-        driverLng: Double
-    ) {
         val binLat = bin.latitude
         val binLng = bin.longitude
-
-        if (binLat == null || binLng == null) {
-            viewModelScope.launch {
-                _toastMessage.emit(
-                    "Thùng ${bin.deviceId} chưa có tọa độ hợp lệ."
-                )
-            }
+        if (binLat == null || binLng == null || !MapStatePolicy.isValidCoordinate(binLat, binLng)) {
+            sendEffect(MapEffect.ShowToast("Thùng #${bin.deviceId} chưa có tọa độ hợp lệ."))
             return
         }
 
-        _isNavigating.value = true
-        _navTargetBin.value = bin
-        _navDistanceText.value = "--"
-        _navEtaText.value = "--"
+        // Mutual exclusivity: starting navigation disables radar
+        updateState {
+            it.copy(
+                loadingState = MapLoadingState.LoadingRoute,
+                radarState = RadarState.Disabled,
+                navigationState = NavigationState.Preparing(binId)
+            )
+        }
 
-        calculateRouteToBin(
-            driverLat,
-            driverLng,
-            binLat,
-            binLng
-        )
-    }
-
-    fun stopNavigation() {
-        _isNavigating.value = false
-        _navTargetBin.value = null
-        _navDistanceText.value = "--"
-        _navEtaText.value = "--"
-        clearRoute()
-    }
-
-    fun calculateRouteToBin(
-        driverLat: Double,
-        driverLng: Double,
-        binLat: Double,
-        binLng: Double
-    ) {
         viewModelScope.launch {
-            val result = binsRepo.calculateRoute(
-                listOf(
-                    driverLat to driverLng,
-                    binLat to binLng
+            try {
+                // Backend OSRM request uses [lng, lat]
+                val result = binsRepo.calculateRoute(listOf(driver.latitude to driver.longitude, binLat to binLng))
+                val route = result.getOrNull()
+
+                if (route == null || route.coordinates.isNullOrEmpty()) {
+                    updateState {
+                        it.copy(
+                            navigationState = NavigationState.Failed(binId, "Không thể tải tuyến đường dẫn đường."),
+                            loadingState = MapLoadingState.Idle
+                        )
+                    }
+                    sendEffect(MapEffect.ShowToast("Không thể tải tuyến đường dẫn đường."))
+                    return@launch
+                }
+
+                // GeoJSON [lng, lat] converted to [lat, lng] for Leaflet
+                val leafCoords = route.coordinates.mapNotNull { pt ->
+                    if (pt.size >= 2 && MapStatePolicy.isValidCoordinate(pt[1], pt[0])) listOf(pt[1], pt[0]) else null
+                }
+                val geoCoords = leafCoords.map { GeoCoordinate(it[0], it[1]) }
+
+                val distanceMeters = route.distanceMeters?.toInt()
+                val distText = distanceMeters?.let { meters ->
+                    String.format(java.util.Locale.US, "%.1f km", meters / 1000.0)
+                } ?: "--"
+
+                val durationSeconds = route.durationSeconds?.toInt()
+                val etaText = durationSeconds?.let { seconds ->
+                    val minutes = max(1, (seconds / 60.0).roundToInt())
+                    "$minutes phút • Dự kiến đến nơi"
+                } ?: "--"
+
+                val stopUiModel = JobStopUiModel(
+                    binId = bin.deviceId,
+                    order = 1,
+                    coordinate = GeoCoordinate(binLat, binLng),
+                    status = JobStopStatus.PENDING,
+                    isNext = true,
+                    bin = bin
+                )
+
+                val jobRouteUi = JobRouteUiModel(
+                    coordinates = geoCoords,
+                    stops = listOf(stopUiModel),
+                    distanceMeters = distanceMeters,
+                    durationSeconds = durationSeconds
+                )
+
+                updateState { current ->
+                    current.copy(
+                        routeCoordinates = leafCoords,
+                        routeWaypoints = listOf(bin),
+                        routeWaypointModels = listOf(stopUiModel),
+                        navigationState = NavigationState.Active(
+                            targetBinId = binId,
+                            targetBin = bin,
+                            route = jobRouteUi,
+                            remainingDistanceMeters = distanceMeters,
+                            estimatedDurationSeconds = durationSeconds,
+                            distanceText = distText,
+                            etaText = etaText,
+                            nextTurnInstruction = "Đi theo tuyến đường đã định",
+                            nextTurnDistanceMeters = distanceMeters ?: 0
+                        ),
+                        loadingState = MapLoadingState.Idle
+                    )
+                }
+            } catch (e: Exception) {
+                updateState {
+                    it.copy(
+                        navigationState = NavigationState.Failed(binId, e.message ?: "Lỗi định tuyến"),
+                        loadingState = MapLoadingState.Idle
+                    )
+                }
+                sendEffect(MapEffect.ShowToast("Lỗi tính tuyến đường: ${e.message}"))
+            }
+        }
+    }
+
+    private fun executeStopNavigation() {
+        updateState { current ->
+            // If active job route exists, restore it; else clear route
+            val activeRoute = current.activeJobRoute
+            if (activeRoute != null && activeRoute.coordinates.isNotEmpty()) {
+                val coords = activeRoute.coordinates.map { listOf(it.latitude, it.longitude) }
+                val wps = activeRoute.stops.mapNotNull { it.bin }
+                current.copy(
+                    navigationState = NavigationState.Inactive,
+                    routeCoordinates = coords,
+                    routeWaypoints = wps,
+                    routeWaypointModels = activeRoute.stops
+                )
+            } else {
+                current.copy(
+                    navigationState = NavigationState.Inactive,
+                    routeCoordinates = emptyList(),
+                    routeWaypoints = emptyList(),
+                    routeWaypointModels = emptyList()
+                )
+            }
+        }
+    }
+
+    private fun executeEnableRadar(radiusMeters: Double) {
+        val driver = _uiState.value.driverLocation
+        if (driver == null || !driver.isValid || _uiState.value.gpsState is GpsState.Disabled || _uiState.value.gpsState is GpsState.PermissionDenied) {
+            sendEffect(MapEffect.ShowToast("Cần vị trí GPS để quét radar ${radiusMeters.roundToInt()}m."))
+            return
+        }
+
+        // Mutual exclusivity: radar disables navigation
+        updateState { current ->
+            val eligible = MapStatePolicy.filterEligibleRadarBins(
+                allBins = current.allBins,
+                driverLocation = driver,
+                radiusMeters = radiusMeters,
+                thresholds = current.thresholds
+            )
+            val critCount = eligible.count { (it.levelPercent ?: 0.0) >= current.thresholds.critical }
+            current.copy(
+                radarState = RadarState.Active(
+                    radiusMeters = radiusMeters,
+                    eligibleBins = eligible,
+                    criticalBinsCount = critCount
+                ),
+                navigationState = NavigationState.Inactive,
+                selectedBin = null
+            )
+        }
+    }
+
+    private fun executeOpenSelfPickConfirmation(binIds: List<String>) {
+        val uniqueIds = binIds.distinct().filter { it.isNotBlank() }
+        if (uniqueIds.isEmpty()) {
+            sendEffect(MapEffect.ShowToast("Không có điểm hợp lệ để tạo ca làm."))
+            return
+        }
+
+        val eligible = _uiState.value.allBins.filter { it.deviceId in uniqueIds }
+        updateState {
+            it.copy(
+                selfPickState = SelfPickState.Confirming(
+                    binIds = uniqueIds,
+                    eligibleBins = eligible
                 )
             )
-
-            val route = result.getOrNull()
-
-            if (route == null || route.coordinates.isNullOrEmpty()) {
-                _routeCoordinates.value = emptyList()
-                _navDistanceText.value = "--"
-                _navEtaText.value = "--"
-                _isNavigating.value = false
-                _navTargetBin.value = null
-
-                _toastMessage.emit(
-                    "Không thể tải tuyến đường."
-                )
-                return@launch
-            }
-
-            val leafCoordinates = route.coordinates
-                .mapNotNull { coordinate ->
-                    if (coordinate.size >= 2) {
-                        listOf(
-                            coordinate[1],
-                            coordinate[0]
-                        )
-                    } else {
-                        null
-                    }
-                }
-
-            if (leafCoordinates.size < 2) {
-                _routeCoordinates.value = emptyList()
-                _navDistanceText.value = "--"
-                _navEtaText.value = "--"
-                _isNavigating.value = false
-                _navTargetBin.value = null
-
-                _toastMessage.emit(
-                    "Dữ liệu tuyến đường không hợp lệ."
-                )
-                return@launch
-            }
-
-            _routeCoordinates.value = leafCoordinates
-
-            val distanceMeters =
-                route.distanceMeters
-                    ?: calculatePolylineDistance(
-                        leafCoordinates
-                    )
-
-            _navDistanceText.value =
-                distanceMeters
-                    ?.takeIf { it >= 0.0 }
-                    ?.let { meters ->
-                        String.format(
-                            java.util.Locale.US,
-                            "%.1f km",
-                            meters / 1000.0
-                        )
-                    }
-                    ?: "--"
-
-            _navEtaText.value =
-                route.durationSeconds
-                    ?.takeIf { it >= 0.0 }
-                    ?.let { seconds ->
-                        val minutes = max(
-                            1,
-                            (seconds / 60.0).roundToInt()
-                        )
-                        "$minutes phút • Dự kiến đến nơi"
-                    }
-                    ?: "--"
         }
     }
 
-    fun calculateJobRoute(
-        job: JobDto,
-        driverLat: Double,
-        driverLng: Double
-    ) {
-        viewModelScope.launch {
-            val binsById =
-                _allBins.value.associateBy { it.deviceId }
-
-            val targetIds =
-                job.targetBinIds.orEmpty()
-
-            val points =
-                mutableListOf(driverLat to driverLng)
-
-            val waypoints =
-                mutableListOf<SmartBinDto>()
-
-            targetIds.forEach { binId ->
-                val bin = binsById[binId]
-                val lat = bin?.latitude
-                val lng = bin?.longitude
-
-                if (bin != null &&
-                    lat != null &&
-                    lng != null
-                ) {
-                    points.add(lat to lng)
-                    waypoints.add(bin)
-                }
-            }
-
-            _routeWaypoints.value = waypoints
-
-            if (points.size < 2) {
-                _routeCoordinates.value = emptyList()
-                return@launch
-            }
-
-            val result =
-                binsRepo.calculateRoute(points)
-
-            val route = result.getOrNull()
-
-            if (route == null ||
-                route.coordinates.isNullOrEmpty()
-            ) {
-                // Không vẽ đường thẳng giả thay cho route thật.
-                _routeCoordinates.value = emptyList()
-                _toastMessage.emit(
-                    "Không thể tải tuyến đường cho nhiệm vụ."
-                )
-                return@launch
-            }
-
-            _routeCoordinates.value =
-                route.coordinates.mapNotNull { coordinate ->
-                    if (coordinate.size >= 2) {
-                        listOf(
-                            coordinate[1],
-                            coordinate[0]
-                        )
-                    } else {
-                        null
-                    }
-                }
+    private fun executeCreateSelfPickJob(binIds: List<String>) {
+        val uniqueIds = binIds.distinct().filter { it.isNotBlank() }
+        if (uniqueIds.isEmpty()) {
+            sendEffect(MapEffect.ShowToast("Không có điểm hợp lệ để tạo ca làm."))
+            return
         }
+
+        // Double-click prevention
+        if (isSubmittingSelfPick || _uiState.value.selfPickState is SelfPickState.Submitting) {
+            return
+        }
+
+        isSubmittingSelfPick = true
+        updateState {
+            it.copy(
+                selfPickState = SelfPickState.Submitting(uniqueIds),
+                loadingState = MapLoadingState.SubmittingSelfPick
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val result = jobsRepo.selfPickJob(uniqueIds)
+                if (result.isSuccess) {
+                    val rawJob = result.getOrNull()
+                    val freshBins = _uiState.value.allBins
+                    val jobRoute = rawJob?.let { MapStatePolicy.parseJobRoute(it, freshBins) }
+                    val totalStops = jobRoute?.stops?.size ?: (rawJob?.targetBinIds?.size ?: 0)
+                    val completedStops = jobRoute?.stops?.count { it.status == JobStopStatus.COLLECTED } ?: 0
+                    val nextStop = jobRoute?.stops?.firstOrNull { it.isNext }
+
+                    val activeState = if (rawJob != null) {
+                        ActiveJobState.Available(
+                            job = rawJob,
+                            route = jobRoute ?: JobRouteUiModel(emptyList(), emptyList(), null, null),
+                            completedStops = completedStops,
+                            totalStops = totalStops,
+                            nextStop = nextStop
+                        )
+                    } else ActiveJobState.None
+
+                    val (routeCoords, routeWps, routeWpModels) = if (jobRoute != null && jobRoute.coordinates.isNotEmpty()) {
+                        val coords = jobRoute.coordinates.map { listOf(it.latitude, it.longitude) }
+                        val wps = jobRoute.stops.mapNotNull { it.bin }
+                        Triple(coords, wps, jobRoute.stops)
+                    } else {
+                        Triple(emptyList<List<Double>>(), emptyList<SmartBinDto>(), emptyList<JobStopUiModel>())
+                    }
+
+                    updateState { current ->
+                        current.copy(
+                            radarState = RadarState.Disabled,
+                            selfPickState = SelfPickState.Idle,
+                            activeJob = rawJob,
+                            activeJobRoute = jobRoute,
+                            activeJobState = activeState,
+                            routeCoordinates = routeCoords,
+                            routeWaypoints = routeWps,
+                            routeWaypointModels = routeWpModels,
+                            loadingState = MapLoadingState.Idle
+                        )
+                    }
+
+                    sendEffect(MapEffect.SelfPickSuccess(rawJob?.id, "✓ Đã tạo ca làm tự nhận (${uniqueIds.size} điểm) thành công!"))
+                    executeLoadData(rawJob?.id)
+                } else {
+                    val errMsg = result.exceptionOrNull()?.message ?: "không rõ nguyên nhân"
+                    updateState {
+                        it.copy(
+                            selfPickState = SelfPickState.Failed(uniqueIds, errMsg),
+                            loadingState = MapLoadingState.Idle
+                        )
+                    }
+                    sendEffect(MapEffect.OperationFailed("SelfPick", "Không thể tạo ca làm: $errMsg"))
+                }
+            } catch (e: Exception) {
+                updateState {
+                    it.copy(
+                        selfPickState = SelfPickState.Failed(uniqueIds, e.message ?: "Lỗi kết nối"),
+                        loadingState = MapLoadingState.Idle
+                    )
+                }
+                sendEffect(MapEffect.OperationFailed("SelfPick", "Lỗi tạo ca: ${e.message}"))
+            } finally {
+                isSubmittingSelfPick = false
+            }
+        }
+    }
+
+    private fun executeJobTransition(jobId: String, actionType: JobActionType, reason: String = "") {
+        if (isJobTransitionInFlight || jobId.isBlank()) return
+
+        val currentJob = _uiState.value.activeJob
+        val currentStatus = JobStatus.fromString(currentJob?.status)
+        val allowed = JobTransitionPolicy.allowedActions(currentStatus)
+
+        if (!allowed.contains(actionType)) {
+            sendEffect(MapEffect.ShowToast("Không thể thực hiện hành động này ở trạng thái ${currentJob?.status}."))
+            return
+        }
+
+        isJobTransitionInFlight = true
+        updateState { it.copy(loadingState = MapLoadingState.ExecutingJobTransition) }
+
+        viewModelScope.launch {
+            try {
+                val result = when (actionType) {
+                    JobActionType.ACCEPT -> jobsRepo.acceptJob(jobId)
+                    JobActionType.REJECT -> jobsRepo.rejectJob(jobId, reason)
+                    JobActionType.START -> jobsRepo.startJob(jobId)
+                    JobActionType.PAUSE -> jobsRepo.pauseJob(jobId, reason)
+                    JobActionType.RESUME -> jobsRepo.resumeJob(jobId)
+                }
+
+                if (result.isSuccess) {
+                    val updated = result.getOrNull()
+                    sendEffect(MapEffect.ShowToast("✓ Cập nhật trạng thái nhiệm vụ thành công!"))
+                    executeLoadData(updated?.id ?: jobId)
+                } else {
+                    val errMsg = result.exceptionOrNull()?.message ?: "Lỗi cập nhật trạng thái"
+                    sendEffect(MapEffect.OperationFailed("JobTransition", errMsg))
+                    executeLoadData(jobId) // reconcile on conflict
+                }
+            } catch (e: Exception) {
+                sendEffect(MapEffect.OperationFailed("JobTransition", e.message ?: "Lỗi kết nối"))
+            } finally {
+                isJobTransitionInFlight = false
+                updateState { it.copy(loadingState = MapLoadingState.Idle) }
+            }
+        }
+    }
+
+    private fun sendEffect(effect: MapEffect) {
+        viewModelScope.launch { _effectChannel.send(effect) }
+    }
+
+    // =========================================================================
+    // 7. COMPATIBILITY GETTERS & DELEGATES
+    // =========================================================================
+
+    val allBins: StateFlow<List<SmartBinDto>> = _uiState.map { it.allBins }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val displayedBins: StateFlow<List<SmartBinDto>> = _uiState.map { it.displayedBins }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val activeJob: StateFlow<JobDto?> = _uiState.map { it.activeJob }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val selectedBin: StateFlow<SmartBinDto?> = _uiState.map { it.selectedBin }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val searchQuery: StateFlow<String> = _uiState.map { it.searchInput }.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val filters: StateFlow<MapFilters> = _uiState.map { it.filters }.stateIn(viewModelScope, SharingStarted.Eagerly, MapFilters())
+    val isRadarMode: StateFlow<Boolean> = _uiState.map { it.radarState is RadarState.Active }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val radarRadiusMeters: StateFlow<Double> = _uiState.map { (it.radarState as? RadarState.Active)?.radiusMeters ?: 500.0 }.stateIn(viewModelScope, SharingStarted.Eagerly, 500.0)
+    val isNavigating: StateFlow<Boolean> = _uiState.map { it.navigationState is NavigationState.Active }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val navTargetBin: StateFlow<SmartBinDto?> = _uiState.map { (it.navigationState as? NavigationState.Active)?.targetBin }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val navDistanceText: StateFlow<String> = _uiState.map { (it.navigationState as? NavigationState.Active)?.distanceText ?: "--" }.stateIn(viewModelScope, SharingStarted.Eagerly, "--")
+    val navEtaText: StateFlow<String> = _uiState.map { (it.navigationState as? NavigationState.Active)?.etaText ?: "--" }.stateIn(viewModelScope, SharingStarted.Eagerly, "--")
+    val currentMapLayer: StateFlow<String> = _uiState.map { it.mapLayer.toJsString() }.stateIn(viewModelScope, SharingStarted.Eagerly, "default")
+    val isOffline: StateFlow<Boolean> = _uiState.map { it.networkState !is NetworkState.Online }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val routeCoordinates: StateFlow<List<List<Double>>> = _uiState.map { it.routeCoordinates }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val routeWaypoints: StateFlow<List<SmartBinDto>> = _uiState.map { it.routeWaypoints }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val isLoading: StateFlow<Boolean> = _uiState.map { it.loadingState != MapLoadingState.Idle }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    // Compatibility method delegations
+    fun loadMapData(targetJobId: String? = null) = handleAction(MapAction.LoadData(targetJobId))
+    fun setSearchQuery(query: String) = handleAction(MapAction.SearchInputChanged(query))
+    fun applyFilters(filters: MapFilters) = handleAction(MapAction.ApplyFilter(filters))
+    fun resetFilters() = handleAction(MapAction.ResetFilter)
+    fun updateDriverLocation(lat: Double, lng: Double) = handleAction(MapAction.UpdateDriverLocation(lat, lng))
+    fun toggleRadarMode() = handleAction(MapAction.ToggleRadar)
+    fun selectBin(binId: String) = handleAction(MapAction.SelectBin(binId))
+    fun clearSelectedBin() = handleAction(MapAction.ClearSelection)
+    fun setMapLayer(layerStr: String) = handleAction(MapAction.SetMapLayer(MapLayer.fromString(layerStr)))
+    fun startNavigationToBin(bin: SmartBinDto, driverLat: Double, driverLng: Double) = handleAction(MapAction.StartNavigation(bin.deviceId))
+    fun stopNavigation() = handleAction(MapAction.StopNavigation)
+
+    fun createSelfPickJob(binIds: List<String>, onComplete: ((Boolean) -> Unit)? = null) {
+        handleAction(MapAction.CreateSelfPickJob(binIds))
+    }
+
+    fun remoteOpenLid(binId: String, onResult: ((Boolean) -> Unit)? = null) {
+        handleAction(MapAction.ConfirmOpenLid(binId))
     }
 
     fun clearRoute() {
-        _routeCoordinates.value = emptyList()
-        _routeWaypoints.value = emptyList()
-    }
-
-    // =========================================================================
-    // ACTIONS
-    // =========================================================================
-
-    fun createSelfPickJob(
-        binIds: List<String>,
-        onComplete: (Boolean) -> Unit
-    ) {
-        if (binIds.isEmpty()) {
-            viewModelScope.launch {
-                _toastMessage.emit(
-                    "Không có điểm hợp lệ để tạo ca làm."
-                )
-            }
-            onComplete(false)
-            return
-        }
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            var shouldReload = false
-
-            try {
-                val result =
-                    jobsRepo.selfPickJob(binIds)
-
-                if (result.isSuccess) {
-                    _toastMessage.emit(
-                        "✓ Đã tạo ca làm tự nhận (${binIds.size} điểm) thành công!"
-                    )
-                    _isRadarMode.value = false
-                    shouldReload = true
-                    onComplete(true)
-                } else {
-                    _toastMessage.emit(
-                        "Không thể tạo ca làm (${result.exceptionOrNull()?.message ?: "không rõ nguyên nhân"})"
-                    )
-                    onComplete(false)
-                }
-            } finally {
-                _isLoading.value = false
-            }
-
-            if (shouldReload) {
-                loadMapData()
-            }
-        }
-    }
-
-    fun reportIncident(
-        binId: String,
-        issueType: String,
-        description: String,
-        onComplete: (Boolean) -> Unit
-    ) {
-        if (binId.isBlank()) {
-            viewModelScope.launch {
-                _toastMessage.emit(
-                    "Không xác định được thùng cần báo sự cố."
-                )
-            }
-            onComplete(false)
-            return
-        }
-
-        viewModelScope.launch {
-            val result =
-                incidentRepo.reportIncident(
-                    binId,
-                    issueType,
-                    description
-                )
-
-            if (result.isSuccess) {
-                _toastMessage.emit(
-                    "✓ Đã gửi báo cáo sự cố thành công!"
-                )
-                onComplete(true)
-            } else {
-                _toastMessage.emit(
-                    "Lỗi gửi sự cố (${result.exceptionOrNull()?.message ?: "không rõ nguyên nhân"})"
-                )
-                onComplete(false)
-            }
-        }
-    }
-
-    fun remoteOpenLid(
-        binId: String,
-        onResult: (Boolean) -> Unit
-    ) {
-        if (binId.isBlank()) {
-            viewModelScope.launch {
-                _toastMessage.emit(
-                    "Không xác định được thùng cần mở nắp."
-                )
-            }
-            onResult(false)
-            return
-        }
-
-        viewModelScope.launch {
-            _toastMessage.emit(
-                "📶 Đang gửi lệnh mở nắp thùng $binId..."
-            )
-
-            val result = binsRepo.openLid(binId)
-
-            if (result.isSuccess) {
-                _toastMessage.emit(
-                    "✓ Đã gửi yêu cầu mở nắp cho thiết bị #$binId."
-                )
-                onResult(true)
-            } else {
-                _toastMessage.emit(
-                    "Không thể mở nắp (${result.exceptionOrNull()?.message ?: "thiết bị không phản hồi"})"
-                )
-                onResult(false)
-            }
-        }
-    }
-
-    // =========================================================================
-    // DISTANCE HELPERS
-    // =========================================================================
-
-    private fun calculatePolylineDistance(
-        points: List<List<Double>>
-    ): Double? {
-        if (points.size < 2) return null
-
-        var total = 0.0
-
-        for (index in 0 until points.lastIndex) {
-            val start = points[index]
-            val end = points[index + 1]
-
-            if (start.size < 2 || end.size < 2) {
-                continue
-            }
-
-            total += calculateHaversineDistance(
-                start[0],
-                start[1],
-                end[0],
-                end[1]
+        updateState {
+            it.copy(
+                routeCoordinates = emptyList(),
+                routeWaypoints = emptyList(),
+                routeWaypointModels = emptyList()
             )
         }
-
-        return total
-    }
-
-    private fun calculateHaversineDistance(
-        lat1: Double,
-        lon1: Double,
-        lat2: Double,
-        lon2: Double
-    ): Double {
-        val earthRadiusMeters = 6_371_000.0
-
-        val phi1 = Math.toRadians(lat1)
-        val phi2 = Math.toRadians(lat2)
-        val deltaPhi = Math.toRadians(lat2 - lat1)
-        val deltaLambda = Math.toRadians(lon2 - lon1)
-
-        val a =
-            sin(deltaPhi / 2.0).pow(2.0) +
-                cos(phi1) *
-                cos(phi2) *
-                sin(deltaLambda / 2.0).pow(2.0)
-
-        val c =
-            2.0 * atan2(
-                sqrt(a),
-                sqrt(1.0 - a)
-            )
-
-        return earthRadiusMeters * c
     }
 }

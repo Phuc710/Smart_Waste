@@ -22,7 +22,7 @@
         android:orientation="vertical"
         android:paddingHorizontal="20dp">
 
-        <!-- Header: BIN_HCM_023 + Badge >85% + Close -->
+        <!-- Header: BIN_HCM_023 + Badge + Close -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -58,7 +58,7 @@
                     android:background="@drawable/badge_danger"
                     android:paddingHorizontal="6dp"
                     android:paddingVertical="1.5dp"
-                    android:text="> 85%"
+                    android:text="≥ 85%"
                     android:textColor="#DC2626"
                     android:textSize="11sp"
                     android:textStyle="bold" />
@@ -66,8 +66,8 @@
 
             <ImageView
                 android:id="@+id/btnCloseOpenLidSheet"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
@@ -97,19 +97,28 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Nắp sẽ được mở tự động trong 10 giây qua giao thức MQTT. Vui lòng đảm bảo bạn đang đứng gần thùng rác."
+                android:text="Lệnh mở nắp sẽ được chuyển tiếp qua giao thức MQTT đến thiết bị. Vui lòng đảm bảo bạn đang đứng gần vị trí thùng rác."
                 android:textColor="#64748B"
                 android:textSize="12.5sp" />
         </LinearLayout>
 
-        <!-- Action Buttons: [ Mở nắp ] & [ Hủy ] -->
+        <!-- Progress Indicator -->
+        <ProgressBar
+            android:id="@+id/pbOpenLidProgress"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <!-- Action Buttons: [ Xác nhận mở nắp ] & [ Hủy ] -->
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnConfirmOpenLid"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:background="@drawable/bg_btn_primary_green"
-            android:text="Mở nắp"
+            android:text="Xác nhận mở nắp"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
@@ -127,16 +136,17 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
-        <!-- Result status -->
+        <!-- Result status text -->
         <TextView
             android:id="@+id/tvOpenLidResult"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="14dp"
-            android:text="Kết quả gần nhất: 🟢 Nắp đang hoạt động"
+            android:text=""
             android:textColor="#16A34A"
-            android:textSize="12sp" />
+            android:textSize="12.5sp"
+            android:visibility="gone" />
 
     </LinearLayout>
 </LinearLayout>

@@ -84,7 +84,7 @@
                                 android:background="@drawable/badge_danger"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="2dp"
-                                android:text="> 85%"
+                                android:text="≥ 85%"
                                 android:textColor="#DC2626"
                                 android:textSize="11.5sp"
                                 android:textStyle="bold" />
@@ -104,7 +104,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="Thùng 240L • Hoạt động"
+                            android:text="Trực tuyến • Tự động"
                             android:textColor="#16A34A"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -113,8 +113,8 @@
 
                 <ImageView
                     android:id="@+id/btnCloseBinDetail"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:background="?attr/selectableItemBackgroundBorderless"
@@ -123,7 +123,7 @@
                     android:src="@drawable/ic_close_gray" />
             </RelativeLayout>
 
-            <!-- 2. SECTION: MỨC RÁC & CẬP NHẬT -->
+            <!-- 2. SECTION: MỨC RÁC & TIẾN ĐỘ ĐẦY -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -173,92 +173,145 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Cập nhật: 09:39, 18/05/2026 (VN +7)"
+                    android:text="Cập nhật: 09:39, 18/05/2026"
                     android:textColor="#64748B"
                     android:textSize="11.5sp" />
             </LinearLayout>
 
-            <!-- 3. SECTION: LỊCH SỬ ĐẦY (TREND PREVIEW) -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <!-- 3. SECTION: TRẠNG THÁI THIẾT BỊ & THU GOM THỰC TẾ -->
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:text="Thông tin vận hành"
+                android:textColor="#0F172A"
+                android:textSize="14.5sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Lịch sử đầy"
-                    android:textColor="#0F172A"
-                    android:textSize="14.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/btnViewAllHistoryTrend"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Xem tất cả &gt;"
-                    android:textColor="#64748B"
-                    android:textSize="12.5sp" />
-            </LinearLayout>
-
-            <!-- Mini Trend Strip -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/bg_card_clean"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:paddingVertical="12dp">
+                android:orientation="horizontal">
 
-                <TextView
+                <!-- Lid Status -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="13/5\n30%"
-                    android:textColor="#64748B"
-                    android:textSize="11sp" />
+                    android:background="@drawable/bg_card_clean"
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                <TextView
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nắp thùng"
+                        android:textColor="#64748B"
+                        android:textSize="11.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvBinDetailLidStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="🔒 Đã đóng"
+                        android:textColor="#0F172A"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Control Mode -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="14/5\n55%"
-                    android:textColor="#64748B"
-                    android:textSize="11sp" />
+                    android:background="@drawable/bg_card_clean"
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                <TextView
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chế độ nắp"
+                        android:textColor="#64748B"
+                        android:textSize="11.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvBinDetailMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Tự động"
+                        android:textColor="#0F172A"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <!-- Collection Status -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="15/5\n70%"
-                    android:textColor="#D97706"
-                    android:textSize="11sp" />
+                    android:background="@drawable/bg_card_clean"
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                <TextView
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Thu gom"
+                        android:textColor="#64748B"
+                        android:textSize="11.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvBinDetailCollectionStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Chờ thu gom"
+                        android:textColor="#0F172A"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Connectivity Status -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="16/5\n85%"
-                    android:textColor="#DC2626"
-                    android:textSize="11sp" />
+                    android:background="@drawable/bg_card_clean"
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="17/5\n92%"
-                    android:textColor="#DC2626"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Kết nối mạng"
+                        android:textColor="#64748B"
+                        android:textSize="11.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvBinDetailConnectivity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="🟢 Trực tuyến"
+                        android:textColor="#16A34A"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- 4. ACTION BUTTONS: [ Dẫn đường ] | [ Báo sự cố ] | [ Mở nắp ] -->

@@ -27,7 +27,7 @@ router.get('/config', requireAuth, requireAdmin, (_req, res) => {
 });
 
 // POST /api/map/route - Calculate route
-router.post('/route', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+router.post('/route', requireAuth, asyncHandler(async (req, res) => {
     const coordinates = Array.isArray(req.body.coordinates) ? req.body.coordinates : [];
     const valid = coordinates.length >= 2 && coordinates.length <= 20 && coordinates.every((point) =>
         Array.isArray(point) && point.length === 2 && 

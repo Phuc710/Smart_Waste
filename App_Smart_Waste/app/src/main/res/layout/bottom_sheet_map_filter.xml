@@ -39,12 +39,12 @@
 
             <ImageView
                 android:id="@+id/btnCloseFilterSheet"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Đóng"
+                android:contentDescription="Đóng bộ lọc"
                 android:padding="6dp"
                 android:src="@drawable/ic_close_gray" />
         </RelativeLayout>
@@ -65,23 +65,23 @@
             android:layout_marginTop="8dp"
             android:orientation="vertical">
 
-            <!-- Checkbox >85% (Red) -->
+            <!-- Checkbox >=85% (Red) -->
             <CheckBox
                 android:id="@+id/cbFilterCritical"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
+                android:layout_height="48dp"
                 android:checked="true"
-                android:text="🔴  > 85% (Nguy cấp — Cần gom ngay)"
+                android:text="🔴  ≥ 85% (Nguy cấp — Cần gom ngay)"
                 android:textColor="#0F172A"
                 android:textSize="13.5sp" />
 
-            <!-- Checkbox 70 - 85% (Orange) -->
+            <!-- Checkbox 70% - <85% (Orange) -->
             <CheckBox
                 android:id="@+id/cbFilterWarning"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
+                android:layout_height="48dp"
                 android:checked="true"
-                android:text="🟡  70 — 85% (Cảnh báo)"
+                android:text="🟡  70% — &lt; 85% (Cảnh báo)"
                 android:textColor="#0F172A"
                 android:textSize="13.5sp" />
 
@@ -89,7 +89,7 @@
             <CheckBox
                 android:id="@+id/cbFilterNormal"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
+                android:layout_height="48dp"
                 android:checked="true"
                 android:text="🟢  &lt; 70% (Bình thường)"
                 android:textColor="#0F172A"
@@ -99,8 +99,8 @@
             <CheckBox
                 android:id="@+id/cbFilterOffline"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
-                android:checked="false"
+                android:layout_height="48dp"
+                android:checked="true"
                 android:text="⚪  Ngoại tuyến (Offline)"
                 android:textColor="#64748B"
                 android:textSize="13.5sp" />
@@ -131,7 +131,7 @@
             <CheckBox
                 android:id="@+id/cbFilterType240L"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="44dp"
                 android:checked="true"
                 android:text="Thùng 240L"
                 android:textColor="#0F172A"
@@ -140,7 +140,7 @@
             <CheckBox
                 android:id="@+id/cbFilterType120L"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="44dp"
                 android:checked="false"
                 android:text="Thùng 120L"
                 android:textColor="#0F172A"
@@ -149,7 +149,7 @@
             <CheckBox
                 android:id="@+id/cbFilterType660L"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="44dp"
                 android:checked="false"
                 android:text="Container 660L"
                 android:textColor="#0F172A"
@@ -166,7 +166,7 @@
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btnResetFilter"
                 android:layout_width="0dp"
-                android:layout_height="46dp"
+                android:layout_height="48dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_btn_secondary_gray"
@@ -179,7 +179,7 @@
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btnApplyFilter"
                 android:layout_width="0dp"
-                android:layout_height="46dp"
+                android:layout_height="48dp"
                 android:layout_marginStart="6dp"
                 android:layout_weight="1.2"
                 android:background="@drawable/bg_btn_primary_green"

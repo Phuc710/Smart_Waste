@@ -10,11 +10,13 @@ const SYSTEM_CONFIG = {
     auto_assign: process.env.AUTO_ASSIGN === 'true'
 };
 
-const VALID_BIN_ACTIONS = ['OPEN', 'CLOSE', 'AUTO', 'MANUAL', 'PAUSE', 'RESUME'];
+const VALID_BIN_ACTIONS = ['OPEN', 'OPEN_LID', 'CLOSE', 'CLOSE_LID', 'AUTO', 'MANUAL', 'PAUSE', 'RESUME'];
 
 const ACTION_LABELS = {
     OPEN: 'Mở nắp',
+    OPEN_LID: 'Mở nắp',
     CLOSE: 'Đóng nắp',
+    CLOSE_LID: 'Đóng nắp',
     AUTO: 'Chế độ Tự động',
     MANUAL: 'Chế độ Thủ công',
     PAUSE: 'Tạm dừng thu gom',

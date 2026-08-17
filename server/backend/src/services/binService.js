@@ -174,8 +174,8 @@ async function acknowledgeBinCommand(binId, data) {
         const state = String(data.state || '').toUpperCase();
         const mode = String(data.controlMode || data.control_mode || '').toUpperCase();
         const paused = Boolean(data.collectionPaused ?? data.collection_paused);
-        const applied = (tracked.action === 'OPEN' && state === 'OPEN') ||
-            (tracked.action === 'CLOSE' && state === 'CLOSED') ||
+        const applied = ((tracked.action === 'OPEN' || tracked.action === 'OPEN_LID') && state === 'OPEN') ||
+            ((tracked.action === 'CLOSE' || tracked.action === 'CLOSE_LID') && state === 'CLOSED') ||
             (tracked.action === 'PAUSE' && paused) ||
             (tracked.action === 'RESUME' && !paused && mode === 'AUTO') ||
             (tracked.action === 'AUTO' && mode === 'AUTO') ||
@@ -185,7 +185,7 @@ async function acknowledgeBinCommand(binId, data) {
             action = tracked.action;
         }
     }
-    if (!commandId || !['OPEN', 'CLOSE', 'AUTO', 'MANUAL', 'PAUSE', 'RESUME'].includes(action)) return;
+    if (!commandId || !['OPEN', 'OPEN_LID', 'CLOSE', 'CLOSE_LID', 'AUTO', 'MANUAL', 'PAUSE', 'RESUME'].includes(action)) return;
 
     if (!tracked && stateStore.processedCommandTimes.get(binId) === commandId) return;
 

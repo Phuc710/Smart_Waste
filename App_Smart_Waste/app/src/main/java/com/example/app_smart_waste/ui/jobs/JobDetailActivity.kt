@@ -18,6 +18,7 @@ import com.example.app_smart_waste.data.repository.BinsRepository
 import com.example.app_smart_waste.data.repository.JobsRepository
 import com.example.app_smart_waste.databinding.ActivityJobDetailBinding
 import com.example.app_smart_waste.ui.route.RouteDetailActivity
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -31,6 +32,7 @@ class JobDetailActivity : AppCompatActivity() {
 
     private var jobId: String = ""
     private var currentJob: JobDto? = null
+    private var countdownJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,13 +122,12 @@ class JobDetailActivity : AppCompatActivity() {
                 binding.btnDetailRejectJob.visibility = View.VISIBLE
                 binding.layoutDetailBottomActions.visibility = View.VISIBLE
 
-                lifecycleScope.launch {
-                    repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        while (isActive) {
-                            val remSec = com.example.app_smart_waste.core.utils.TimeUtils.calculateJobCountdownSeconds(job.assignedAt, timeoutMinutes)
-                            binding.tvJobDetailStatusPill.text = com.example.app_smart_waste.core.utils.TimeUtils.formatJobCountdownText(remSec)
-                            delay(1000)
-                        }
+                countdownJob?.cancel()
+                countdownJob = lifecycleScope.launch {
+                    while (isActive) {
+                        val remSec = com.example.app_smart_waste.core.utils.TimeUtils.calculateJobCountdownSeconds(job.assignedAt, timeoutMinutes)
+                        binding.tvJobDetailStatusPill.text = com.example.app_smart_waste.core.utils.TimeUtils.formatJobCountdownText(remSec)
+                        delay(1000)
                     }
                 }
             }
@@ -317,5 +318,11 @@ class JobDetailActivity : AppCompatActivity() {
                     .start()
             }
             .start()
+    }
+
+    override fun onDestroy() {
+        countdownJob?.cancel()
+        countdownJob = null
+        super.onDestroy()
     }
 }

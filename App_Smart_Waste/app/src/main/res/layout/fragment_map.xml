@@ -177,7 +177,24 @@
             </FrameLayout>
         </LinearLayout>
 
-        <!-- 2.3 Case 07: Top Turn-by-Turn Navigation Banner -->
+        <!-- 2.3 Case 08: Active Filter Chips Row -->
+        <HorizontalScrollView
+            android:id="@+id/scrollActiveFilterChips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/layoutActiveFilterChips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- 2.4 Case 07: Top Turn-by-Turn Navigation Banner -->
         <LinearLayout
             android:id="@+id/bannerTurnByTurnNav"
             android:layout_width="match_parent"

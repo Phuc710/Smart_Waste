@@ -55,7 +55,7 @@ interface ApiService {
     suspend fun getBinDetails(@Path("id") binId: String): Response<SmartBinDto>
 
     @POST("api/bins/{id}/command")
-    suspend fun sendBinCommand(@Path("id") binId: String, @Body body: Map<String, String>): Response<ActionResponse>
+    suspend fun sendBinCommand(@Path("id") binId: String, @Body body: BinCommandRequest): Response<BinCommandResponse>
 
     // 4. GPS Location Broadcast
     @POST("api/location")

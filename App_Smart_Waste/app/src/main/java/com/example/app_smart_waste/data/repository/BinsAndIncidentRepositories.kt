@@ -45,25 +45,39 @@ class BinsRepository(private val context: Context) {
 
     suspend fun getBinDetail(binId: String): Result<SmartBinDto> = getBinDetails(binId)
 
-    suspend fun sendCommand(binId: String, action: String): Result<Boolean> = withContext(Dispatchers.IO) {
+    suspend fun sendCommand(binId: String, action: String): com.example.app_smart_waste.core.model.BinCommandResult = withContext(Dispatchers.IO) {
         try {
-            val response = api.sendBinCommand(binId, mapOf("action" to action))
-            if (response.isSuccessful) Result.success(true)
-            else Result.failure(Exception("Lỗi gửi lệnh nắp (HTTP ${response.code()})"))
+            val response = api.sendBinCommand(binId, com.example.app_smart_waste.core.model.BinCommandRequest(action = action))
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.ok == true -> {
+                    com.example.app_smart_waste.core.model.BinCommandResult.Executed(
+                        bin = body.bin,
+                        message = body.message ?: "Thiết bị #$binId đã thực thi thành công."
+                    )
+                }
+                response.code() == 504 -> {
+                    com.example.app_smart_waste.core.model.BinCommandResult.Timeout("Thiết bị #$binId chưa phản hồi (Gateway Timeout 504). Vui lòng kiểm tra kết nối và thử lại.")
+                }
+                response.code() == 401 || response.code() == 403 -> {
+                    com.example.app_smart_waste.core.model.BinCommandResult.Unauthorized("Phiên làm việc hết hạn hoặc không có quyền gửi lệnh.")
+                }
+                response.code() == 503 -> {
+                    com.example.app_smart_waste.core.model.BinCommandResult.DeviceOffline("Thiết bị #$binId hiện đang ngoại tuyến (Offline), không thể thực thi lệnh.")
+                }
+                else -> {
+                    val errMsg = body?.message ?: body?.error ?: "Lỗi gửi lệnh nắp (HTTP ${response.code()})"
+                    com.example.app_smart_waste.core.model.BinCommandResult.ServerError(response.code(), errMsg)
+                }
+            }
+        } catch (e: java.io.IOException) {
+            com.example.app_smart_waste.core.model.BinCommandResult.NetworkError("Lỗi kết nối mạng: ${e.localizedMessage ?: "Không thể kết nối máy chủ"}")
         } catch (e: Exception) {
-            Result.failure(e)
+            com.example.app_smart_waste.core.model.BinCommandResult.ServerError(null, e.localizedMessage ?: "Lỗi không xác định")
         }
     }
 
-    suspend fun openLid(binId: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val res = api.openLid(binId)
-            if (res.isSuccessful) Result.success(true)
-            else Result.failure(Exception("Lỗi mở nắp thùng (HTTP ${res.code()})"))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    suspend fun openLid(binId: String): com.example.app_smart_waste.core.model.BinCommandResult = sendCommand(binId, "OPEN_LID")
 
     suspend fun calculateRoute(points: List<Pair<Double, Double>>): Result<com.example.app_smart_waste.core.model.RouteResponse?> = withContext(Dispatchers.IO) {
         try {
@@ -74,6 +88,19 @@ class BinsRepository(private val context: Context) {
                 Result.success(body)
             } else {
                 Result.failure(Exception("Lỗi tính toán đường đi (HTTP ${res.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateLocation(payload: com.example.app_smart_waste.core.model.LocationPayload): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val res = api.updateLocation(payload)
+            if (res.isSuccessful && res.body()?.ok == true) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Lỗi cập nhật vị trí (HTTP ${res.code()})"))
             }
         } catch (e: Exception) {
             Result.failure(e)

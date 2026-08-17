@@ -39,22 +39,161 @@ data class SmartBinDto(
     @SerializedName("longitude") val longitude: Double? = 0.0,
     @SerializedName("level_percent") val levelPercent: Double? = 0.0,
     @SerializedName("lid_state") val lidState: String? = "CLOSED",
+    @SerializedName("state") val state: String? = null,
+    @SerializedName("control_mode") val controlMode: String? = "AUTO",
     @SerializedName("is_online") val isOnline: Boolean? = true,
     @SerializedName("collection_status") val collectionStatus: String? = "IDLE",
-    @SerializedName("last_telemetry") val lastTelemetry: String? = null
+    @SerializedName("last_telemetry") val lastTelemetry: String? = null,
+    @SerializedName("last_seen") val rawLastSeen: String? = null
 ) {
     val fillLevel: Int get() = (levelPercent ?: 0.0).toInt()
-    val lidStatus: String get() = if (lidState?.contains("OPEN", ignoreCase = true) == true) "🔓 Đang mở" else "🔒 Đã đóng"
+    val actualLidState: String get() = lidState ?: state ?: "CLOSED"
+    val lidStatus: String get() = if (actualLidState.contains("OPEN", ignoreCase = true)) "🔓 Đang mở" else "🔒 Đã đóng"
+    val modeText: String get() = if (controlMode?.equals("MANUAL", ignoreCase = true) == true) "Thủ công" else "Tự động"
+    val collectionStatusText: String get() = when (collectionStatus?.uppercase(java.util.Locale.ROOT)) {
+        "COLLECTED" -> "Đã thu gom"
+        "IN_PROGRESS" -> "Đang thu gom"
+        "SKIPPED" -> "Bỏ qua"
+        else -> "Chờ thu gom"
+    }
     val lastSeen: String?
-        get() = lastTelemetry ?: "Chưa có dữ liệu"
+        get() = lastTelemetry ?: rawLastSeen ?: "Chưa có dữ liệu"
     val status: String get() = collectionStatus ?: "IDLE"
 }
 
+data class BinCommandBinDto(
+    @SerializedName("device_id") val deviceId: String? = null,
+    @SerializedName("state") val state: String? = null,
+    @SerializedName("lid_state") val lidState: String? = null,
+    @SerializedName("level_percent") val levelPercent: Double? = null,
+    @SerializedName("control_mode") val controlMode: String? = null,
+    @SerializedName("mode") val mode: String? = null,
+    @SerializedName("is_online") val isOnline: Boolean? = null,
+    @SerializedName("last_seen") val lastSeen: String? = null,
+    @SerializedName("command_status") val commandStatus: String? = null
+)
+
+data class BinCommandRequest(
+    @SerializedName("action") val action: String
+)
+
+data class BinCommandResponse(
+    @SerializedName("ok") val ok: Boolean = false,
+    @SerializedName("bin") val bin: BinCommandBinDto? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("error") val error: String? = null
+)
+
+sealed interface BinCommandResult {
+    data class Executed(
+        val bin: BinCommandBinDto?,
+        val message: String
+    ) : BinCommandResult
+
+    data class Timeout(val message: String) : BinCommandResult
+    data class DeviceOffline(val message: String) : BinCommandResult
+    data class Unauthorized(val message: String) : BinCommandResult
+    data class NetworkError(val message: String) : BinCommandResult
+    data class ServerError(
+        val statusCode: Int?,
+        val message: String
+    ) : BinCommandResult
+}
+
 // 3. Collection Job Models
+enum class JobStatus {
+    ASSIGNED,
+    ACCEPTED,
+    IN_PROGRESS,
+    PAUSED,
+    COMPLETED,
+    CANCELLED,
+    EXPIRED,
+    REJECTED,
+    UNKNOWN;
+
+    companion object {
+        fun fromString(value: String?): JobStatus = when (value?.uppercase(java.util.Locale.ROOT)?.trim()) {
+            "ASSIGNED" -> ASSIGNED
+            "ACCEPTED" -> ACCEPTED
+            "IN_PROGRESS" -> IN_PROGRESS
+            "PAUSED" -> PAUSED
+            "COMPLETED" -> COMPLETED
+            "CANCELLED" -> CANCELLED
+            "EXPIRED" -> EXPIRED
+            "REJECTED" -> REJECTED
+            else -> UNKNOWN
+        }
+    }
+}
+
+enum class JobStopStatus {
+    PENDING,
+    COLLECTED,
+    SKIPPED,
+    INCIDENT,
+    UNKNOWN;
+
+    companion object {
+        fun fromString(value: String?): JobStopStatus = when (value?.uppercase(java.util.Locale.ROOT)?.trim()) {
+            "PENDING" -> PENDING
+            "COLLECTED" -> COLLECTED
+            "SKIPPED" -> SKIPPED
+            "INCIDENT" -> INCIDENT
+            else -> UNKNOWN
+        }
+    }
+}
+
+enum class JobActionType {
+    ACCEPT,
+    REJECT,
+    START,
+    PAUSE,
+    RESUME
+}
+
+object JobTransitionPolicy {
+    fun allowedActions(status: JobStatus): Set<JobActionType> {
+        return when (status) {
+            JobStatus.ASSIGNED -> setOf(JobActionType.ACCEPT, JobActionType.REJECT)
+            JobStatus.ACCEPTED -> setOf(JobActionType.START)
+            JobStatus.IN_PROGRESS -> setOf(JobActionType.PAUSE)
+            JobStatus.PAUSED -> setOf(JobActionType.RESUME)
+            else -> emptySet()
+        }
+    }
+}
+
+data class GeoCoordinate(
+    val latitude: Double,
+    val longitude: Double
+) {
+    val isValid: Boolean
+        get() = com.example.app_smart_waste.ui.map.MapStatePolicy.isValidCoordinate(latitude, longitude)
+}
+
+data class JobStopUiModel(
+    val binId: String,
+    val order: Int,
+    val coordinate: GeoCoordinate?,
+    val status: JobStopStatus,
+    val isNext: Boolean = false,
+    val bin: SmartBinDto? = null
+)
+
+data class JobRouteUiModel(
+    val coordinates: List<GeoCoordinate>,
+    val stops: List<JobStopUiModel>,
+    val distanceMeters: Int?,
+    val durationSeconds: Int?
+)
+
 data class JobItemDto(
     @SerializedName("id") val id: Long? = null,
     @SerializedName("job_id") val jobId: String? = null,
     @SerializedName("bin_id") val binId: String,
+    @SerializedName("sort_order") val sortOrder: Int? = null,
     @SerializedName("status") val status: String? = "PENDING", // PENDING | COLLECTED | SKIPPED | INCIDENT
     @SerializedName("collected_at") val collectedAt: String? = null,
     @SerializedName("note") val note: String? = null,
@@ -64,7 +203,9 @@ data class JobItemDto(
 data class RouteDataDto(
     @SerializedName("distanceMeters") val distanceMeters: Double? = null,
     @SerializedName("durationSeconds") val durationSeconds: Double? = null,
-    @SerializedName("geometry") val geometry: String? = null
+    @SerializedName("geometry") val geometry: String? = null,
+    @SerializedName("coordinates") val coordinates: List<List<Double>>? = null,
+    @SerializedName("optimizedOrder") val optimizedOrder: List<Int>? = null
 )
 
 data class JobProgressDto(
@@ -139,6 +280,59 @@ data class LocationPayload(
 )
 
 // 5. Incident Models
+enum class IncidentReason {
+    BROKEN_BIN,
+    LID_STUCK,
+    SENSOR_FAILURE,
+    OVERFLOW,
+    OTHER;
+
+    fun toVietnamese(): String = when (this) {
+        BROKEN_BIN -> "Thùng hỏng"
+        LID_STUCK -> "Nắp kẹt"
+        SENSOR_FAILURE -> "Cảm biến lỗi"
+        OVERFLOW -> "Rác tràn"
+        OTHER -> "Khác"
+    }
+
+    companion object {
+        fun fromVietnamese(text: String): IncidentReason = when (text.trim()) {
+            "Thùng hỏng" -> BROKEN_BIN
+            "Nắp kẹt" -> LID_STUCK
+            "Cảm biến lỗi" -> SENSOR_FAILURE
+            "Rác tràn" -> OVERFLOW
+            else -> OTHER
+        }
+    }
+}
+
+sealed interface IncidentAttachmentState {
+    data object None : IncidentAttachmentState
+    data class Selected(
+        val uriString: String,
+        val displayName: String? = null,
+        val sizeBytes: Long? = null
+    ) : IncidentAttachmentState
+    data class Compressing(val uriString: String) : IncidentAttachmentState
+    data class Uploading(val progressPercent: Int?) : IncidentAttachmentState
+    data class Uploaded(val uploadId: String) : IncidentAttachmentState
+    data class Failed(val message: String) : IncidentAttachmentState
+}
+
+sealed interface IncidentSubmissionState {
+    data object Idle : IncidentSubmissionState
+    data object Validating : IncidentSubmissionState
+    data object Submitting : IncidentSubmissionState
+    data class Succeeded(
+        val reportId: String? = null,
+        val message: String
+    ) : IncidentSubmissionState
+    data class Failed(
+        val message: String,
+        val retryable: Boolean = true
+    ) : IncidentSubmissionState
+}
+
 data class IncidentRequest(
     @SerializedName("device_id") val deviceId: String,
     @SerializedName("issue_type") val issueType: String,

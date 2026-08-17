@@ -177,11 +177,16 @@ class JobExecutionActivity : AppCompatActivity() {
                 }
                 Toast.makeText(this, "📶 Đang gửi lệnh mở nắp thùng $currentBinId...", Toast.LENGTH_SHORT).show()
                 lifecycleScope.launch {
-                    val res = binsRepo.openLid(currentBinId)
-                    if (res.isSuccess) {
-                        Toast.makeText(this@JobExecutionActivity, "✓ Đã mở nắp thùng $currentBinId thành công!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this@JobExecutionActivity, "Thiết bị không phản hồi. Bạn có thể mở tay.", Toast.LENGTH_LONG).show()
+                    when (val res = binsRepo.openLid(currentBinId)) {
+                        is com.example.app_smart_waste.core.model.BinCommandResult.Executed -> {
+                            Toast.makeText(this@JobExecutionActivity, "✓ Đã mở nắp thùng $currentBinId thành công!", Toast.LENGTH_SHORT).show()
+                        }
+                        is com.example.app_smart_waste.core.model.BinCommandResult.Timeout -> {
+                            Toast.makeText(this@JobExecutionActivity, "Thiết bị chưa phản hồi. Vui lòng thử lại hoặc mở nắp cơ học.", Toast.LENGTH_LONG).show()
+                        }
+                        else -> {
+                            Toast.makeText(this@JobExecutionActivity, "Không thể mở nắp từ xa. Bạn có thể mở tay.", Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
             }

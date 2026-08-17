@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="32dp"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_chip_filter_active"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp">
+
+    <TextView
+        android:id="@+id/tvChipLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mức đầy: > 85%"
+        android:textColor="#16A34A"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <ImageView
+        android:id="@+id/btnRemoveChip"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="6dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Xóa bộ lọc"
+        android:src="@drawable/ic_close_gray"
+        app:tint="#16A34A" />
+</LinearLayout>
