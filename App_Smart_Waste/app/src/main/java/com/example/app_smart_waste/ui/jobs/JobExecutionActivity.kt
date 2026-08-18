@@ -264,7 +264,13 @@ class JobExecutionActivity : AppCompatActivity() {
         }
     }
 
+    private var isCommandInFlight: Boolean = false
+
     private fun triggerRemoteOpenLid(binId: String) {
+        if (isCommandInFlight) return
+        isCommandInFlight = true
+        binding.btnExecOpenLid.isEnabled = false
+
         TopCommandNotificationManager.showLoading(
             activity = this,
             title = "Đang gửi lệnh mở nắp...",
@@ -272,28 +278,33 @@ class JobExecutionActivity : AppCompatActivity() {
         )
 
         lifecycleScope.launch {
-            val result = binsRepo.openLid(binId)
-            if (result is com.example.app_smart_waste.core.model.BinCommandResult.Executed) {
-                TopCommandNotificationManager.showSuccess(
-                    activity = this@JobExecutionActivity,
-                    title = "Mở nắp thành công!",
-                    subtitle = "Thùng $binId đã sẵn sàng thu gom"
-                )
-            } else {
-                val reason = when (result) {
-                    is com.example.app_smart_waste.core.model.BinCommandResult.DeviceOffline -> "Thiết bị đang ngoại tuyến"
-                    is com.example.app_smart_waste.core.model.BinCommandResult.Timeout -> "Hết thời gian chờ phản hồi"
-                    is com.example.app_smart_waste.core.model.BinCommandResult.NetworkError -> "Lỗi kết nối mạng"
-                    is com.example.app_smart_waste.core.model.BinCommandResult.ServerError -> result.message
-                    is com.example.app_smart_waste.core.model.BinCommandResult.Unauthorized -> "Không có quyền gửi lệnh"
-                    else -> "Không phản hồi từ thiết bị"
+            try {
+                val result = binsRepo.openLid(binId)
+                if (result is com.example.app_smart_waste.core.model.BinCommandResult.Executed) {
+                    TopCommandNotificationManager.showSuccess(
+                        activity = this@JobExecutionActivity,
+                        title = "Mở nắp thành công!",
+                        subtitle = "Thùng $binId đã sẵn sàng thu gom"
+                    )
+                } else {
+                    val reason = when (result) {
+                        is com.example.app_smart_waste.core.model.BinCommandResult.DeviceOffline -> "Thiết bị đang ngoại tuyến"
+                        is com.example.app_smart_waste.core.model.BinCommandResult.Timeout -> "Hết thời gian chờ phản hồi"
+                        is com.example.app_smart_waste.core.model.BinCommandResult.NetworkError -> "Lỗi kết nối mạng"
+                        is com.example.app_smart_waste.core.model.BinCommandResult.ServerError -> result.message
+                        is com.example.app_smart_waste.core.model.BinCommandResult.Unauthorized -> "Không có quyền gửi lệnh"
+                        else -> "Không phản hồi từ thiết bị"
+                    }
+                    TopCommandNotificationManager.showError(
+                        activity = this@JobExecutionActivity,
+                        title = "Lệnh chưa thực hiện được",
+                        subtitle = reason,
+                        onRetry = { triggerRemoteOpenLid(binId) }
+                    )
                 }
-                TopCommandNotificationManager.showError(
-                    activity = this@JobExecutionActivity,
-                    title = "Lệnh chưa thực hiện được",
-                    subtitle = reason,
-                    onRetry = { triggerRemoteOpenLid(binId) }
-                )
+            } finally {
+                isCommandInFlight = false
+                binding.btnExecOpenLid.isEnabled = true
             }
         }
     }

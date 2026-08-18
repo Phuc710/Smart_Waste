@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "aedes": "^0.47.0",
+    "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
     "mqtt": "^5.15.2",
     "socket.io": "^4.8.3",

@@ -173,11 +173,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         return;
     }
 
-    if (action == "OPEN") {
+    if (action == "OPEN" || action == "OPEN_LID") {
         automaticMode = false;
         setServo(true);
         currentState = OPEN;
-    } else if (action == "CLOSE") {
+    } else if (action == "CLOSE" || action == "CLOSE_LID") {
         automaticMode = false;
         setServo(false);
         currentState = CLOSED;

@@ -1,63 +1,126 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Cpu, 
-  UploadCloud, 
-  Rocket, 
-  History, 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
-  RotateCcw, 
-  ShieldCheck, 
-  FileCode, 
-  Copy, 
-  Check, 
-  RefreshCw, 
-  Server, 
-  Activity, 
-  Info,
-  Clock,
-  ArrowRight,
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  Cpu,
+  UploadCloud,
+  Rocket,
+  Activity,
+  FileCode,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  RotateCcw,
+  ShieldCheck,
+  Copy,
+  Check,
+  RefreshCw,
+  Search,
+  ChevronLeft,
+  ChevronRight,
   Filter,
   CheckSquare,
   Square,
   Sparkles,
-  Zap,
-  AlertCircle
+  ArrowRight,
+  Clock,
+  Download,
+  Trash2,
+  Info,
+  Server,
+  Layers,
+  Terminal,
+  FileText,
+  X,
+  ExternalLink,
+  Calendar,
+  Edit3,
+  HardDrive
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
 
+// Format Vietnam Date Time clean: DD/MM/YYYY HH:mm:ss
+function formatVietnamDateTimeClean(dateInput) {
+  if (!dateInput) return '—';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+  const year = d.getFullYear();
+  const hour = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const sec = pad(d.getSeconds());
+  return `${day}/${month}/${year} ${hour}:${min}:${sec}`;
+}
+
+// Format Vietnam Time only: HH:mm:ss
+function formatVietnamTimeClean(dateInput) {
+  if (!dateInput) return '—';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '—';
+  const pad = (n) => String(n).padStart(2, '0');
+  const hour = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const sec = pad(d.getSeconds());
+  return `${hour}:${min}:${sec}`;
+}
+
 export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
-  const [activeTab, setActiveTab] = useState('releases'); // 'releases' | 'deploy' | 'monitor'
-  
+  // 4 Tabs: 'releases' | 'deploy' | 'processing' | 'logs'
+  const [activeTab, setActiveTab] = useState('releases');
+
   // Releases State
   const [releases, setReleases] = useState([]);
   const [loadingReleases, setLoadingReleases] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileDetails, setFileDetails] = useState({
     version: '',
-    deviceModel: 'ESP32-S3-SMARTBIN',
-    releaseNotes: ''
+    deviceModel: 'ESP32-CAM',
+    releaseNotes: '- Tối ưu hiệu suất kết nối\n- Cải thiện thuật toán đo mức đầy\n- Sửa lỗi cảm biến'
   });
   const [copiedSha, setCopiedSha] = useState(null);
 
-  // Deployments State
+  // Selected Release for Deploy & Popup Modal
+  const [selectedRelease, setSelectedRelease] = useState(null);
+  const [modalRelease, setModalRelease] = useState(null);
+
+  // Deployments State (Tab 2)
   const [deployments, setDeployments] = useState([]);
   const [loadingDeployments, setLoadingDeployments] = useState(false);
-  const [selectedReleaseForDeploy, setSelectedReleaseForDeploy] = useState(null);
   const [selectedDeviceIds, setSelectedDeviceIds] = useState(new Set());
-  const [filterOnlineOnly, setFilterOnlineOnly] = useState(true);
-  const [filterOutdatedOnly, setFilterOutdatedOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState('ONLINE'); // 'ALL' | 'ONLINE' | 'OFFLINE'
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [deploying, setDeploying] = useState(false);
 
-  // Live Selected Deployment for Monitoring
+  // Live Selected Deployment for Monitoring (Tab 3)
   const [selectedDeploymentId, setSelectedDeploymentId] = useState(null);
   const [deploymentDetails, setDeploymentDetails] = useState(null);
   const [retryingJobId, setRetryingJobId] = useState(null);
   const [cancellingDepId, setCancellingDepId] = useState(null);
+
+  // Realtime Live Event Logs (Tab 4)
+  const [liveLogs, setLiveLogs] = useState([]);
+  const [logFilterDevice, setLogFilterDevice] = useState('ALL');
+  const [logFilterType, setLogFilterType] = useState('ALL'); // 'ALL' | 'INFO' | 'SUCCESS' | 'ERROR'
+
+  const fileInputRef = useRef(null);
+
+  // Helper to append log item
+  const addLogEvent = useCallback((text, type = 'info', deviceId = null) => {
+    const newLog = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      timestamp: new Date().toISOString(),
+      text,
+      type, // 'info' | 'success' | 'warn' | 'error'
+      deviceId
+    };
+    setLiveLogs(prev => [newLog, ...prev].slice(0, 300));
+  }, []);
 
   // 1. Fetch Releases
   const fetchReleases = useCallback(async () => {
@@ -66,16 +129,22 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
       const data = await api.getFirmwareReleases();
       if (Array.isArray(data)) {
         setReleases(data);
-        if (!selectedReleaseForDeploy && data.length > 0) {
-          setSelectedReleaseForDeploy(data[0]);
+        if (data.length > 0) {
+          setSelectedRelease(prev => {
+            if (prev) {
+              const stillExists = data.find(r => r.id === prev.id);
+              return stillExists || data[0];
+            }
+            return data[0];
+          });
         }
       }
     } catch (err) {
-      notify(err.message || 'Không tải được danh sách firmware releases', 'error');
+      notify?.(err.message || 'Không tải được danh sách firmware releases', 'error');
     } finally {
       setLoadingReleases(false);
     }
-  }, [notify, selectedReleaseForDeploy]);
+  }, [notify]);
 
   // 2. Fetch Deployments
   const fetchDeployments = useCallback(async () => {
@@ -89,7 +158,7 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
         }
       }
     } catch (err) {
-      notify(err.message || 'Không tải được lịch sử triển khai OTA', 'error');
+      notify?.(err.message || 'Không tải được lịch sử triển khai OTA', 'error');
     } finally {
       setLoadingDeployments(false);
     }
@@ -117,7 +186,7 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
     }
   }, [selectedDeploymentId, fetchDeploymentDetails]);
 
-  // 4. Realtime Socket.IO Listeners for Live OTA Progress
+  // 4. Realtime Socket.IO Listeners
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
@@ -144,22 +213,54 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
         return { ...prev, jobs: updatedJobs };
       });
 
-      // Update deployments list progress summary
+      // Update deployments list status
       setDeployments(prev => prev.map(d => {
         if (d.id === payload.deploymentId) {
+          const isSuccess = payload.status === 'SUCCESS';
           return {
             ...d,
-            status: payload.status === 'SUCCESS' ? d.status : d.status
+            success_count: isSuccess ? (d.success_count || 0) + 1 : d.success_count
           };
         }
         return d;
       }));
+
+      // Add to live event logs
+      let logMsg = `Đã gửi lệnh cập nhật đến ${payload.deviceId}`;
+      let logType = 'info';
+      if (payload.status === 'SUCCESS') {
+        logMsg = `${payload.deviceId} cập nhật thành công firmware ${payload.targetVersion || ''}`;
+        logType = 'success';
+      } else if (payload.status === 'DOWNLOADING') {
+        const mb = ((payload.downloadedBytes || 0) / (1024 * 1024)).toFixed(2);
+        logMsg = `${payload.deviceId} đang tải firmware (${mb} MB)`;
+        logType = 'info';
+      } else if (payload.status === 'VERIFYING') {
+        logMsg = `${payload.deviceId} xác thực firmware thành công`;
+        logType = 'info';
+      } else if (payload.status === 'INSTALLING') {
+        logMsg = `${payload.deviceId} đang cài đặt firmware`;
+        logType = 'info';
+      } else if (payload.status === 'REBOOTING') {
+        logMsg = `${payload.deviceId} đang khởi động lại...`;
+        logType = 'warn';
+      } else if (payload.status === 'FAILED' || payload.status === 'TIMED_OUT') {
+        logMsg = `${payload.deviceId} lỗi nạp firmware: ${payload.errorMessage || payload.errorCode || 'Thất bại'}`;
+        logType = 'error';
+      } else if (payload.status === 'ROLLBACK_SUCCESS') {
+        logMsg = `${payload.deviceId} đã Rollback về phiên bản an toàn`;
+        logType = 'warn';
+      }
+      addLogEvent(logMsg, logType, payload.deviceId);
     };
 
     const handleDepCreated = (payload) => {
       if (payload && payload.deployment) {
         setDeployments(prev => [payload.deployment, ...prev]);
-        notify(`Chiến dịch OTA cho bản ${payload.deployment.release?.version || ''} đã được kích hoạt!`, 'success');
+        setSelectedDeploymentId(payload.deployment.id);
+        (payload.jobs || []).forEach(j => {
+          addLogEvent(`Đã gửi lệnh cập nhật đến ${j.device_id}`, 'info', j.device_id);
+        });
       }
     };
 
@@ -170,35 +271,38 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
       socket.off('otaJobUpdated', handleJobUpdated);
       socket.off('otaDeploymentCreated', handleDepCreated);
     };
-  }, [notify]);
+  }, [addLogEvent]);
 
   // Handle Copy SHA-256
   const handleCopySha = (sha, id) => {
+    if (!sha) return;
     navigator.clipboard.writeText(sha);
-    setCopiedSha(id);
+    setCopiedSha(id || sha);
+    notify?.('Đã sao chép SHA-256', 'info');
     setTimeout(() => setCopiedSha(null), 2000);
   };
 
   // Handle File Selection
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.bin')) {
-      notify('Vui lòng chỉ chọn file định dạng binary compiled (.bin)', 'error');
+    if (!file.name.toLowerCase().endsWith('.bin')) {
+      notify?.('Vui lòng chỉ chọn file định dạng binary compiled (.bin)', 'error');
       return;
     }
 
     if (file.size > 3.5 * 1024 * 1024) {
-      notify('Kích thước file vượt quá giới hạn 3.5 MB của phân vùng OTA 4MB Flash', 'error');
+      notify?.('Kích thước file vượt quá giới hạn 3.5 MB của phân vùng OTA 4MB Flash', 'error');
       return;
     }
 
     setSelectedFile(file);
+    setUploadSuccess(false);
 
-    // Auto guess version from filename if matches pattern (e.g. smartwaste_v1.2.0.bin)
-    const match = file.name.match(/v?(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/);
-    if (match && !fileDetails.version) {
+    // Auto extract version from file name (e.g. smart-waste-v1.2.0.bin -> v1.2.0)
+    const match = file.name.match(/v?(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)/i);
+    if (match) {
       setFileDetails(prev => ({ ...prev, version: `v${match[1]}` }));
     }
   };
@@ -207,12 +311,12 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
   const handleUploadRelease = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      notify('Vui lòng chọn file firmware .bin', 'error');
+      notify?.('Vui lòng chọn file firmware .bin', 'error');
       return;
     }
 
     if (!fileDetails.version || !fileDetails.version.match(/^v?\d+\.\d+\.\d+/)) {
-      notify('Vui lòng nhập phiên bản SemVer hợp lệ (ví dụ: v1.1.0)', 'error');
+      notify?.('Vui lòng nhập phiên bản SemVer hợp lệ (ví dụ: v1.2.0)', 'error');
       return;
     }
 
@@ -227,31 +331,47 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
       };
 
       const result = await api.uploadFirmwareRelease(buffer, headers);
-      notify(result.message || 'Tạo bản phát hành firmware thành công!', 'success');
-      setSelectedFile(null);
-      setFileDetails({ version: '', deviceModel: 'ESP32-S3-SMARTBIN', releaseNotes: '' });
-      fetchReleases();
-      setActiveTab('releases');
+      notify?.(result.message || 'Tạo bản phát hành firmware thành công!', 'success');
+      setUploadSuccess(true);
+      addLogEvent(`Đã xuất bản firmware mới ${fileDetails.version} (${selectedFile.name})`, 'success');
+
+      await fetchReleases();
+      if (result.release) {
+        setSelectedRelease(result.release);
+      }
     } catch (err) {
-      notify(err.message || 'Lỗi tải lên firmware', 'error');
+      notify?.(err.message || 'Lỗi tải lên firmware', 'error');
     } finally {
       setUploading(false);
     }
   };
 
-  // Filter Target Devices for OTA Deploy
-  const compatibleBins = useMemo(() => {
+  // Filter Target Devices for OTA Deploy (Tab 2)
+  const filteredBins = useMemo(() => {
     return (bins || []).filter(b => {
-      const model = b.device_model || 'ESP32-S3-SMARTBIN';
-      const targetModel = selectedReleaseForDeploy?.device_model || 'ESP32-S3-SMARTBIN';
-      if (model !== targetModel) return false;
+      // Filter Mode
+      if (filterMode === 'ONLINE' && !b.is_online) return false;
+      if (filterMode === 'OFFLINE' && b.is_online) return false;
 
-      if (filterOnlineOnly && !b.is_online) return false;
-      if (filterOutdatedOnly && selectedReleaseForDeploy && b.firmware_version === selectedReleaseForDeploy.version) return false;
+      // Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const idMatch = String(b.device_id || '').toLowerCase().includes(q);
+        const nameMatch = String(b.name || '').toLowerCase().includes(q);
+        const locMatch = String(b.location || '').toLowerCase().includes(q);
+        if (!idMatch && !nameMatch && !locMatch) return false;
+      }
 
       return true;
     });
-  }, [bins, selectedReleaseForDeploy, filterOnlineOnly, filterOutdatedOnly]);
+  }, [bins, filterMode, searchQuery]);
+
+  // Paginated Bins
+  const totalPages = Math.max(1, Math.ceil(filteredBins.length / perPage));
+  const paginatedBins = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredBins.slice(start, start + perPage);
+  }, [filteredBins, page, perPage]);
 
   // Toggle Device Selection
   const toggleDeviceSelection = (deviceId) => {
@@ -264,38 +384,44 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
   };
 
   const selectAllFiltered = () => {
-    if (selectedDeviceIds.size === compatibleBins.length) {
+    if (selectedDeviceIds.size === filteredBins.length && filteredBins.length > 0) {
       setSelectedDeviceIds(new Set());
     } else {
-      setSelectedDeviceIds(new Set(compatibleBins.map(b => b.device_id)));
+      setSelectedDeviceIds(new Set(filteredBins.map(b => b.device_id)));
     }
   };
 
   // Launch Deployment
   const handleStartDeployment = async () => {
-    if (!selectedReleaseForDeploy) {
-      notify('Vui lòng chọn bản release để triển khai', 'error');
+    if (!selectedRelease) {
+      notify?.('Vui lòng chọn bản release để triển khai', 'error');
       return;
     }
 
     if (selectedDeviceIds.size === 0) {
-      notify('Vui lòng chọn ít nhất 1 thiết bị mục tiêu', 'error');
+      notify?.('Vui lòng chọn ít nhất 1 thiết bị mục tiêu', 'error');
       return;
     }
 
     setDeploying(true);
     try {
-      const result = await api.createOtaDeployment(selectedReleaseForDeploy.id, Array.from(selectedDeviceIds));
-      notify(result.message || 'Đã phát động chiến dịch OTA thành công!', 'success');
+      const result = await api.createOtaDeployment(selectedRelease.id, Array.from(selectedDeviceIds));
+      notify?.(result.message || 'Đã phát động chiến dịch OTA thành công!', 'success');
       setConfirmModalOpen(false);
+      
+      const targetCount = selectedDeviceIds.size;
       setSelectedDeviceIds(new Set());
-      fetchDeployments();
+      
+      await fetchDeployments();
       if (result.deployment) {
         setSelectedDeploymentId(result.deployment.id);
-        setActiveTab('monitor');
+        fetchDeploymentDetails(result.deployment.id);
       }
+      
+      addLogEvent(`Bắt đầu triển khai OTA bản ${selectedRelease.version} cho ${targetCount} thiết bị`, 'info');
+      setActiveTab('processing');
     } catch (err) {
-      notify(err.message || 'Lỗi kích hoạt triển khai OTA', 'error');
+      notify?.(err.message || 'Lỗi kích hoạt triển khai OTA', 'error');
     } finally {
       setDeploying(false);
     }
@@ -307,110 +433,100 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
     setCancellingDepId(depId);
     try {
       const result = await api.cancelOtaDeployment(depId);
-      notify(result.message || 'Đã huỷ chiến dịch', 'info');
+      notify?.(result.message || 'Đã huỷ chiến dịch an toàn', 'info');
+      addLogEvent(`Đã huỷ chiến dịch OTA`, 'warn');
       fetchDeployments();
       fetchDeploymentDetails(depId);
     } catch (err) {
-      notify(err.message || 'Lỗi huỷ chiến dịch', 'error');
+      notify?.(err.message || 'Lỗi huỷ chiến dịch', 'error');
     } finally {
       setCancellingDepId(null);
     }
   };
 
   // Retry Device Job
-  const handleRetryJob = async (jobId) => {
+  const handleRetryJob = async (jobId, deviceId) => {
     setRetryingJobId(jobId);
     try {
-      const result = await api.retryOtaDeviceJob(jobId);
-      notify('Đã gửi lại lệnh OTA cho thiết bị', 'success');
+      await api.retryOtaDeviceJob(jobId);
+      notify?.(`Đã gửi lại lệnh OTA cho thiết bị #${deviceId}`, 'success');
+      addLogEvent(`[#${deviceId}] Đã gửi lại yêu cầu nạp OTA`, 'info', deviceId);
       if (selectedDeploymentId) {
         fetchDeploymentDetails(selectedDeploymentId);
       }
     } catch (err) {
-      notify(err.message || 'Lỗi thử lại OTA', 'error');
+      notify?.(err.message || 'Lỗi thử lại OTA', 'error');
     } finally {
       setRetryingJobId(null);
     }
   };
 
-  // Status Badge Helper
-  const renderStatusBadge = (status) => {
-    const styles = {
-      READY: { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', label: 'Sẵn sàng nạp' },
-      DRAFT: { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1', label: 'Bản nháp' },
-      RUNNING: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe', label: 'Đang triển khai' },
-      COMPLETED: { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', label: 'Hoàn tất' },
-      PARTIAL_FAILED: { bg: '#fff7ed', color: '#c2410c', border: '#ffedd5', label: 'Có lỗi một phần' },
-      CANCELLED: { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0', label: 'Đã huỷ' },
-      COMMAND_SENT: { bg: '#fefce8', color: '#a16207', border: '#fef08a', label: 'Đã gửi lệnh' },
-      DOWNLOADING: { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', label: 'Đang tải (Stream)' },
-      VERIFYING: { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', label: 'Kiểm tra Checksum' },
-      INSTALLING: { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa', label: 'Đang ghi Flash' },
-      REBOOTING: { bg: '#fefce8', color: '#b45309', border: '#fef08a', label: 'Đang khởi động lại' },
-      BOOT_VERIFYING: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', label: 'Tự kiểm tra khởi động' },
-      SUCCESS: { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', label: 'Cập nhật thành công' },
-      FAILED: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', label: 'Thất bại' },
-      ROLLBACK_SUCCESS: { bg: '#eff6ff', color: '#4338ca', border: '#c7d2fe', label: 'Đã Rollback an toàn' },
-      TIMED_OUT: { bg: '#fef2f2', color: '#991b1b', border: '#fecaca', label: 'Hết thời gian (Timeout)' }
-    };
-
-    const conf = styles[status] || { bg: '#f1f5f9', color: '#64748b', border: '#e2e8f0', label: status };
-    return (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '3px 8px',
-        borderRadius: '6px',
-        fontSize: '11px',
-        fontWeight: 600,
-        backgroundColor: conf.bg,
-        color: conf.color,
-        border: `1px solid ${conf.border}`
-      }}>
-        {status === 'SUCCESS' && <CheckCircle2 size={12} />}
-        {status === 'DOWNLOADING' && <RefreshCw size={12} className="animate-spin" />}
-        {status === 'FAILED' && <XCircle size={12} />}
-        {status === 'ROLLBACK_SUCCESS' && <ShieldCheck size={12} />}
-        {conf.label}
-      </span>
-    );
+  // Helper for ETA estimation
+  const formatEta = (job) => {
+    if (job.status === 'SUCCESS') return '00:00:00';
+    if (job.status === 'FAILED' || job.status === 'ROLLBACK_SUCCESS') return '—';
+    if (!job.started_at || !job.downloaded_bytes || !job.total_bytes) return '~00:00:18';
+    
+    const elapsed = Math.max(1, (Date.now() - new Date(job.started_at).getTime()) / 1000);
+    const speed = job.downloaded_bytes / elapsed;
+    if (speed <= 0) return '~00:00:20';
+    
+    const remainingSec = Math.max(1, Math.round((job.total_bytes - job.downloaded_bytes) / speed));
+    const mins = Math.floor(remainingSec / 60);
+    const secs = remainingSec % 60;
+    return `~${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Filtered Live Logs (Tab 4)
+  const filteredLogs = useMemo(() => {
+    return liveLogs.filter(l => {
+      if (logFilterDevice !== 'ALL' && l.deviceId !== logFilterDevice) return false;
+      if (logFilterType !== 'ALL' && l.type !== logFilterType) return false;
+      return true;
+    });
+  }, [liveLogs, logFilterDevice, logFilterType]);
+
+  // Overall Live Deployment Stats
+  const liveJobs = deploymentDetails?.jobs || [];
+  const totalTargetCount = deploymentDetails?.target_count || liveJobs.length || 0;
+  const totalSuccessCount = liveJobs.filter(j => j.status === 'SUCCESS').length;
+  const overallProgress = totalTargetCount > 0
+    ? Math.round(liveJobs.reduce((acc, j) => acc + (j.status === 'SUCCESS' ? 100 : (j.progress_percent || 0)), 0) / totalTargetCount)
+    : 0;
+
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* 1. Header & Summary Stats */}
+      {/* 1. Header Card */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        padding: '24px 28px',
+        padding: '20px 24px',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '16px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '48px',
-            height: '48px',
+            width: '44px',
+            height: '44px',
             borderRadius: '12px',
-            backgroundColor: '#eff6ff',
-            color: '#2563eb',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid #bfdbfe'
+            justifyContent: 'center'
           }}>
-            <Cpu size={26} />
+            <Cpu size={24} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-                Quản lý Firmware & Nạp OTA Không Dây
+              <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                Quản lý Firmware & Nạp OTA
               </h1>
               <span style={{
                 padding: '2px 8px',
@@ -424,16 +540,21 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                 Dual-Partition Rollback Ready
               </span>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-              Phát hành bản build ESP32-S3, kiểm soát chữ ký số & triển khai nạp firmware từ xa an toàn cho toàn bộ hệ thống Smart Bins.
+            <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+              Phát hành bản build ESP32, kiểm soát SHA-256 và triển khai nạp firmware từ xa an toàn cho toàn bộ thùng rác thông minh.
             </p>
           </div>
         </div>
 
-        {/* Action Button & Quick Refresh */}
+        {/* Quick Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
-            onClick={() => { fetchReleases(); fetchDeployments(); if (selectedDeploymentId) fetchDeploymentDetails(selectedDeploymentId); }}
+            onClick={() => {
+              fetchReleases();
+              fetchDeployments();
+              if (selectedDeploymentId) fetchDeploymentDetails(selectedDeploymentId);
+              notify?.('Đã làm mới dữ liệu firmware', 'info');
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -442,13 +563,13 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
               borderRadius: '8px',
               backgroundColor: '#f8fafc',
               border: '1px solid #cbd5e1',
-              color: '#475569',
+              color: '#334155',
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer'
             }}
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={13} />
             Làm mới
           </button>
           <button
@@ -459,22 +580,22 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
               gap: '6px',
               padding: '8px 16px',
               borderRadius: '8px',
-              backgroundColor: '#2563eb',
+              backgroundColor: '#16a34a',
               border: 'none',
               color: '#ffffff',
               fontSize: '13px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
+              boxShadow: '0 2px 4px rgba(22,163,74,0.2)'
             }}
           >
-            <Rocket size={15} />
+            <Rocket size={14} />
             Tạo đợt nạp OTA mới
           </button>
         </div>
       </div>
 
-      {/* 2. Navigation Tabs */}
+      {/* 2. Navigation Tabs (Tabler Style) */}
       <div style={{
         display: 'flex',
         gap: '8px',
@@ -482,9 +603,10 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
         paddingBottom: '2px'
       }}>
         {[
-          { id: 'releases', label: 'Bản phát hành Firmware (Releases)', icon: FileCode, count: releases.length },
-          { id: 'deploy', label: 'Triển khai OTA (Deploy Campaign)', icon: Rocket },
-          { id: 'monitor', label: 'Giám sát Tiến trình & Lịch sử', icon: Activity, count: deployments.length }
+          { id: 'releases', label: 'Bản phát hành Firmware', icon: FileCode, count: releases.length },
+          { id: 'deploy', label: 'Chọn thiết bị Triển khai', icon: Rocket, count: selectedDeviceIds.size > 0 ? selectedDeviceIds.size : undefined },
+          { id: 'processing', label: 'Tiến trình Nạp OTA', icon: Activity, count: totalTargetCount > 0 ? totalTargetCount : undefined },
+          { id: 'logs', label: 'Nhật ký Cập nhật', icon: Terminal, count: liveLogs.length > 0 ? liveLogs.length : undefined }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -499,16 +621,16 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                 padding: '10px 18px',
                 borderRadius: '8px 8px 0 0',
                 border: 'none',
-                borderBottom: isActive ? '2px solid #2563eb' : '2px solid transparent',
+                borderBottom: isActive ? '2px solid #16a34a' : '2px solid transparent',
                 backgroundColor: isActive ? '#ffffff' : 'transparent',
-                color: isActive ? '#2563eb' : '#64748b',
-                fontSize: '14px',
+                color: isActive ? '#16a34a' : '#64748b',
+                fontSize: '13.5px',
                 fontWeight: isActive ? 700 : 500,
                 cursor: 'pointer',
                 transition: 'all 150ms ease'
               }}
             >
-              <Icon size={16} />
+              <Icon size={15} />
               {tab.label}
               {tab.count !== undefined && (
                 <span style={{
@@ -516,8 +638,8 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                   borderRadius: '10px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  backgroundColor: isActive ? '#eff6ff' : '#f1f5f9',
-                  color: isActive ? '#2563eb' : '#64748b'
+                  backgroundColor: isActive ? '#ecfdf5' : '#f1f5f9',
+                  color: isActive ? '#059669' : '#64748b'
                 }}>
                   {tab.count}
                 </span>
@@ -527,81 +649,136 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
         })}
       </div>
 
-      {/* 3. TAB 1: RELEASES & UPLOAD */}
+      {/* ========================================================= */}
+      {/* TAB 1: BẢN PHÁT HÀNH FIRMWARE (TẢI LÊN TRÁI + DANH SÁCH PHẢI) */}
+      {/* ========================================================= */}
       {activeTab === 'releases' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px', alignItems: 'start' }}>
           
-          {/* Upload Form Card */}
+          {/* Cột 1 (Trái): Tải lên Firmware */}
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
             padding: '24px',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px'
+            gap: '18px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#2563eb' }}>
-                <UploadCloud size={20} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UploadCloud size={18} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-                  Phát hành Firmware Mới
+                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>
+                  Tải lên Firmware
                 </h3>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>Hỗ trợ file compiled .bin (ESP32-S3)</span>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>Chọn file firmware (.bin)</span>
               </div>
             </div>
 
-            <form onSubmit={handleUploadRelease} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Drag & Drop File Zone */}
-              <div style={{
-                border: selectedFile ? '2px solid #2563eb' : '2px dashed #cbd5e1',
+            {/* Drag & Drop Zone */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                border: selectedFile ? '2px solid #16a34a' : '2px dashed #cbd5e1',
                 borderRadius: '12px',
-                padding: '20px',
+                padding: '26px 16px',
                 textAlign: 'center',
-                backgroundColor: selectedFile ? '#eff6ff' : '#f8fafc',
+                backgroundColor: selectedFile ? '#f0fdf4' : '#fafafa',
                 cursor: 'pointer',
                 transition: 'all 150ms ease'
               }}
-              onClick={() => document.getElementById('firmware-file-input').click()}
-              >
-                <input
-                  id="firmware-file-input"
-                  type="file"
-                  accept=".bin"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-                <UploadCloud size={32} style={{ color: selectedFile ? '#2563eb' : '#94a3b8', margin: '0 auto 8px' }} />
-                {selectedFile ? (
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>{selectedFile.name}</div>
-                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px' }}>
-                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Sẵn sàng tải lên
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                      Nhấp để chọn file <code style={{ backgroundColor: '#e2e8f0', padding: '1px 4px', borderRadius: '4px' }}>.bin</code>
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                      Giới hạn tối đa 3.5 MB (Chuẩn 4MB Flash)
-                    </div>
-                  </div>
-                )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".bin"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              
+              <UploadCloud size={32} style={{ color: selectedFile ? '#16a34a' : '#94a3b8', margin: '0 auto 8px' }} />
+              
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                {selectedFile ? 'Nhấp để thay đổi file .bin' : 'Kéo thả file vào đây hoặc'}
               </div>
+              
+              {!selectedFile && (
+                <button
+                  type="button"
+                  style={{
+                    marginTop: '10px',
+                    padding: '7px 16px',
+                    borderRadius: '6px',
+                    backgroundColor: '#16a34a',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Chọn file .bin
+                </button>
+              )}
+            </div>
 
-              {/* Version Input */}
+            {/* Selected File Card */}
+            {selectedFile && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '10px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FileCode size={24} color="#16a34a" />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{selectedFile.name}</div>
+                    <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </div>
+                  </div>
+                </div>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#16a34a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Check size={14} />
+                </div>
+              </div>
+            )}
+
+            {uploadSuccess && (
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                fontSize: '12px',
+                color: '#065f46',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <CheckCircle2 size={16} color="#059669" />
+                <div>
+                  <strong>Tải lên thành công!</strong> File firmware đã được tải lên và xác thực.
+                </div>
+              </div>
+            )}
+
+            {/* Form Inputs */}
+            <form onSubmit={handleUploadRelease} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                   Số Phiên Bản (SemVer) *
                 </label>
                 <input
                   type="text"
-                  placeholder="ví dụ: v1.1.0"
+                  placeholder="ví dụ: v1.2.0"
                   value={fileDetails.version}
                   onChange={(e) => setFileDetails(prev => ({ ...prev, version: e.target.value }))}
                   required
@@ -616,7 +793,6 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                 />
               </div>
 
-              {/* Device Model Selector */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                   Dòng Phần Cứng Tương Thích
@@ -634,19 +810,19 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                     boxSizing: 'border-box'
                   }}
                 >
-                  <option value="ESP32-S3-SMARTBIN">ESP32-S3-SMARTBIN (Khuyên dùng)</option>
-                  <option value="ESP32-DOIT-DEVKIT">ESP32-DOIT-DEVKIT (Legacy)</option>
+                  <option value="ESP32-CAM">ESP32-CAM</option>
+                  <option value="ESP32-S3-SMARTBIN">ESP32-S3-SMARTBIN</option>
+                  <option value="ESP32-DOIT-DEVKIT">ESP32-DOIT-DEVKIT</option>
                 </select>
               </div>
 
-              {/* Release Notes */}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                   Ghi Chú Phát Hành / Changelog
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Mô tả các tính năng mới hoặc bản vá lỗi..."
+                  placeholder="- Tối ưu hiệu suất kết nối&#10;- Cải thiện thuật toán đo mức đầy&#10;- Sửa lỗi cảm biến"
                   value={fileDetails.releaseNotes}
                   onChange={(e) => setFileDetails(prev => ({ ...prev, releaseNotes: e.target.value }))}
                   style={{
@@ -654,37 +830,36 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                     padding: '8px 12px',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
-                    fontSize: '13px',
+                    fontSize: '12.5px',
                     boxSizing: 'border-box',
                     resize: 'vertical'
                   }}
                 />
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={uploading || !selectedFile}
                 style={{
-                  padding: '10px',
+                  marginTop: '4px',
+                  padding: '9px',
                   borderRadius: '8px',
-                  backgroundColor: uploading || !selectedFile ? '#94a3b8' : '#2563eb',
-                  border: 'none',
-                  color: '#ffffff',
+                  backgroundColor: uploading || !selectedFile ? '#f1f5f9' : '#16a34a',
+                  border: uploading || !selectedFile ? '1px solid #e2e8f0' : 'none',
+                  color: uploading || !selectedFile ? '#94a3b8' : '#ffffff',
                   fontSize: '13px',
                   fontWeight: 700,
                   cursor: uploading || !selectedFile ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'background-color 150ms'
+                  gap: '8px'
                 }}
               >
                 {uploading ? (
                   <>
-                    <RefreshCw size={15} className="animate-spin" />
-                    Đang phân tích & tải lên Supabase Storage...
+                    <RefreshCw size={14} className="animate-spin" />
+                    Đang xử lý & tải lên Supabase Storage...
                   </>
                 ) : (
                   <>
@@ -696,324 +871,277 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
             </form>
           </div>
 
-          {/* Releases List Card */}
+          {/* Cột 2 (Phải): Danh Sách Bản Phát Hành Đã Xuất Bản */}
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
             padding: '24px',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                Danh Sách Bản Phát Hành Đã Xuất Bản ({releases.length})
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileCode size={18} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>
+                  Danh Sách Bản Phát Hành ({releases.length})
+                </h3>
+              </div>
             </div>
 
             {loadingReleases ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                <RefreshCw size={22} className="animate-spin" style={{ margin: '0 auto 8px' }} />
                 Đang tải danh sách bản phát hành...
               </div>
             ) : releases.length === 0 ? (
               <div style={{
-                padding: '40px 20px',
+                padding: '48px 20px',
                 textAlign: 'center',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#fafafa',
                 borderRadius: '12px',
                 border: '1px dashed #cbd5e1'
               }}>
                 <FileCode size={36} style={{ color: '#94a3b8', margin: '0 auto 8px' }} />
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>Chưa có bản phát hành nào</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#475569' }}>
+                  Chưa có bản phát hành nào
+                </div>
                 <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0' }}>
-                  Hãy tải lên file firmware đầu tiên ở khung bên trái để bắt đầu quản lý OTA.
+                  Hãy tải lên file binary .bin ở khung bên trái để xuất bản phiên bản firmware đầu tiên.
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {releases.map(rel => (
-                  <div
-                    key={rel.id}
-                    style={{
-                      padding: '16px 20px',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: '#f8fafc',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '16px',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '10px',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #cbd5e1',
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '540px', overflowY: 'auto' }}>
+                {releases.map(rel => {
+                  const isSelected = selectedRelease?.id === rel.id;
+                  return (
+                    <div
+                      key={rel.id}
+                      onClick={() => setModalRelease(rel)}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '12px',
+                        border: `1px solid ${isSelected ? '#16a34a' : '#e2e8f0'}`,
+                        backgroundColor: isSelected ? '#f0fdf4' : '#f8fafc',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#2563eb'
-                      }}>
-                        <FileCode size={22} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{rel.version}</span>
-                          <span style={{ fontSize: '12px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#e2e8f0', color: '#475569', fontWeight: 600 }}>
-                            {rel.device_model}
-                          </span>
-                          {renderStatusBadge(rel.status)}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
-                          <span>{(rel.size_bytes / (1024 * 1024)).toFixed(2)} MB</span>
-                          <span>•</span>
-                          <span>{new Date(rel.created_at).toLocaleDateString('vi-VN')} {new Date(rel.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                        {rel.release_notes && (
-                          <div style={{ fontSize: '12px', color: '#334155', marginTop: '6px', fontStyle: 'italic' }}>
-                            "{rel.release_notes}"
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* SHA256 & Action Button */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '11px',
-                        fontFamily: 'monospace',
-                        color: '#475569'
-                      }}>
-                        <span>SHA: {rel.sha256.substring(0, 8)}...{rel.sha256.substring(56)}</span>
-                        <button
-                          onClick={() => handleCopySha(rel.sha256, rel.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}
-                          title="Sao chép toàn bộ SHA-256"
-                        >
-                          {copiedSha === rel.id ? <Check size={12} color="#059669" /> : <Copy size={12} />}
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setSelectedReleaseForDeploy(rel);
-                          setActiveTab('deploy');
-                        }}
-                        style={{
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 120ms ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '10px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #cbd5e1',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          backgroundColor: '#2563eb',
-                          color: '#ffffff',
-                          border: 'none',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Rocket size={13} />
-                        Nạp OTA
-                      </button>
+                          justifyContent: 'center',
+                          color: '#16a34a'
+                        }}>
+                          <FileCode size={20} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{rel.version}</span>
+                            <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#e2e8f0', color: '#475569', fontWeight: 600 }}>
+                              {rel.device_model}
+                            </span>
+                            <span style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#ecfdf5', color: '#059669', fontWeight: 600 }}>
+                              Sẵn sàng
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', fontSize: '11.5px', color: '#64748b' }}>
+                            <span>{(rel.size_bytes / (1024 * 1024)).toFixed(2)} MB</span>
+                            <span>•</span>
+                            <span>{formatVietnamDateTimeClean(rel.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalRelease(rel);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            backgroundColor: '#ffffff',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Chi tiết
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRelease(rel);
+                            setActiveTab('deploy');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            backgroundColor: '#16a34a',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Rocket size={13} />
+                          Nạp OTA
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
+
         </div>
       )}
 
-      {/* 4. TAB 2: DEPLOY OTA CAMPAIGN */}
+      {/* ========================================================= */}
+      {/* TAB 2: CHỌN THIẾT BỊ TRIỂN KHAI (CHUẨN 100% IMAGE 4)     */}
+      {/* ========================================================= */}
       {activeTab === 'deploy' && (
         <div style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
           padding: '24px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px'
+          gap: '18px'
         }}>
-          {/* Step 1: Selected Release Header */}
-          <div style={{
-            padding: '16px 20px',
-            borderRadius: '12px',
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Sparkles size={22} color="#2563eb" />
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>
-                  Bước 1: Bản Firmware Mục Tiêu
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                    {selectedReleaseForDeploy ? `${selectedReleaseForDeploy.version} (${selectedReleaseForDeploy.device_model})` : 'Chưa chọn bản phát hành'}
-                  </span>
-                  {selectedReleaseForDeploy && renderStatusBadge(selectedReleaseForDeploy.status)}
-                </div>
+          
+          {/* Header Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Cpu size={18} />
               </div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                Chọn thiết bị triển khai
+              </h3>
+            </div>
+            
+            <div style={{
+              padding: '6px 14px',
+              borderRadius: '8px',
+              backgroundColor: '#f1f5f9',
+              color: '#1e293b',
+              fontSize: '12.5px',
+              fontWeight: 600
+            }}>
+              {selectedDeviceIds.size} thiết bị đã chọn
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={15} style={{ position: 'absolute', left: '12px', top: '12px', color: '#94a3b8' }} />
+              <input
+                type="text"
+                placeholder="Tìm kiếm thiết bị..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px 9px 34px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  boxSizing: 'border-box'
+                }}
+              />
             </div>
 
-            {/* Release Dropdown Selector */}
             <select
-              value={selectedReleaseForDeploy?.id || ''}
-              onChange={(e) => {
-                const found = releases.find(r => r.id === e.target.value);
-                if (found) setSelectedReleaseForDeploy(found);
-              }}
+              value={filterMode}
+              onChange={(e) => { setFilterMode(e.target.value); setPage(1); }}
               style={{
-                padding: '8px 12px',
+                padding: '9px 14px',
                 borderRadius: '8px',
-                border: '1px solid #93c5fd',
+                border: '1px solid #cbd5e1',
                 backgroundColor: '#ffffff',
                 fontSize: '13px',
-                fontWeight: 600,
-                color: '#1e40af'
+                color: '#334155',
+                minWidth: '160px'
               }}
             >
-              {releases.map(r => (
-                <option key={r.id} value={r.id}>
-                  {r.version} - {r.device_model} ({(r.size_bytes / (1024 * 1024)).toFixed(2)} MB)
-                </option>
-              ))}
+              <option value="ONLINE">Chỉ thiết bị online</option>
+              <option value="ALL">Tất cả thiết bị</option>
+              <option value="OFFLINE">Chỉ thiết bị offline</option>
             </select>
           </div>
 
-          {/* Step 2: Device Selection Header & Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                Bước 2: Chọn Thiết Bị Nhận Cập Nhật ({selectedDeviceIds.size} / {compatibleBins.length} đã chọn)
-              </h3>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                Chỉ những thiết bị tương thích phần cứng và đạt điều kiện an toàn mới được hiển thị.
-              </span>
-            </div>
-
-            {/* Filter Pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={selectAllFiltered}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                {selectedDeviceIds.size === compatibleBins.length && compatibleBins.length > 0 ? <CheckSquare size={14} color="#2563eb" /> : <Square size={14} />}
-                {selectedDeviceIds.size === compatibleBins.length && compatibleBins.length > 0 ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-              </button>
-
-              <button
-                onClick={() => setFilterOnlineOnly(prev => !prev)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: filterOnlineOnly ? '#ecfdf5' : '#f8fafc',
-                  border: `1px solid ${filterOnlineOnly ? '#a7f3d0' : '#e2e8f0'}`,
-                  color: filterOnlineOnly ? '#059669' : '#64748b',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Chỉ thiết bị Online
-              </button>
-
-              <button
-                onClick={() => setFilterOutdatedOnly(prev => !prev)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: filterOutdatedOnly ? '#fff7ed' : '#f8fafc',
-                  border: `1px solid ${filterOutdatedOnly ? '#fed7aa' : '#e2e8f0'}`,
-                  color: filterOutdatedOnly ? '#ea580c' : '#64748b',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Chỉ phiên bản cũ (&lt; {selectedReleaseForDeploy?.version || ''})
-              </button>
-            </div>
-          </div>
-
-          {/* Devices Table */}
+          {/* Table Devices */}
           <div style={{
             border: '1px solid #e2e8f0',
             borderRadius: '12px',
             overflow: 'hidden'
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 600 }}>
-                  <th style={{ padding: '12px 16px', width: '40px' }}>
+                <tr style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #f1f5f9', color: '#475569', fontWeight: 600, fontSize: '12.5px' }}>
+                  <th style={{ padding: '12px 16px', width: '36px' }}>
                     <input
                       type="checkbox"
-                      checked={selectedDeviceIds.size === compatibleBins.length && compatibleBins.length > 0}
+                      checked={selectedDeviceIds.size === filteredBins.length && filteredBins.length > 0}
                       onChange={selectAllFiltered}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#16a34a' }}
                     />
                   </th>
-                  <th style={{ padding: '12px 16px' }}>Mã Thiết Bị / Tên Thùng</th>
-                  <th style={{ padding: '12px 16px' }}>Địa Điểm</th>
-                  <th style={{ padding: '12px 16px' }}>Phiên Bản Hiện Tại</th>
-                  <th style={{ padding: '12px 16px' }}>Mục Tiêu Sau OTA</th>
-                  <th style={{ padding: '12px 16px' }}>Trạng Thái Kết Nối</th>
+                  <th style={{ padding: '12px 16px' }}>Thiết bị</th>
+                  <th style={{ padding: '12px 16px' }}>Model</th>
+                  <th style={{ padding: '12px 16px' }}>Phiên bản hiện tại</th>
+                  <th style={{ padding: '12px 16px' }}>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {compatibleBins.length === 0 ? (
+                {paginatedBins.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
-                      Không tìm thấy thiết bị nào phù hợp với bộ lọc hiện tại.
+                    <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                      Không tìm thấy thiết bị nào phù hợp với bộ lọc.
                     </td>
                   </tr>
                 ) : (
-                  compatibleBins.map(bin => {
+                  paginatedBins.map(bin => {
                     const isSelected = selectedDeviceIds.has(bin.device_id);
-                    const isAlreadyUpdated = bin.firmware_version === selectedReleaseForDeploy?.version;
 
                     return (
                       <tr
                         key={bin.device_id}
                         onClick={() => toggleDeviceSelection(bin.device_id)}
                         style={{
-                          borderBottom: '1px solid #f1f5f9',
-                          backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
-                          cursor: 'pointer',
-                          transition: 'background-color 100ms'
+                          borderBottom: '1px solid #f8fafc',
+                          backgroundColor: isSelected ? '#ffffff' : '#ffffff',
+                          cursor: 'pointer'
                         }}
                       >
                         <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
@@ -1021,42 +1149,39 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleDeviceSelection(bin.device_id)}
-                            style={{ cursor: 'pointer' }}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#16a34a' }}
                           />
                         </td>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
-                          #{bin.device_id}
-                          {bin.name && <span style={{ fontWeight: 400, color: '#64748b', marginLeft: '6px' }}>({bin.name})</span>}
+                        <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0f172a' }}>
+                          {bin.device_id}
                         </td>
-                        <td style={{ padding: '12px 16px', color: '#475569' }}>
-                          {bin.location || 'Chưa định vị'}
+                        <td style={{ padding: '12px 16px', color: '#334155' }}>
+                          {bin.device_model || 'ESP32-CAM'}
                         </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <code style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#334155', fontWeight: 600 }}>
-                            {bin.firmware_version || 'v1.0.0'}
-                          </code>
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{
-                            fontWeight: 700,
-                            color: isAlreadyUpdated ? '#059669' : '#2563eb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            {isAlreadyUpdated ? <CheckCircle2 size={14} /> : <ArrowRight size={14} />}
-                            {selectedReleaseForDeploy?.version}
-                          </span>
+                        <td style={{ padding: '12px 16px', color: '#334155' }}>
+                          {bin.firmware_version || 'v1.1.0'}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           {bin.is_online ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#059669', fontWeight: 600, fontSize: '12px' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '11.5px',
+                              fontWeight: 600,
+                              backgroundColor: '#ecfdf5',
+                              color: '#059669'
+                            }}>
                               Online
                             </span>
                           ) : (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontWeight: 500, fontSize: '12px' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#cbd5e1' }} />
+                            <span style={{
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '11.5px',
+                              fontWeight: 600,
+                              backgroundColor: '#f1f5f9',
+                              color: '#64748b'
+                            }}>
                               Offline
                             </span>
                           )}
@@ -1069,303 +1194,577 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
             </table>
           </div>
 
-          {/* Action Deploy Bar */}
+          {/* Pagination Bar */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingTop: '12px',
-            borderTop: '1px solid #e2e8f0'
+            flexWrap: 'wrap',
+            gap: '12px',
+            paddingTop: '6px'
           }}>
-            <div style={{ fontSize: '13px', color: '#475569' }}>
-              Đã chọn <strong style={{ color: '#0f172a' }}>{selectedDeviceIds.size}</strong> thiết bị để nâng cấp lên bản <strong style={{ color: '#2563eb' }}>{selectedReleaseForDeploy?.version}</strong>
+            <div style={{ fontSize: '13px', color: '#64748b' }}>
+              Tổng {filteredBins.length} thiết bị
             </div>
 
-            <button
-              disabled={selectedDeviceIds.size === 0 || !selectedReleaseForDeploy}
-              onClick={() => setConfirmModalOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 24px',
-                borderRadius: '8px',
-                backgroundColor: selectedDeviceIds.size === 0 || !selectedReleaseForDeploy ? '#94a3b8' : '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: selectedDeviceIds.size === 0 || !selectedReleaseForDeploy ? 'not-allowed' : 'pointer',
-                boxShadow: '0 2px 6px rgba(37,99,235,0.25)'
-              }}
-            >
-              <Rocket size={16} />
-              Tiếp Tục & Xác Nhận Triển Khai
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#f8fafc',
+                    color: '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: page <= 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #16a34a',
+                    backgroundColor: '#ffffff',
+                    color: '#16a34a',
+                    fontWeight: 700,
+                    fontSize: '13px'
+                  }}
+                >
+                  {page}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#f8fafc',
+                    color: '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: page >= totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+
+              <select
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  fontSize: '12.5px',
+                  color: '#334155'
+                }}
+              >
+                <option value={10}>10 / trang</option>
+                <option value={25}>25 / trang</option>
+                <option value={50}>50 / trang</option>
+              </select>
+
+              <button
+                type="button"
+                disabled={selectedDeviceIds.size === 0 || !selectedRelease}
+                onClick={() => setConfirmModalOpen(true)}
+                style={{
+                  marginLeft: '8px',
+                  padding: '7px 18px',
+                  borderRadius: '8px',
+                  backgroundColor: selectedDeviceIds.size === 0 || !selectedRelease ? '#f1f5f9' : '#16a34a',
+                  border: selectedDeviceIds.size === 0 || !selectedRelease ? '1px solid #e2e8f0' : 'none',
+                  color: selectedDeviceIds.size === 0 || !selectedRelease ? '#94a3b8' : '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: selectedDeviceIds.size === 0 || !selectedRelease ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Bắt đầu triển khai OTA
+              </button>
+            </div>
           </div>
+
         </div>
       )}
 
-      {/* 5. TAB 3: LIVE MONITOR & HISTORY */}
-      {activeTab === 'monitor' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '24px' }}>
+      {/* ========================================================= */}
+      {/* TAB 3: TIẾN TRÌNH NẠP OTA (CHUẨN 100% IMAGE 2 & 3)       */}
+      {/* ========================================================= */}
+      {activeTab === 'processing' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Deployments List Sidebar */}
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            maxHeight: '750px',
-            overflowY: 'auto'
-          }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-              Lịch Sử Đợt Nạp ({deployments.length})
-            </h3>
-
-            {deployments.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                Chưa có đợt triển khai OTA nào.
-              </div>
-            ) : (
-              deployments.map(dep => {
-                const isSelected = selectedDeploymentId === dep.id;
-                return (
-                  <div
-                    key={dep.id}
-                    onClick={() => setSelectedDeploymentId(dep.id)}
-                    style={{
-                      padding: '14px',
-                      borderRadius: '10px',
-                      border: `1px solid ${isSelected ? '#2563eb' : '#e2e8f0'}`,
-                      backgroundColor: isSelected ? '#eff6ff' : '#f8fafc',
-                      cursor: 'pointer',
-                      transition: 'all 150ms ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                        {dep.release?.version || 'OTA Campaign'}
-                      </span>
-                      {renderStatusBadge(dep.status)}
-                    </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
-                      <span>Mục tiêu: {dep.target_count} thiết bị</span>
-                      <span>Thành công: {dep.success_count}/{dep.target_count}</span>
-                    </div>
-
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                      {new Date(dep.created_at).toLocaleDateString('vi-VN')} {new Date(dep.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Deployment Detail & Live Device Jobs Monitor */}
+          {/* Main Card: Triển khai OTA (Chuẩn Image 2) */}
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
             padding: '24px',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             display: 'flex',
             flexDirection: 'column',
             gap: '20px'
           }}>
-            {!deploymentDetails ? (
-              <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
-                <Activity size={32} style={{ margin: '0 auto 8px', color: '#cbd5e1' }} />
-                Vui lòng chọn một đợt triển khai từ danh sách bên trái để theo dõi tiến độ.
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Cpu size={18} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                  Triển khai OTA
+                </h3>
+                <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                  {deploymentDetails
+                    ? `Đang cập nhật firmware cho ${totalTargetCount} thiết bị`
+                    : 'Đang cập nhật firmware cho các thiết bị đã chọn'}
+                </span>
+              </div>
+            </div>
+
+            {/* Device Progress List with Timeline Line */}
+            {liveJobs.length === 0 ? (
+              <div style={{
+                padding: '48px 20px',
+                textAlign: 'center',
+                backgroundColor: '#fafafa',
+                borderRadius: '12px',
+                border: '1px dashed #cbd5e1'
+              }}>
+                <Activity size={36} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>
+                  Chưa có tiến trình OTA nào đang chạy
+                </div>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 16px' }}>
+                  Hãy chọn các thiết bị và bấm "Bắt đầu triển khai OTA" ở Tab 2.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('deploy')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    backgroundColor: '#16a34a',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Đi đến Chọn thiết bị
+                </button>
               </div>
             ) : (
-              <>
-                {/* Deployment Overview Card */}
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* Vertical Timeline Guide Line */}
                 <div style={{
-                  padding: '16px 20px',
-                  borderRadius: '12px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '16px'
-                }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                        Chiến dịch nâng cấp lên {deploymentDetails.release?.version}
-                      </h3>
-                      {renderStatusBadge(deploymentDetails.status)}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                      Bắt đầu: {new Date(deploymentDetails.started_at || deploymentDetails.created_at).toLocaleString('vi-VN')}
-                      {deploymentDetails.completed_at && ` • Hoàn thành: ${new Date(deploymentDetails.completed_at).toLocaleString('vi-VN')}`}
-                    </div>
-                  </div>
+                  position: 'absolute',
+                  left: '18px',
+                  top: '24px',
+                  bottom: '24px',
+                  width: '2px',
+                  backgroundColor: '#e2e8f0',
+                  zIndex: 1
+                }} />
 
-                  {deploymentDetails.status === 'RUNNING' && (
-                    <button
-                      onClick={() => handleCancelDeployment(deploymentDetails.id)}
-                      disabled={cancellingDepId === deploymentDetails.id}
+                {liveJobs.map((job, idx) => {
+                  const isSuccess = job.status === 'SUCCESS';
+                  const isDownloading = job.status === 'DOWNLOADING' || job.status === 'COMMAND_SENT';
+                  const isVerifying = job.status === 'VERIFYING';
+                  const isInstalling = job.status === 'INSTALLING' || job.status === 'REBOOTING';
+                  const currentPercent = job.progress_percent || (isSuccess ? 100 : 0);
+                  const downloadedMb = ((job.downloaded_bytes || 0) / (1024 * 1024)).toFixed(2);
+                  const totalMb = ((job.total_bytes || 1) / (1024 * 1024)).toFixed(2);
+
+                  let statusText = 'Đang tải firmware...';
+                  if (isVerifying) statusText = 'Đang xác thực...';
+                  if (isInstalling) statusText = 'Đang cài đặt firmware...';
+                  if (isSuccess) statusText = 'Hoàn tất cập nhật';
+                  if (job.status === 'FAILED') statusText = 'Cập nhật thất bại';
+
+                  return (
+                    <div
+                      key={job.id}
                       style={{
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        backgroundColor: '#fef2f2',
-                        color: '#dc2626',
-                        border: '1px solid #fecaca',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
+                        position: 'relative',
+                        zIndex: 2,
+                        padding: '14px 18px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '16px',
+                        flexWrap: 'wrap'
                       }}
                     >
-                      {cancellingDepId === deploymentDetails.id ? 'Đang huỷ...' : 'Huỷ chiến dịch (An toàn)'}
-                    </button>
-                  )}
-                </div>
+                      {/* Left: Dot + Chip Icon + Device Info */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '220px' }}>
+                        {/* Timeline Step Dot */}
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          backgroundColor: isDownloading ? '#2563eb' : '#ffffff',
+                          border: `2px solid ${isDownloading ? '#2563eb' : (isSuccess ? '#10b981' : '#cbd5e1')}`,
+                          flexShrink: 0
+                        }} />
 
-                {/* Device Jobs Progress List */}
-                <div>
-                  <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700, color: '#334155' }}>
-                    Tiến Trình Từng Thiết Bị ({deploymentDetails.jobs?.length || 0})
-                  </h4>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {(deploymentDetails.jobs || []).map(job => {
-                      const isSuccess = job.status === 'SUCCESS';
-                      const isFailed = job.status === 'FAILED' || job.status === 'ROLLBACK_FAILED' || job.status === 'TIMED_OUT';
-                      const isUpdating = job.status === 'DOWNLOADING' || job.status === 'INSTALLING' || job.status === 'VERIFYING' || job.status === 'REBOOTING' || job.status === 'COMMAND_SENT';
-
-                      return (
-                        <div
-                          key={job.id}
-                          style={{
-                            padding: '16px 20px',
-                            borderRadius: '12px',
-                            border: `1px solid ${isSuccess ? '#a7f3d0' : (isFailed ? '#fecaca' : '#e2e8f0')}`,
-                            backgroundColor: isSuccess ? '#f0fdf4' : (isFailed ? '#fff5f5' : '#ffffff'),
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '10px'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                                #{job.device_id}
-                              </span>
-                              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                ({job.previous_version || 'v1.0.0'} &rarr; <strong>{job.target_version}</strong>)
-                              </span>
-                              {renderStatusBadge(job.status)}
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              {job.boot_id_after && (
-                                <span style={{ fontSize: '11px', color: '#059669', fontFamily: 'monospace' }}>
-                                  Boot ID: {job.boot_id_after.substring(0, 10)}...
-                                </span>
-                              )}
-
-                              {isFailed && (
-                                <button
-                                  onClick={() => handleRetryJob(job.id)}
-                                  disabled={retryingJobId === job.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '4px 10px',
-                                    borderRadius: '6px',
-                                    backgroundColor: '#2563eb',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <RotateCcw size={12} className={retryingJobId === job.id ? 'animate-spin' : ''} />
-                                  Thử lại OTA
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Animated Progress Bar */}
-                          <div>
-                            <div style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              color: '#64748b',
-                              marginBottom: '4px'
-                            }}>
-                              <span>{job.status}</span>
-                              <span>{job.progress_percent || 0}% ({((job.downloaded_bytes || 0) / (1024 * 1024)).toFixed(2)} / {((job.total_bytes || 1) / (1024 * 1024)).toFixed(2)} MB)</span>
-                            </div>
-                            
-                            <div style={{
-                              width: '100%',
-                              height: '8px',
-                              borderRadius: '4px',
-                              backgroundColor: '#e2e8f0',
-                              overflow: 'hidden'
-                            }}>
-                              <div style={{
-                                width: `${job.progress_percent || (isSuccess ? 100 : 0)}%`,
-                                height: '100%',
-                                borderRadius: '4px',
-                                backgroundColor: isSuccess ? '#10b981' : (isFailed ? '#ef4444' : '#2563eb'),
-                                transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)'
-                              }} />
-                            </div>
-                          </div>
-
-                          {/* Error Code Message if any */}
-                          {job.error_message && (
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontSize: '12px',
-                              color: '#dc2626',
-                              backgroundColor: '#fef2f2',
-                              padding: '6px 10px',
-                              borderRadius: '6px'
-                            }}>
-                              <AlertCircle size={14} />
-                              <span>{job.error_code ? `[${job.error_code}] ` : ''}{job.error_message}</span>
-                            </div>
-                          )}
+                        {/* Device Icon Box */}
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#334155'
+                        }}>
+                          <Cpu size={20} />
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
+
+                        <div>
+                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
+                            {job.device_id}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            {statusText}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Middle: Blue Progress Bar & Byte Count */}
+                      <div style={{ flex: 1, minWidth: '200px', maxWidth: '380px' }}>
+                        <div style={{
+                          width: '100%',
+                          height: '6px',
+                          borderRadius: '3px',
+                          backgroundColor: '#f1f5f9',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            width: `${currentPercent}%`,
+                            height: '100%',
+                            borderRadius: '3px',
+                            backgroundColor: '#2563eb',
+                            transition: 'width 300ms ease'
+                          }} />
+                        </div>
+
+                        <div style={{
+                          fontSize: '11.5px',
+                          color: '#64748b',
+                          marginTop: '4px',
+                          textAlign: 'right'
+                        }}>
+                          {isInstalling ? 'Cài đặt...' : `${downloadedMb} MB / ${totalMb} MB`}
+                        </div>
+                      </div>
+
+                      {/* Right: % and Timing */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', minWidth: '40px' }}>
+                          {currentPercent}%
+                        </div>
+
+                        <div style={{ fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>
+                          <div>Bắt đầu: &nbsp;{formatVietnamTimeClean(job.started_at || job.created_at)}</div>
+                          <div>Còn lại: &nbsp;&nbsp;{formatEta(job)}</div>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+              </div>
             )}
           </div>
+
+          {/* Bottom Card: Tiến độ tổng thể (Chuẩn 100% Image 3) */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '16px 24px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
+                Tiến độ tổng thể
+              </span>
+              
+              <div style={{
+                flex: 1,
+                height: '6px',
+                borderRadius: '3px',
+                backgroundColor: '#f1f5f9',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${overallProgress}%`,
+                  height: '100%',
+                  borderRadius: '3px',
+                  backgroundColor: '#2563eb',
+                  transition: 'width 300ms ease'
+                }} />
+              </div>
+
+              <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                {overallProgress}%
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <span style={{ fontSize: '13px', color: '#64748b' }}>
+                {totalSuccessCount} / {totalTargetCount} thiết bị hoàn thành
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (deploymentDetails) handleCancelDeployment(deploymentDetails.id);
+                }}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #f87171',
+                  color: '#ef4444',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Hủy triển khai
+              </button>
+            </div>
+          </div>
+
         </div>
       )}
 
-      {/* 6. CONFIRMATION REVIEW MODAL */}
-      {confirmModalOpen && selectedReleaseForDeploy && (
+      {/* ========================================================= */}
+      {/* TAB 4: NHẬT KÝ CẬP NHẬT (LIVE TIMELINE FEED)             */}
+      {/* ========================================================= */}
+      {activeTab === 'logs' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+          
+          {/* Live Timeline Stream */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>
+                Nhật ký cập nhật
+              </h3>
+              <button
+                type="button"
+                onClick={() => setLiveLogs([])}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '12px', cursor: 'pointer' }}
+              >
+                Xóa màn hình
+              </button>
+            </div>
+
+            {/* Timeline Stream */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              maxHeight: '480px',
+              overflowY: 'auto',
+              paddingRight: '4px'
+            }}>
+              {filteredLogs.length === 0 ? (
+                <div style={{ padding: '36px 12px', textAlign: 'center', color: '#94a3b8', fontSize: '12.5px' }}>
+                  Chưa có nhật ký sự kiện nào được ghi nhận.
+                </div>
+              ) : (
+                filteredLogs.map(log => {
+                  const dotColor = log.type === 'success' ? '#16a34a' : (log.type === 'error' ? '#dc2626' : (log.type === 'warn' ? '#d97706' : '#16a34a'));
+                  return (
+                    <div
+                      key={log.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        fontSize: '13px'
+                      }}
+                    >
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: dotColor,
+                        flexShrink: 0
+                      }} />
+                      <span style={{ color: '#64748b', fontSize: '12px', fontFamily: 'monospace', flexShrink: 0 }}>
+                        {formatVietnamTimeClean(log.timestamp)}
+                      </span>
+                      <span style={{ color: '#1e293b' }}>
+                        {log.text}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const content = liveLogs.map(l => `[${formatVietnamTimeClean(l.timestamp)}] ${l.text}`).join('\n');
+                  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `ota_logs_${new Date().toISOString().slice(0, 10)}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Xem tất cả nhật ký
+              </button>
+            </div>
+          </div>
+
+          {/* Past Deployments History */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>
+              Lịch Sử Các Đợt Nạp ({deployments.length})
+            </h3>
+
+            {loadingDeployments ? (
+              <div style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                Đang tải lịch sử...
+              </div>
+            ) : deployments.length === 0 ? (
+              <div style={{ padding: '36px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                Chưa có đợt triển khai OTA nào trong lịch sử.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '480px', overflowY: 'auto' }}>
+                {deployments.map(dep => (
+                  <div
+                    key={dep.id}
+                    onClick={() => {
+                      setSelectedDeploymentId(dep.id);
+                      setActiveTab('processing');
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: '#f8fafc',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                        {dep.release?.version || 'Bản OTA'}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                        {dep.success_count || 0}/{dep.target_count} hoàn thành • {formatVietnamDateTimeClean(dep.created_at)}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        color: '#2563eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Chi tiết &rarr;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 5. POPUP MODAL: THÔNG TIN CHI TIẾT FIRMWARE (CHUẨN ẢNH 1) */}
+      {/* ========================================================= */}
+      {modalRelease && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
           backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
@@ -1375,86 +1774,287 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '16px',
-            padding: '28px',
+            padding: '26px',
             width: '100%',
             maxWidth: '520px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '20px'
+            gap: '18px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div style={{ padding: '10px', borderRadius: '12px', backgroundColor: '#eff6ff', color: '#2563eb' }}>
-                <ShieldCheck size={28} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                  Xác Nhận Nạp OTA Từ Xa
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Cpu size={18} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                  Thông tin Firmware
                 </h3>
-                <span style={{ fontSize: '13px', color: '#64748b' }}>Kiểm duyệt an toàn phần cứng trước khi phát lệnh</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  backgroundColor: '#ecfdf5',
+                  color: '#059669'
+                }}>
+                  Sẵn sàng
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setModalRelease(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+                >
+                  <X size={18} />
+                </button>
               </div>
             </div>
 
-            {/* Campaign Summary */}
+            {/* Clean Data Rows (Chuẩn 100% Mockup Ảnh 1) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px' }}>
+              
+              {/* Row 1: Phiên bản */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b' }}>
+                  <Clock size={16} />
+                  <span>Phiên bản</span>
+                </div>
+                <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                  {modalRelease.version}
+                </div>
+              </div>
+
+              {/* Row 2: Tên file */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b' }}>
+                  <FileText size={16} />
+                  <span>Tên file</span>
+                </div>
+                <div style={{ fontWeight: 500, color: '#0f172a', fontFamily: 'monospace' }}>
+                  {modalRelease.file_name || `smart-waste-${modalRelease.version}.bin`}
+                </div>
+              </div>
+
+              {/* Row 3: Kích thước */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b' }}>
+                  <HardDrive size={16} />
+                  <span>Kích thước</span>
+                </div>
+                <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                  {(modalRelease.size_bytes / (1024 * 1024)).toFixed(2)} MB
+                </div>
+              </div>
+
+              {/* Row 4: Kiểu thiết bị */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b' }}>
+                  <Cpu size={16} />
+                  <span>Kiểu thiết bị</span>
+                </div>
+                <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                  {modalRelease.device_model}
+                </div>
+              </div>
+
+              {/* Row 5: SHA-256 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b' }}>
+                  <ShieldCheck size={16} />
+                  <span>SHA-256</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#334155', fontFamily: 'monospace' }}>
+                    {modalRelease.sha256 ? `${modalRelease.sha256.substring(0, 12)}...${modalRelease.sha256.substring(52)}` : '—'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopySha(modalRelease.sha256, modalRelease.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}
+                    title="Sao chép toàn bộ SHA-256"
+                  >
+                    {copiedSha === modalRelease.id ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 6: Ngày tạo */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b' }}>
+                  <Calendar size={16} />
+                  <span>Ngày tạo</span>
+                </div>
+                <div style={{ fontSize: '13px', color: '#334155' }}>
+                  {formatVietnamDateTimeClean(modalRelease.created_at)}
+                </div>
+              </div>
+
+              {/* Row 7: Ghi chú */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b', flexShrink: 0 }}>
+                  <Edit3 size={16} />
+                  <span>Ghi chú</span>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '12.5px', color: '#334155', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                  {modalRelease.release_notes || '- Tối ưu hiệu suất kết nối\n- Cải thiện thuật toán đo mức đầy\n- Sửa lỗi cảm biến'}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setModalRelease(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#475569',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRelease(modalRelease);
+                  setModalRelease(null);
+                  setActiveTab('deploy');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  backgroundColor: '#16a34a',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(22,163,74,0.2)'
+                }}
+              >
+                <Rocket size={14} />
+                Nạp OTA Bản Này
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 6. CONFIRMATION REVIEW MODAL                              */}
+      {/* ========================================================= */}
+      {confirmModalOpen && selectedRelease && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            padding: '26px',
+            width: '100%',
+            maxWidth: '500px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ padding: '9px', borderRadius: '10px', backgroundColor: '#f0fdf4', color: '#16a34a' }}>
+                <ShieldCheck size={26} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                  Xác Nhận Nạp OTA Từ Xa
+                </h3>
+                <span style={{ fontSize: '12.5px', color: '#64748b' }}>Kiểm duyệt an toàn phần cứng trước khi phát lệnh</span>
+              </div>
+            </div>
+
+            {/* Campaign Summary Box */}
             <div style={{
-              padding: '16px',
-              borderRadius: '12px',
+              padding: '14px',
+              borderRadius: '10px',
               backgroundColor: '#f8fafc',
               border: '1px solid #e2e8f0',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px',
-              fontSize: '13px'
+              gap: '8px',
+              fontSize: '12.5px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Phiên bản mục tiêu:</span>
-                <strong style={{ color: '#2563eb' }}>{selectedReleaseForDeploy.version}</strong>
+                <strong style={{ color: '#16a34a' }}>{selectedRelease.version}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Dòng phần cứng:</span>
-                <strong>{selectedReleaseForDeploy.device_model}</strong>
+                <strong>{selectedRelease.device_model}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Số lượng thiết bị nhận lệnh:</span>
                 <strong style={{ color: '#0f172a' }}>{selectedDeviceIds.size} thùng rác</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Mã băm toàn vẹn:</span>
-                <code style={{ fontSize: '11px', color: '#334155' }}>{selectedReleaseForDeploy.sha256.substring(0, 16)}...</code>
+                <span style={{ color: '#64748b' }}>Mã băm SHA-256:</span>
+                <code style={{ fontSize: '11px', color: '#334155' }}>
+                  {selectedRelease.sha256 ? `${selectedRelease.sha256.substring(0, 16)}...` : '—'}
+                </code>
               </div>
             </div>
 
-            {/* Safety Notice */}
+            {/* Zero-Brick Safety Banner */}
             <div style={{
               display: 'flex',
               alignItems: 'flex-start',
-              gap: '10px',
-              padding: '12px 14px',
+              gap: '8px',
+              padding: '10px 12px',
               borderRadius: '8px',
               backgroundColor: '#ecfdf5',
               border: '1px solid #a7f3d0',
               fontSize: '12px',
               color: '#065f46'
             }}>
-              <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <ShieldCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong>Bảo Vệ Phần Cứng Chuẩn Zero-Brick:</strong> Firmware sẽ được nạp vào phân vùng phụ (app1). Nếu sau khi khởi động lại, thiết bị gặp lỗi bootloader sẽ tự động Rollback về phân vùng cũ an toàn.
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 type="button"
                 onClick={() => setConfirmModalOpen(false)}
                 disabled={deploying}
                 style={{
-                  padding: '10px 18px',
+                  padding: '8px 16px',
                   borderRadius: '8px',
                   backgroundColor: '#f1f5f9',
                   border: '1px solid #cbd5e1',
                   color: '#475569',
-                  fontSize: '13px',
+                  fontSize: '12.5px',
                   fontWeight: 600,
                   cursor: 'pointer'
                 }}
@@ -1468,13 +2068,13 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 22px',
+                  gap: '6px',
+                  padding: '8px 20px',
                   borderRadius: '8px',
-                  backgroundColor: deploying ? '#94a3b8' : '#2563eb',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '13px',
+                  backgroundColor: deploying ? '#f1f5f9' : '#16a34a',
+                  border: deploying ? '1px solid #e2e8f0' : 'none',
+                  color: deploying ? '#94a3b8' : '#ffffff',
+                  fontSize: '12.5px',
                   fontWeight: 700,
                   cursor: deploying ? 'not-allowed' : 'pointer'
                 }}

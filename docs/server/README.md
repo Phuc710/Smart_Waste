@@ -72,6 +72,14 @@
     - 12.1. [Kiểm thử Phần cứng & IoT Simulator](#121-kiểm-thử-phần-cứng--iot-simulator)
     - 12.2. [Kiểm thử REST APIs & WebSocket Events](#122-kiểm-thử-rest-apis--websocket-events)
     - 12.3. [Xử lý Sự cố Thường gặp (Troubleshooting FAQ)](#123-xử-lý-sự-cố-thường-gặp-troubleshooting-faq)
+13. [PHÂN HỆ QUẢN LÝ FIRMWARE & NẠP OTA KHÔNG DÂY (ENTERPRISE DUAL-PARTITION OTA)](#13-phân-hệ-quản-lý-firmware--nạp-ota-không-dây-enterprise-dual-partition-ota)
+    - 13.1. [Kiến trúc Tổng thể & Sơ đồ Luồng Nạp OTA Zero-Brick](#131-kiến-trúc-tổng-thể--sơ-đồ-luồng-nạp-ota-zero-brick)
+    - 13.2. [Cơ chế Phân vùng Flash 4MB & Auto-Rollback ESP32](#132-cơ-chế-phân-vùng-flash-4mb--auto-rollback-esp32)
+    - 13.3. [Mô hình Dữ liệu Supabase & Private Storage Bucket](#133-mô-hình-dữ-liệu-supabase--private-storage-bucket)
+    - 13.4. [Đặc tả RESTful APIs Quản lý Bản Build & Chiến dịch OTA](#134-đặc-tả-restful-apis-quản-lý-bản-build--chiến-dịch-ota)
+    - 13.5. [Đặc tả Giao thức MQTT OTA (Envelope & Telemetry Channels)](#135-đặc-tả-giao-thức-mqtt-ota-envelope--telemetry-channels)
+    - 13.6. [Module ESP32 OTA Client (ISRG Root CA TLS & Local Health-Check)](#136-module-esp32-ota-client-isrg-root-ca-tls--local-health-check)
+    - 13.7. [Giao diện Quản trị Web Admin (Releases, Deploy & Realtime Monitor)](#137-giao-diện-quản-trị-web-admin-releases-deploy--realtime-monitor)
 
 ---
 
@@ -1659,5 +1667,243 @@ curl -X POST http://localhost:3000/api/auth/login \
 
 ---
 
+## 13. PHÂN HỆ QUẢN LÝ FIRMWARE & NẠP OTA KHÔNG DÂY (ENTERPRISE DUAL-PARTITION OTA)
+
+### 13.1. Kiến trúc Tổng thể & Sơ đồ Luồng Nạp OTA Zero-Brick
+
+Phân hệ **Firmware OTA (Over-The-Air)** của SmartWaste được thiết kế theo tiêu chuẩn công nghiệp nhằm loại bỏ hoàn toàn nguy cơ biến thiết bị thành "cục gạch" (Zero-Brick Guarantee).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as 👨‍💼 Quản Trị Viên (Web Admin)
+    participant UI as 💻 Web Admin UI (FirmwarePage)
+    participant BE as ⚙️ Backend (Express API)
+    participant S3 as 🗄️ Supabase Storage (Private)
+    participant DB as 🗄️ Supabase PostgreSQL
+    participant MQTT as 📡 Aedes MQTT Broker
+    participant ESP as 🤖 SmartBin (ESP32-S3)
+
+    Note over Admin, UI: 1. Giai đoạn Phát hành Bản Build (Firmware Release)
+    Admin->>UI: Kéo thả file compiled .bin + Nhập SemVer (v1.2.0)
+    UI->>BE: POST /api/firmware/releases/upload (Raw Binary / Base64)
+    BE->>BE: Đọc App Descriptor (Magic 0xABCD5432 tại 0x20) + Tính SHA-256 + Ký số mật mã
+    BE->>S3: Upload file vào bucket 'firmware-releases' (Private)
+    BE->>DB: INSERT INTO firmware_releases (sha256, version, size_bytes)
+    BE-->>UI: 201 Created (Release READY)
+
+    Note over Admin, UI: 2. Giai đoạn Kích hoạt Chiến dịch Nạp OTA (Deployment)
+    Admin->>UI: Chọn Release + Chọn danh sách thùng mục tiêu -> Xác nhận
+    UI->>BE: POST /api/ota/deployments ({ releaseId, targetDeviceIds })
+    BE->>DB: INSERT INTO ota_deployments & ota_device_jobs (COMMAND_SENT)
+    BE->>S3: Sinh Signed Download URL ngắn hạn (TTL 3600s = 1 giờ)
+    BE->>MQTT: Publish OTA Command Envelope -> topic: wastebin/{binId}/ota (retain: false)
+    BE-->>UI: 201 Created -> Chuyển sang Tab Giám sát Realtime
+
+    Note over ESP, BE: 3. Giai đoạn Stream Tải, Kiểm duyệt & Nạp Flash
+    MQTT->>ESP: Gói tin Lệnh OTA (downloadUrl, sha256, sizeBytes, version)
+    ESP->>MQTT: Pub wastebin/{binId}/ota/status (DOWNLOADING, 0%)
+    ESP->>S3: HTTPS Stream GET (Xác thực TLS ISRG Root X1 CA)
+    loop Đọc Chunks 4KB
+        ESP->>ESP: Ghi vào Inactive Partition (app1) qua Update.write()
+        ESP->>ESP: Băm SHA-256 on-the-fly qua mbedtls_sha256
+        ESP->>MQTT: Pub tiến độ 15%, 30%, 45%, 60%, 75%, 90%
+        MQTT->>BE: Lắng nghe topic status -> Cập nhật DB -> Phát Socket.IO tới Web Admin
+    end
+    ESP->>ESP: So khớp SHA-256 tính được vs SHA-256 trong payload
+    alt SHA-256 Không Khớp (File hỏng / Bị can thiệp)
+        ESP->>ESP: Update.abort() -> Hủy bỏ flash, giữ nguyên phân vùng cũ
+        ESP->>MQTT: Pub status: FAILED (errorCode: SHA256_MISMATCH)
+    else SHA-256 Khớp 100%
+        ESP->>ESP: Update.end() -> Đổi bootloader partition flag sang app1
+        ESP->>MQTT: Pub status: REBOOTING (100%)
+        ESP->>ESP: ESP.restart()
+    end
+
+    Note over ESP, BE: 4. Giai đoạn Khởi động Lại & Local Health-Check Tự động
+    ESP->>ESP: Khởi động vào app1 (Trạng thái: ESP_OTA_IMG_PENDING_VERIFY)
+    ESP->>ESP: Tự kiểm tra phần cứng độc lập (NVS, Heap >30KB, Watchdog 10s)
+    alt Khởi động Lỗi / Panic / Crash Loop
+        Note over ESP: Bootloader tự động Rollback về app0 an toàn!
+        ESP->>MQTT: Pub status: ROLLBACK_SUCCESS (v1.0.0)
+    else Khởi động Thành công & Ổn định
+        ESP->>ESP: esp_ota_mark_app_valid_cancel_rollback() (Xác nhận vĩnh viễn)
+        ESP->>MQTT: Pub status: SUCCESS (bootId mới, targetVersion: v1.2.0)
+        MQTT->>BE: Cập nhật smart_bins & ota_device_jobs -> Phát Socket.IO
+        BE-->>UI: Thanh tiến độ chuyển XANH 100% (Cập nhật thành công)
+    end
+```
+
+---
+
+### 13.2. Cơ chế Phân vùng Flash 4MB & Auto-Rollback ESP32
+
+Để đảm bảo tương thích 100% với các vi điều khiển ESP32 và ESP32-S3 tiêu chuẩn có bộ nhớ Flash **4MB**, hệ thống áp dụng bảng phân vùng `partitions.csv` tinh gọn:
+
+```csv
+# ESP32 / ESP32-S3 Partition Table for 4MB Flash with Dual OTA & Safe Rollback
+# Total Flash Allocated: 0x3F0000 = 3.9375 MB (Fits standard 4MB Flash chips)
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,  0x5000,
+otadata,  data, ota,     0xe000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0x1E0000,
+app1,     app,  ota_1,   0x1F0000,0x1E0000,
+spiffs,   data, spiffs,  0x3D0000,0x20000,
+```
+
+- **`otadata` (0x2000 = 8 KB):** Lưu trữ cờ con trỏ phân vùng khởi động hiện tại và đếm số lần boot thất bại.
+- **`app0` (0x1E0000 = 1.875 MB):** Phân vùng chạy ứng dụng chính (Slot 0).
+- **`app1` (0x1E0000 = 1.875 MB):** Phân vùng ứng dụng dự phòng / nạp OTA mới (Slot 1).
+- **`spiffs` (0x20000 = 128 KB):** Phân vùng lưu trữ tệp cấu hình ngoại tuyến.
+- **Cờ Rollback Bootloader:** Bật trong `platformio.ini` qua `-D CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=1`.
+
+---
+
+### 13.3. Mô hình Dữ liệu Supabase & Private Storage Bucket
+
+#### 1. Bucket Supabase Storage: `firmware-releases`
+- **Chế độ:** Private (RLS ngắt toàn bộ truy cập ẩn danh).
+- **Cơ chế tải:** Backend dùng `service_role` tạo Signed URL có thời hạn `expiresIn: 3600` (1 giờ).
+- **Cấu trúc đường dẫn tệp:** `firmware/{device_model}/{version}/{sha256}.bin`.
+
+#### 2. Bảng `public.firmware_releases`
+| Tên Cột | Kiểu Dữ Liệu | Ràng Buộc | Ý Nghĩa Kỹ Thuật |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PRIMARY KEY` | Định danh bản build nhị phân |
+| `version` | `text` | `NOT NULL` | Số phiên bản SemVer (ví dụ: `v1.2.0`) |
+| `device_model` | `text` | `NOT NULL` | Dòng phần cứng (ví dụ: `ESP32-S3-SMARTBIN`) |
+| `file_name` | `text` | `NOT NULL` | Tên tệp gốc khi biên dịch |
+| `object_path` | `text` | `NOT NULL` | Đường dẫn lưu trữ trong Storage Bucket |
+| `size_bytes` | `bigint` | `> 0` | Dung lượng tệp tính bằng bytes |
+| `sha256` | `text` | `UNIQUE` | Mã băm toàn vẹn SHA-256 (64 ký tự hex) |
+| `signature` | `text` | - | Chữ ký số mật mã học |
+| `release_notes` | `text` | - | Ghi chú cập nhật / Changelog |
+| `status` | `text` | `READY` | Trạng thái bản phát hành (`READY`, `REVOKED`) |
+
+#### 3. Bảng `public.ota_deployments`
+Quản lý các đợt phát động nạp firmware:
+- `id` (UUID), `release_id` (FK `firmware_releases`), `status` (`RUNNING`, `COMPLETED`, `PARTIAL_FAILED`, `CANCELLED`), `target_count`, `success_count`, `failed_count`, `started_at`, `completed_at`.
+
+#### 4. Bảng `public.ota_device_jobs`
+Theo dõi tiến trình nạp chi tiết của từng thiết bị trong đợt:
+- `id` (UUID), `deployment_id` (FK), `device_id` (Text), `previous_version`, `target_version`, `status` (Enum State Machine), `progress_percent` (0-100), `downloaded_bytes`, `total_bytes`, `attempts`, `error_code`, `error_message`, `command_id` (UUID), `boot_id_before`, `boot_id_after`.
+
+---
+
+### 13.4. Đặc tả RESTful APIs Quản lý Bản Build & Chiến dịch OTA
+
+Tất cả các API dưới đây đều yêu cầu xác thực phiên Quản trị viên (`requireAuth, requireAdmin`):
+
+#### 1. Upload Bản Phát Hành Firmware
+- **Endpoint:** `POST /api/firmware/releases/upload`
+- **Headers:** `Content-Type: application/octet-stream`, `x-filename`, `x-version`, `x-device-model`, `x-release-notes`.
+- **Xử lý Backend:**
+  1. Kiểm tra kích thước ($10\text{ KB} \le \text{size} \le 3.5\text{ MB}$).
+  2. Parse cấu trúc `esp_app_desc_t` tại offset `0x20` kiểm tra Magic Word `0xABCD5432`.
+  3. Tính mã băm `sha256` và ký số mật mã học `HMAC-SHA256`.
+  4. Đẩy tệp lên Supabase Storage `firmware-releases`.
+  5. Ghi bản ghi vào `public.firmware_releases`.
+
+#### 2. Kích hoạt Chiến dịch Nạp OTA
+- **Endpoint:** `POST /api/ota/deployments`
+- **Request Body:**
+  ```json
+  {
+    "releaseId": "b195c898-7579-4ff8-a3f2-1b822d56a312",
+    "targetDeviceIds": ["244CAD650A1C", "244CAD650A2D"]
+  }
+  ```
+- **Xử lý Backend:** Sinh Signed URL 1 giờ $\to$ Lưu `ota_device_jobs` $\to$ Phát MQTT Command Envelope tới từng thùng $\to$ Bắn Socket.IO tới Web Admin.
+
+#### 3. Huỷ An toàn Đợt Cập nhật (Safe Cancel)
+- **Endpoint:** `POST /api/ota/deployments/:id/cancel`
+- **Quy tắc Safe Cancel:** Chỉ huỷ những thiết bị đang ở trạng thái `PENDING`, `COMMAND_SENT` hoặc `DOWNLOADING`. **Nghiêm cấm huỷ** khi thiết bị đang ở trạng thái `INSTALLING` / `FLASHING` để bảo vệ chu kỳ ghi flash.
+
+#### 4. Thử lại Thiết bị Thất bại (Retry Device Job)
+- **Endpoint:** `POST /api/ota/device-jobs/:id/retry`
+- **Xử lý Backend:** Sinh lại Signed URL mới $\to$ Tăng `attempts` $\to$ Tái gửi MQTT Command Envelope.
+
+---
+
+### 13.5. Đặc tả Giao thức MQTT OTA (Envelope & Telemetry Channels)
+
+#### 1. Kênh Phát Lệnh OTA từ Máy Chủ xuống Thiết Bị
+- **Topic:** `wastebin/{deviceId}/ota`
+- **QoS:** `1`
+- **Retain:** `false` *(QUAN TRỌNG: Cấm bật retain để tránh thiết bị bị nạp lặp vô hạn khi reboot)*
+- **Cấu trúc Lệnh (Command Envelope Payload):**
+```json
+{
+  "type": "OTA_UPDATE",
+  "commandId": "550e8400-e29b-41d4-a716-446655440000",
+  "deploymentId": "e2d83769-9f79-4bc5-8495-2c8c4a17890a",
+  "deviceJobId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "releaseId": "b195c898-7579-4ff8-a3f2-1b822d56a312",
+  "version": "v1.2.0",
+  "deviceModel": "ESP32-S3-SMARTBIN",
+  "sizeBytes": 1342176,
+  "sha256": "4a7d1ed414474e4033ac29ccb8653d9b4a7d1ed414474e4033ac29ccb8653d9b",
+  "signature": "8f3b...e71c",
+  "downloadUrl": "https://zwrapaqlozdkbkblohcq.supabase.co/storage/v1/object/sign/firmware-releases/firmware.bin?token=eyJhbG...",
+  "issuedAt": "2026-08-18T13:40:00.000Z",
+  "expiresAt": "2026-08-18T14:40:00.000Z"
+}
+```
+
+#### 2. Kênh Báo cáo Tiến độ & Trạng thái từ Thiết Bị lên Máy Chủ
+- **Topic:** `wastebin/{deviceId}/ota/status`
+- **QoS:** `1`
+- **Cấu trúc Gói tin Phản hồi:**
+```json
+{
+  "deviceId": "244CAD650A1C",
+  "commandId": "550e8400-e29b-41d4-a716-446655440000",
+  "deploymentId": "e2d83769-9f79-4bc5-8495-2c8c4a17890a",
+  "deviceJobId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "status": "DOWNLOADING",
+  "progressPercent": 45,
+  "downloadedBytes": 603979,
+  "totalBytes": 1342176,
+  "currentVersion": "v1.0.0",
+  "deviceModel": "ESP32-S3-SMARTBIN",
+  "bootId": "244cad650a1c-128450-4821",
+  "errorCode": null,
+  "errorMessage": null
+}
+```
+
+---
+
+### 13.6. Module ESP32 OTA Client (ISRG Root CA TLS & Local Health-Check)
+
+Module `Esp32_S3/src/ota_client.h` chịu trách nhiệm thực thi nạp an toàn:
+
+1. **Xác thực Chứng chỉ Gốc HTTPS:** Khởi tạo `WiFiClientSecure` và nạp chứng chỉ Root CA ISRG Root X1 từ `include/root_ca.h` (Không dùng `client.setInsecure()`).
+2. **Stream ghi trực tiếp Flash:** Đọc từng khối `buff[4096]` qua luồng HTTPS và nạp trực tiếp vào phân vùng phụ qua `Update.write(buff, bytesRead)`.
+3. **Băm SHA-256 On-The-Fly:** Sử dụng thư viện tăng tốc phần cứng `mbedtls/sha256.h` tính toán mã băm song song với quá trình ghi flash.
+4. **Kiểm tra Checksum trước khi Commit:** Chỉ khi `computedShaHex === expectedSha256` thì mới gọi `Update.end(true)`. Nếu sai lệch dù chỉ 1-bit $\to$ gọi `Update.abort()` huỷ bỏ tức thì.
+5. **Local Health-Check Độc Lập:** Khi khởi động, hàm `OtaClient::initAndVerifyBoot()` kiểm tra tính ổn định của NVS và bộ nhớ Heap. Nếu vượt qua $\to$ gọi `esp_ota_mark_app_valid_cancel_rollback()` huỷ cờ rollback. Nếu sập nguồn hoặc crash loop $\to$ Bootloader tự động hoàn nguyên về phân vùng gốc.
+
+---
+
+### 13.7. Giao diện Quản trị Web Admin (Releases, Deploy & Realtime Monitor)
+
+Giao diện [FirmwarePage.jsx](file:///c:/Users/Phucx/Downloads/waste/server/frontend/src/pages/FirmwarePage.jsx) được tối ưu UX/UI với 3 phân hệ trực quan:
+
+1. **Tab 1 — Bản phát hành (Releases):**
+   - Kéo thả file `.bin`, tự động trích xuất dung lượng và gợi ý SemVer.
+   - Hiển thị danh sách bản build kèm badge SHA-256 (nút sao chép 1 chạm) và nút "Nạp OTA ngay".
+2. **Tab 2 — Triển khai OTA (Deploy Campaign):**
+   - Chọn bản build đích.
+   - Bảng danh sách thiết bị tương thích kèm bộ lọc: *Chỉ thiết bị Online*, *Chỉ thiết bị phiên bản cũ*.
+   - Modal kiểm duyệt an toàn (Safe Confirmation Modal) thông báo rõ cơ chế Dual-Partition Zero-Brick trước khi phát lệnh.
+3. **Tab 3 — Giám sát Realtime & Lịch sử (Live Monitor):**
+   - Tích hợp Socket.IO lắng nghe sự kiện `otaJobUpdated` và `otaDeploymentCreated`.
+   - Thanh tiến độ % động và trạng thái màu sắc theo thời gian thực từng thùng.
+   - Hiển thị mã lỗi chi tiết và nút "Thử lại OTA (Retry)" khi có sự cố mạng.
+
+---
+
 > **SmartWaste IoT Platform — Tiêu chuẩn Kỹ thuật Đô thị Thông minh 2026**  
 > Mọi thắc mắc kỹ thuật hoặc yêu cầu đóng góp tính năng, vui lòng liên hệ Ban Quản trị Dự án.
+

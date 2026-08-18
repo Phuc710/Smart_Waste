@@ -147,7 +147,7 @@ async function executeBinCommand(binId, action, commandId = new Date().toISOStri
     const patch = {
         ...current,
         last_command: action,
-        last_command_at: commandId,
+        last_command_at: issuedAt,
         command_status: 'sent',
         command_processed_at: null
     };
@@ -162,7 +162,7 @@ async function executeBinCommand(binId, action, commandId = new Date().toISOStri
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
             last_command: action,
-            last_command_at: commandId,
+            last_command_at: issuedAt,
             command_status: 'sent',
             command_processed_at: null
         })

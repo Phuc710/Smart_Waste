@@ -75,7 +75,7 @@ function initMqttBroker() {
     });
 
     aedes.on('publish', async (packet, client) => {
-        if (!client || !packet.topic.startsWith('wastebin/')) return;
+        if (!packet || !packet.topic || typeof packet.topic !== 'string' || !packet.topic.startsWith('wastebin/')) return;
         
         const parts = packet.topic.split('/');
         const binId = parts[1];
@@ -98,8 +98,22 @@ function initMqttBroker() {
 
         try {
             const data = JSON.parse(packet.payload.toString());
-            data.lastSeen = new Date().toISOString();
+            const nowIso = new Date().toISOString();
+            data.last_seen = nowIso;
+            data.lastSeen = nowIso;
+            data.is_online = true;
             data.isOnline = true;
+
+            // Cập nhật bộ nhớ RAM stateStore ngay lập tức không chờ I/O
+            const existing = stateStore.latestBins.get(binId) || {};
+            stateStore.latestBins.set(binId, {
+                ...existing,
+                ...data,
+                device_id: binId,
+                is_online: true,
+                last_seen: nowIso,
+                lastSeen: nowIso
+            });
             
             binService.acknowledgeBinCommand(binId, data).catch((error) => {
                 logger.error('MQTT ACK', error.message);
@@ -112,8 +126,8 @@ function initMqttBroker() {
                 let nearestTruck = null;
                 let minDist = Infinity;
                 const binObj = stateStore.latestBins.get(binId) || {};
-                const bLat = Number(binObj.latitude);
-                const bLng = Number(binObj.longitude);
+                const bLat = Number(data.latitude ?? binObj.latitude);
+                const bLng = Number(data.longitude ?? binObj.longitude);
 
                 if (Number.isFinite(bLat) && Number.isFinite(bLng)) {
                     let activeJobs = [];

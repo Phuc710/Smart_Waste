@@ -11,8 +11,10 @@ function getEmployeeOfflineThresholdMs() {
 }
 
 function isBinOnline(bin) {
-    if (!bin || !bin.last_seen) return false;
-    const diff = Date.now() - new Date(bin.last_seen).getTime();
+    if (!bin) return false;
+    const seen = bin.last_seen || bin.lastSeen;
+    if (!seen) return false;
+    const diff = Date.now() - new Date(seen).getTime();
     return Number.isFinite(diff) && diff < getBinOfflineThresholdMs();
 }
 

@@ -27,17 +27,52 @@ async function deleteEmployeeAuthUser(userId) {
 
 async function login(username, password, rawToken, hashTokenFn) {
     const tokenHash = hashTokenFn(rawToken);
-    const rows = await callRpc('employee_login', {
-        p_username: username,
-        p_password: password,
-        p_token_hash: tokenHash
-    });
-    if (!Array.isArray(rows) || !rows.length) {
-        const err = new Error('Sai tên đăng nhập, mật khẩu hoặc tài khoản đã bị khóa.');
-        err.statusCode = 401;
-        throw err;
+    try {
+        const rows = await callRpc('employee_login', {
+            p_username: username,
+            p_password: password,
+            p_token_hash: tokenHash
+        });
+        if (Array.isArray(rows) && rows.length) {
+            return rows[0];
+        }
+    } catch (rpcErr) {
+        logger.warn('Auth RPC fallback', `RPC employee_login failed (${rpcErr.message}), falling back to direct table auth.`);
+        const bcrypt = require('bcryptjs');
+        const { supabaseServiceRequest } = require('../core/supabase');
+        const employees = await supabaseServiceRequest(
+            `employee_accounts?username=eq.${encodeURIComponent(username)}&is_active=eq.true&deleted_at=is.null`
+        );
+        if (Array.isArray(employees) && employees.length) {
+            const emp = employees[0];
+            const isMatch = await bcrypt.compare(password, emp.password_hash);
+            if (isMatch) {
+                const expiresAt = new Date(Date.now() + 8 * 3600 * 1000).toISOString();
+                await supabaseServiceRequest('employee_sessions', {
+                    method: 'POST',
+                    headers: { Prefer: 'resolution=merge-duplicates' },
+                    body: JSON.stringify({
+                        token_hash: tokenHash,
+                        employee_id: emp.id,
+                        expires_at: expiresAt
+                    })
+                });
+                await supabaseServiceRequest(`employee_accounts?id=eq.${encodeURIComponent(emp.id)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ last_login: new Date().toISOString() })
+                });
+                return {
+                    id: emp.id,
+                    username: emp.username,
+                    full_name: emp.full_name,
+                    role: emp.role
+                };
+            }
+        }
     }
-    return rows[0];
+    const err = new Error('Sai tên đăng nhập, mật khẩu hoặc tài khoản đã bị khóa.');
+    err.statusCode = 401;
+    throw err;
 }
 
 async function logout(tokenHash) {
