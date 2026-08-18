@@ -22,6 +22,8 @@ import com.example.app_smart_waste.core.network.RealtimeManager
 import com.example.app_smart_waste.core.storage.SecureTokenStorage
 import com.example.app_smart_waste.core.utils.applyStatusBarTopPadding
 import com.example.app_smart_waste.databinding.FragmentHomeBinding
+import com.example.app_smart_waste.data.repository.NotificationRepository
+import com.example.app_smart_waste.ui.notification.NotificationCenterActivity
 import com.example.app_smart_waste.ui.incident.IncidentHistoryActivity
 import com.example.app_smart_waste.ui.incident.IncidentReportActivity
 import com.example.app_smart_waste.ui.jobs.JobDetailActivity
@@ -159,15 +161,20 @@ class HomeFragment : Fragment() {
         }
 
         // Header Action Buttons
+        // 1. Chuông: Mở Trang Trung tâm Thông báo
         binding.btnHomeBell.setOnClickListener {
             it.applyPressEffect {
-                (activity as? MainActivity)?.selectTab(R.id.navItemJobs)
+                startActivity(Intent(requireContext(), NotificationCenterActivity::class.java))
             }
         }
 
+        // 2. Bên phải: Báo cáo sự cố đang xử lý
         binding.btnHomeChat.setOnClickListener {
             it.applyPressEffect {
-                Toast.makeText(requireContext(), "💬 Kênh liên lạc điều phối viên: Đang trực tuyến", Toast.LENGTH_SHORT).show()
+                val intent = Intent(requireContext(), IncidentHistoryActivity::class.java).apply {
+                    putExtra("FILTER", "IN_PROGRESS")
+                }
+                startActivity(intent)
             }
         }
 
@@ -232,6 +239,17 @@ class HomeFragment : Fragment() {
                             binding.switchHomeAvailability.isChecked = isAvailable
                         }
                         updateAvailabilityUi(isAvailable)
+                    }
+                }
+
+                launch {
+                    NotificationRepository.getInstance().unreadCount.collectLatest { unread ->
+                        if (unread > 0) {
+                            binding.tvHomeBellBadge.text = if (unread > 9) "9+" else unread.toString()
+                            binding.tvHomeBellBadge.isVisible = true
+                        } else {
+                            binding.tvHomeBellBadge.isVisible = false
+                        }
                     }
                 }
             }
@@ -316,6 +334,24 @@ class HomeFragment : Fragment() {
             binding.cardCurrentJob.isVisible = false
             binding.emptyJobState.isVisible = true
         }
+
+        // 4. Header Badges: Nhiệm vụ cần xác nhận (Chuông) & Báo cáo sự cố đang xử lý (Bên phải)
+        if (data.pendingJobsCount > 0) {
+            binding.tvHomeBellBadge.text = data.pendingJobsCount.toString()
+            binding.tvHomeBellBadge.isVisible = true
+        } else {
+            binding.tvHomeBellBadge.isVisible = false
+        }
+
+        if (data.unresolvedIncidentsCount > 0) {
+            binding.tvHomeChatBadge.text = data.unresolvedIncidentsCount.toString()
+            binding.tvHomeChatBadge.isVisible = true
+        } else {
+            binding.tvHomeChatBadge.isVisible = false
+        }
+
+        // Đồng bộ badge Nhiệm vụ ở thanh điều hướng dưới đáy
+        (activity as? MainActivity)?.updateJobsBadge(data.pendingJobsCount)
     }
 
     private fun renderFallbackState() {
@@ -351,7 +387,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun playEntranceAnimation() {
-        val views = listOf(
+        val views: List<View> = listOf(
             binding.homeHeaderContainer,
             binding.cardWorkAvailability,
             binding.tvDailyCollections,

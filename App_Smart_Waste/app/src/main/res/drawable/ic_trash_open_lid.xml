@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Lucide Open Trash / Trash2 with tilted lid in Lucide 2px stroke style -->
+    <!-- Tilted Lid Handle -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M11,3 L13.5,2.4" />
+    <!-- Tilted Lid -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M3.5,7.5 L20.5,3.5" />
+    <!-- Bin Rim -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M4,9.5 H20" />
+    <!-- Bin Body -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6,9.5 V19 C6,20.1 6.9,21 8,21 H16 C17.1,21 18,20.1 18,19 V9.5" />
+    <!-- Inner Slats -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M10,13 V17.5" />
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M14,13 V17.5" />
+</vector>

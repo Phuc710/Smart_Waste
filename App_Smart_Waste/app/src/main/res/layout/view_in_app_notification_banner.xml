@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootInAppBanner"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false"
+    android:paddingHorizontal="14dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="10dp">
+
+    <LinearLayout
+        android:id="@+id/layoutInAppBannerCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_in_app_banner_card"
+        android:elevation="12dp"
+        android:gravity="center_vertical"
+        android:minHeight="68dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp">
+
+        <!-- 1. Left Circular Icon Container -->
+        <FrameLayout
+            android:id="@+id/containerBannerIcon"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/bg_banner_icon_green">
+
+            <ImageView
+                android:id="@+id/ivBannerIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_banner_clipboard_green" />
+        </FrameLayout>
+
+        <!-- 2. Middle Content: Title Row + Subtitle -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Title Row with Dot Indicator -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/viewBannerDot"
+                    android:layout_width="7dp"
+                    android:layout_height="7dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_dot_active_green" />
+
+                <TextView
+                    android:id="@+id/tvBannerTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="#0F172A"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="Nhiệm vụ mới #JOB-0258" />
+            </LinearLayout>
+
+            <!-- Subtitle Description -->
+            <TextView
+                android:id="@+id/tvBannerSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:lineSpacingExtra="1.5dp"
+                android:maxLines="2"
+                android:textColor="#475569"
+                android:textSize="12.5sp"
+                tools:text="Bạn được giao tuyến thu gom 3 thùng rác." />
+        </LinearLayout>
+
+        <!-- 3. Right Action CTA Button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnBannerAction"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_btn_banner_action_green"
+            android:minWidth="76dp"
+            android:paddingHorizontal="14dp"
+            android:textAllCaps="false"
+            android:textColor="#16A34A"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            tools:text="Xem ngay" />
+
+    </LinearLayout>
+</FrameLayout>

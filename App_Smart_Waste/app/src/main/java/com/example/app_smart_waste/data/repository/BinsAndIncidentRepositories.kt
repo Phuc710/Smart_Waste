@@ -15,17 +15,31 @@ import okhttp3.RequestBody.Companion.toRequestBody
 class BinsRepository(private val context: Context) {
     private val api get() = RetrofitClient.getInstance(context).getApi()
 
+    companion object {
+        @Volatile
+        private var cachedBinsList: List<SmartBinDto> = emptyList()
+
+        fun getCachedBins(): List<SmartBinDto> = cachedBinsList
+    }
+
     suspend fun getBins(): Result<List<SmartBinDto>> = withContext(Dispatchers.IO) {
         try {
             val response = api.getBins()
             val body = response.body()
             if (response.isSuccessful && body != null) {
+                cachedBinsList = body
                 Result.success(body)
+            } else if (cachedBinsList.isNotEmpty()) {
+                Result.success(cachedBinsList)
             } else {
                 Result.failure(Exception("Lỗi tải danh sách thùng rác (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            if (cachedBinsList.isNotEmpty()) {
+                Result.success(cachedBinsList)
+            } else {
+                Result.failure(e)
+            }
         }
     }
 

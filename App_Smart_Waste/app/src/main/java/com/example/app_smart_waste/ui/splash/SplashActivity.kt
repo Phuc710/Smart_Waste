@@ -25,21 +25,28 @@ class SplashActivity : AppCompatActivity() {
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Subtle logo entrance animation (0ms - 400ms)
+        // Subtle logo & bottom entrance animation
         binding.logoContainer.alpha = 0f
-        binding.logoContainer.scaleX = 0.92f
-        binding.logoContainer.scaleY = 0.92f
+        binding.logoContainer.scaleX = 0.90f
+        binding.logoContainer.scaleY = 0.90f
         binding.logoContainer.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(400)
+            .setDuration(500)
             .setInterpolator(AccelerateDecelerateInterpolator())
+            .start()
+
+        binding.bottomSection.alpha = 0f
+        binding.bottomSection.animate()
+            .alpha(1f)
+            .setDuration(450)
+            .setStartDelay(200)
             .start()
 
         // Check authentication session in background
         lifecycleScope.launch {
-            delay(500) // Minimum time for smooth transition without stalling user
+            delay(700) // Minimum time for smooth transition without stalling user
             val result = authRepo.checkSession()
             if (result.isSuccess) {
                 val user = result.getOrNull()

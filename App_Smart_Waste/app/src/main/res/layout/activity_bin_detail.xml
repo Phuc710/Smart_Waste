@@ -6,39 +6,11 @@
     android:background="#F8FAF9"
     android:orientation="vertical">
 
-    <!-- Top Bar (Respects WindowInsets status bar) -->
-    <LinearLayout
-        android:id="@+id/binDetailHeaderBar"
+    <!-- 1. Unified AppHeader -->
+    <com.example.app_smart_waste.ui.common.AppHeaderView
+        android:id="@+id/appHeader"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:elevation="2dp"
-        android:gravity="center_vertical"
-        android:minHeight="56dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <ImageView
-            android:id="@+id/btnBack"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Quay lại"
-            android:src="@drawable/ic_arrow_back" />
-
-        <TextView
-            android:id="@+id/tvBinDetailHeader"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
-            android:layout_weight="1"
-            android:text="Thùng rác #BIN_HCM_02"
-            android:textColor="#111827"
-            android:textSize="18.5sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        android:layout_height="wrap_content" />
 
     <ScrollView
         android:layout_width="match_parent"

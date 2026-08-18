@@ -60,6 +60,15 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
         return res.status(400).json({ error: 'Vui lòng cung cấp mã thiết bị / thùng rác.' });
     }
 
+    // Validate photoUrl format if present: must be an approved storage object path or trusted URL
+    if (targetPhoto) {
+        const isValidPath = /^incidents\/[A-Za-z0-9_-]{1,64}\/[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png)$/i.test(targetPhoto) ||
+            /^[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png)$/i.test(targetPhoto);
+        if (!isValidPath) {
+            return res.status(400).json({ error: 'Đường dẫn ảnh minh chứng không hợp lệ. Vui lòng sử dụng luồng tải ảnh chuẩn.' });
+        }
+    }
+
     const report = await incidentService.createIncident({
         deviceId: targetDeviceId,
         employeeId: req.auth.user.id,

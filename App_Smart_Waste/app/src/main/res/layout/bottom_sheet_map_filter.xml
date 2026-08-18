@@ -49,111 +49,196 @@
                 android:src="@drawable/ic_close_gray" />
         </RelativeLayout>
 
-        <!-- SECTION 1: MỨC RÁC -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="Mức rác"
-            android:textColor="#0F172A"
-            android:textSize="14.5sp"
-            android:textStyle="bold" />
-
+        <!-- Checkbox Filter Rows (Matching Sheet A Mockup) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:orientation="vertical">
 
-            <!-- Checkbox >=85% (Red) -->
-            <CheckBox
-                android:id="@+id/cbFilterCritical"
+            <!-- 1. Critical (> 85%) -->
+            <LinearLayout
+                android:id="@+id/layoutRowCritical"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:checked="true"
-                android:text="🔴  ≥ 85% (Nguy cấp — Cần gom ngay)"
-                android:textColor="#0F172A"
-                android:textSize="13.5sp" />
+                android:layout_height="52dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
 
-            <!-- Checkbox 70% - <85% (Orange) -->
-            <CheckBox
-                android:id="@+id/cbFilterWarning"
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_circle_soft_red">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_stat_trash"
+                        app:tint="#DC2626" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Critical ( > 85% )"
+                    android:textColor="#0F172A"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold" />
+
+                <CheckBox
+                    android:id="@+id/cbFilterCritical"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:button="@null"
+                    android:background="@drawable/selector_filter_checkbox"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- 2. Warning (60% - 85%) -->
+            <LinearLayout
+                android:id="@+id/layoutRowWarning"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:checked="true"
-                android:text="🟡  70% — &lt; 85% (Cảnh báo)"
-                android:textColor="#0F172A"
-                android:textSize="13.5sp" />
+                android:layout_height="52dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
 
-            <!-- Checkbox <70% (Green) -->
-            <CheckBox
-                android:id="@+id/cbFilterNormal"
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_circle_soft_orange">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_stat_trash"
+                        app:tint="#EA580C" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Warning ( 60% - 85% )"
+                    android:textColor="#0F172A"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold" />
+
+                <CheckBox
+                    android:id="@+id/cbFilterWarning"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:button="@null"
+                    android:background="@drawable/selector_filter_checkbox"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- 3. Normal (< 60%) -->
+            <LinearLayout
+                android:id="@+id/layoutRowNormal"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:checked="true"
-                android:text="🟢  &lt; 70% (Bình thường)"
-                android:textColor="#0F172A"
-                android:textSize="13.5sp" />
+                android:layout_height="52dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
 
-            <!-- Checkbox Offline (Gray) -->
-            <CheckBox
-                android:id="@+id/cbFilterOffline"
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_circle_soft_green">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_stat_trash_green"
+                        app:tint="#16A34A" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Normal ( &lt; 60% )"
+                    android:textColor="#0F172A"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold" />
+
+                <CheckBox
+                    android:id="@+id/cbFilterNormal"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:button="@null"
+                    android:background="@drawable/selector_filter_checkbox"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <!-- 4. Offline -->
+            <LinearLayout
+                android:id="@+id/layoutRowOffline"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:checked="true"
-                android:text="⚪  Ngoại tuyến (Offline)"
-                android:textColor="#64748B"
-                android:textSize="13.5sp" />
-        </LinearLayout>
+                android:layout_height="52dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:background="#F1F5F9" />
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_circle_soft_gray">
 
-        <!-- SECTION 2: LOẠI THÙNG -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="Loại thùng"
-            android:textColor="#0F172A"
-            android:textSize="14.5sp"
-            android:textStyle="bold" />
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_stat_trash"
+                        app:tint="#64748B" />
+                </FrameLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Offline"
+                    android:textColor="#64748B"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold" />
 
-            <CheckBox
-                android:id="@+id/cbFilterType240L"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:checked="true"
-                android:text="Thùng 240L"
-                android:textColor="#0F172A"
-                android:textSize="13.5sp" />
-
-            <CheckBox
-                android:id="@+id/cbFilterType120L"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:checked="false"
-                android:text="Thùng 120L"
-                android:textColor="#0F172A"
-                android:textSize="13.5sp" />
-
-            <CheckBox
-                android:id="@+id/cbFilterType660L"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:checked="false"
-                android:text="Container 660L"
-                android:textColor="#0F172A"
-                android:textSize="13.5sp" />
+                <CheckBox
+                    android:id="@+id/cbFilterOffline"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:button="@null"
+                    android:background="@drawable/selector_filter_checkbox"
+                    android:checked="false" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- ACTION BUTTONS: [ Đặt lại ] | [ Áp dụng ] -->
@@ -167,9 +252,9 @@
                 android:id="@+id/btnResetFilter"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_btn_secondary_gray"
+                android:background="@drawable/bg_button_outlined_gray"
                 android:text="Đặt lại"
                 android:textAllCaps="false"
                 android:textColor="#0F172A"
@@ -180,9 +265,9 @@
                 android:id="@+id/btnApplyFilter"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1.2"
-                android:background="@drawable/bg_btn_primary_green"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1.3"
+                android:background="@drawable/bg_button_primary_green"
                 android:text="Áp dụng"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"

@@ -4,9 +4,10 @@ const env = require('../config/env');
 const logger = require('./logger');
 
 function supabaseHeaders(extra = {}) {
+    const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
     return {
-        apikey: env.SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
         ...extra
     };

@@ -36,32 +36,20 @@
                 android:background="@drawable/bg_chip_all_active"
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="6dp"
-                android:text="Tất cả"
+                android:text="Tất cả (0)"
                 android:textColor="@color/white"
                 android:textSize="12.5sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/chipIncidentFilterNew"
+                android:id="@+id/chipIncidentFilterInProgress"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_chip_filter_inactive"
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="6dp"
-                android:text="Mới gửi"
-                android:textColor="@color/app_text_primary"
-                android:textSize="12.5sp" />
-
-            <TextView
-                android:id="@+id/chipIncidentFilterInReview"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/bg_chip_filter_inactive"
-                android:paddingHorizontal="14dp"
-                android:paddingVertical="6dp"
-                android:text="Đang xử lý"
+                android:text="Đang xử lý (0)"
                 android:textColor="@color/app_text_primary"
                 android:textSize="12.5sp" />
 
@@ -72,7 +60,7 @@
                 android:background="@drawable/bg_chip_filter_inactive"
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="6dp"
-                android:text="Đã giải quyết"
+                android:text="Đã giải quyết (0)"
                 android:textColor="@color/app_text_primary"
                 android:textSize="12.5sp" />
         </LinearLayout>

@@ -12,6 +12,7 @@ const dispatchRoutes = require('./dispatchRoutes');
 const mobileRoutes = require('./mobileRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const settingsRoutes = require('./settingsRoutes');
+const firmwareRoutes = require('./firmwareRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/', employeeRoutes);
@@ -22,5 +23,7 @@ router.use('/dispatch', dispatchRoutes);
 router.use('/mobile', mobileRoutes);
 router.use('/', dashboardRoutes);
 router.use('/', settingsRoutes);
+router.use('/firmware', firmwareRoutes);
+router.use('/ota', firmwareRoutes);
 
 module.exports = router;

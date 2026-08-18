@@ -2,29 +2,30 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="wrap_content"
-    android:layout_height="32dp"
+    android:layout_height="36dp"
     android:layout_marginEnd="8dp"
     android:background="@drawable/bg_chip_filter_active"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="10dp">
+    android:paddingHorizontal="12dp">
 
     <TextView
         android:id="@+id/tvChipLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Mức đầy: > 85%"
-        android:textColor="#16A34A"
-        android:textSize="12sp"
+        android:textColor="#065F46"
+        android:textSize="12.5sp"
         android:textStyle="bold" />
 
     <ImageView
         android:id="@+id/btnRemoveChip"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:layout_marginStart="6dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Xóa bộ lọc"
+        android:padding="2dp"
         android:src="@drawable/ic_close_gray"
-        app:tint="#16A34A" />
+        app:tint="#065F46" />
 </LinearLayout>

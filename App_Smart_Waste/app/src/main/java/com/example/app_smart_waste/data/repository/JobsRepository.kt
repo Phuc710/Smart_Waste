@@ -182,13 +182,48 @@ class JobsRepository(private val context: Context) {
         longitude: Double,
         speed: Double? = null,
         heading: Double? = null,
-        accuracy: Double? = null
+        accuracy: Double? = null,
+        timestamp: String? = null,
+        jobId: String? = null,
+        trackingSessionId: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val payload = LocationPayload(latitude, longitude, speed, heading, accuracy)
+            val payload = LocationPayload(
+                latitude = latitude,
+                longitude = longitude,
+                speed = speed,
+                heading = heading,
+                accuracy = accuracy,
+                timestamp = timestamp,
+                jobId = jobId,
+                trackingSessionId = trackingSessionId
+            )
             val response = api.updateLocation(payload)
             if (response.isSuccessful) Result.success(true)
             else Result.failure(Exception("Không thể cập nhật GPS (HTTP ${response.code()})"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateGpsBatch(
+        locations: List<BatchLocationItem>,
+        trackingSessionId: String? = null,
+        jobId: String? = null
+    ): Result<BatchLocationResponse> = withContext(Dispatchers.IO) {
+        try {
+            val payload = BatchLocationPayload(
+                trackingSessionId = trackingSessionId,
+                jobId = jobId,
+                locations = locations
+            )
+            val response = api.updateLocationBatch(payload)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                Result.success(body)
+            } else {
+                Result.failure(Exception("Không thể đồng bộ batch GPS (HTTP ${response.code()})"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

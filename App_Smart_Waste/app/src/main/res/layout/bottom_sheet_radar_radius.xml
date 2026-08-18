@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:orientation="vertical"
+    android:paddingBottom="28dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="38dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp">
+
+        <!-- Header: Title + Close Button -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_radar_antenna"
+                    app:tint="#16A34A" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Bán kính quét Radar"
+                    android:textColor="#0F172A"
+                    android:textSize="17.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btnCloseRadarRadiusSheet"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Đóng"
+                android:padding="6dp"
+                android:src="@drawable/ic_close_gray" />
+        </RelativeLayout>
+
+        <!-- Radius Options List -->
+        <RadioGroup
+            android:id="@+id/rgRadarRadius"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical">
+
+            <!-- 1. 300 m -->
+            <RadioButton
+                android:id="@+id/rbRadius300"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:buttonTint="@color/profile_green_primary"
+                android:paddingStart="8dp"
+                android:text="300 m — Khu vực lân cận"
+                android:textColor="#0F172A"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- 2. 500 m (Mặc định) -->
+            <RadioButton
+                android:id="@+id/rbRadius500"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:buttonTint="@color/profile_green_primary"
+                android:checked="true"
+                android:paddingStart="8dp"
+                android:text="500 m (Mặc định) — Tuyến gom nhanh"
+                android:textColor="#0F172A"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- 3. 1000 m (1 km) -->
+            <RadioButton
+                android:id="@+id/rbRadius1000"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:buttonTint="@color/profile_green_primary"
+                android:paddingStart="8dp"
+                android:text="1000 m (1 km) — Mở rộng khu vực"
+                android:textColor="#0F172A"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- 4. 2000 m (2 km) -->
+            <RadioButton
+                android:id="@+id/rbRadius2000"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:buttonTint="@color/profile_green_primary"
+                android:paddingStart="8dp"
+                android:text="2000 m (2 km) — Toàn phường / quận"
+                android:textColor="#0F172A"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </RadioGroup>
+
+        <!-- Apply Button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnApplyRadarRadius"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Áp dụng bán kính"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+</LinearLayout>

@@ -61,6 +61,9 @@ interface ApiService {
     @POST("api/location")
     suspend fun updateLocation(@Body payload: LocationPayload): Response<ActionResponse>
 
+    @POST("api/location/batch")
+    suspend fun updateLocationBatch(@Body payload: BatchLocationPayload): Response<BatchLocationResponse>
+
     // 5. Incidents
     @POST("api/incidents")
     suspend fun reportIncident(@Body request: IncidentRequest): Response<ActionResponse>

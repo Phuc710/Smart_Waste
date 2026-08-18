@@ -142,6 +142,101 @@ async function updateLocation(tokenHash, user, { latitude, longitude, accuracy, 
     return locObj;
 }
 
+async function updateLocationBatch(tokenHash, user, { trackingSessionId, jobId, locations }) {
+    if (!Array.isArray(locations) || locations.length === 0) {
+        return { ok: true, syncedCount: 0, serverTime: new Date().toISOString() };
+    }
+
+    // 1. Filter valid location points
+    const validPoints = locations.filter(pt => 
+        pt && 
+        pt.latitude !== null && pt.latitude !== undefined &&
+        pt.longitude !== null && pt.longitude !== undefined &&
+        Number.isFinite(Number(pt.latitude)) && 
+        Number.isFinite(Number(pt.longitude)) &&
+        Number(pt.latitude) >= -90 && Number(pt.latitude) <= 90 &&
+        Number(pt.longitude) >= -180 && Number(pt.longitude) <= 180
+    );
+
+    if (validPoints.length === 0) {
+        return { ok: true, syncedCount: 0, serverTime: new Date().toISOString() };
+    }
+
+    // 2. Sort by satellite/device recording timestamp in ascending order
+    validPoints.sort((a, b) => {
+        const timeA = Date.parse(a.timestamp || '') || 0;
+        const timeB = Date.parse(b.timestamp || '') || 0;
+        return timeA - timeB;
+    });
+
+    // 3. Persist all breadcrumb points into employee_location_points history table
+    const breadcrumbs = validPoints.map(pt => ({
+        employee_id: user.id,
+        tracking_session_id: trackingSessionId || null,
+        job_id: jobId || null,
+        latitude: Number(pt.latitude),
+        longitude: Number(pt.longitude),
+        accuracy: Number.isFinite(Number(pt.accuracy)) ? Number(pt.accuracy) : null,
+        heading: Number.isFinite(Number(pt.heading)) ? Number(pt.heading) : null,
+        speed: Number.isFinite(Number(pt.speed)) ? Number(pt.speed) : null,
+        recorded_at: pt.timestamp || new Date().toISOString()
+    }));
+
+    await supabaseServiceRequest('employee_location_points', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(breadcrumbs)
+    }).catch((err) => logger.error('Breadcrumbs save', err.message));
+
+    // 4. Newest location point in the batch
+    const latestPoint = validPoints[validPoints.length - 1];
+    const latestTimestamp = latestPoint.timestamp || new Date().toISOString();
+
+    // 5. Conditionally update current location ONLY if this point is newer than existing DB recorded_at
+    await callRpc('employee_location_update_if_newer', {
+        p_token_hash: tokenHash,
+        p_latitude: Number(latestPoint.latitude),
+        p_longitude: Number(latestPoint.longitude),
+        p_accuracy: Number.isFinite(Number(latestPoint.accuracy)) ? Number(latestPoint.accuracy) : null,
+        p_heading: Number.isFinite(Number(latestPoint.heading)) ? Number(latestPoint.heading) : null,
+        p_speed: Number.isFinite(Number(latestPoint.speed)) ? Number(latestPoint.speed) : null,
+        p_recorded_at: latestTimestamp
+    });
+
+    const cachedLoc = stateStore.employeeLocationsCache.get(user.id);
+    const cachedTime = cachedLoc ? Date.parse(cachedLoc.recorded_at || '') : 0;
+    const batchTime = Date.parse(latestTimestamp) || 0;
+
+    let locObj = cachedLoc;
+    if (!cachedLoc || batchTime >= cachedTime) {
+        locObj = {
+            employee_id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            role: user.role,
+            latitude: Number(latestPoint.latitude),
+            longitude: Number(latestPoint.longitude),
+            accuracy: Number(latestPoint.accuracy) || null,
+            heading: Number(latestPoint.heading) || null,
+            speed: Number(latestPoint.speed) || null,
+            tracking_session_id: trackingSessionId || null,
+            job_id: jobId || null,
+            recorded_at: latestTimestamp
+        };
+        stateStore.employeeLocationsCache.set(user.id, locObj);
+        stateStore.emitTo('admins', 'employeeLocation', locObj);
+    }
+
+    logger.info('GPS Batch Sync', `Synced ${validPoints.length} points for driver ${user.username} (${user.id})`);
+
+    return {
+        ok: true,
+        syncedCount: validPoints.length,
+        serverTime: new Date().toISOString(),
+        latestLocation: locObj
+    };
+}
+
 async function listLocations(tokenHash) {
     const rows = await callRpc('employee_location_list', { p_token_hash: tokenHash });
     const result = [];
@@ -197,5 +292,6 @@ module.exports = {
     setEmployeeActive,
     deleteEmployee,
     updateLocation,
+    updateLocationBatch,
     listLocations
 };

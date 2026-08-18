@@ -34,7 +34,7 @@ class IncidentReportActivity : AppCompatActivity() {
             incidentPhoto = bitmap
             binding.ivIncidentPhoto.setImageBitmap(bitmap)
             binding.layoutPhotoPreview.visibility = View.VISIBLE
-            binding.btnCaptureIncident.text = "📷 Chụp lại ảnh khác"
+            binding.btnCaptureIncident.text = "Chụp lại ảnh khác"
         }
     }
 
@@ -66,7 +66,7 @@ class IncidentReportActivity : AppCompatActivity() {
         binding.btnRemovePhoto.setOnClickListener {
             incidentPhoto = null
             binding.layoutPhotoPreview.visibility = View.GONE
-            binding.btnCaptureIncident.text = "📷 Chụp ảnh hiện trường"
+            binding.btnCaptureIncident.text = "Chụp ảnh hiện trường"
         }
         binding.btnSubmitIncident.setOnClickListener { submitIncident() }
     }

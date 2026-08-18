@@ -6,6 +6,7 @@ import SmartBinsPage from './pages/SmartBinsPage';
 import OperationsPage from './pages/OperationsPage';
 import EmployeesPage from './pages/EmployeesPage';
 import SettingsPage from './pages/SettingsPage';
+import FirmwarePage from './pages/FirmwarePage';
 import LoginPage from './pages/LoginPage';
 import Toast from './components/Toast';
 import { api } from './services/api';
@@ -537,6 +538,14 @@ export default function App() {
             currentUser={user}
             onNotify={notify}
             onUpdateCurrentUser={(updated) => setUser(prev => ({ ...prev, ...updated }))}
+          />
+        )}
+
+        {activeView === 'firmware' && (
+          <FirmwarePage
+            notify={notify}
+            bins={bins}
+            onOpenMap={() => setActiveView('map')}
           />
         )}
 

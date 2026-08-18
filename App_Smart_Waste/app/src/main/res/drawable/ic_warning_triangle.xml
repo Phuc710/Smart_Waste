@@ -1,9 +1,23 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
+    android:width="20dp"
+    android:height="20dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Lucide TriangleAlert (official: m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3) -->
     <path
-        android:fillColor="@color/app_text_secondary"
-        android:pathData="M1,21h22L12,2 1,21zm12,-3h-2v-2h2v2zm0,-4h-2v-4h2v4z" />
+        android:strokeColor="#DC2626"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M21.73,18 L13.73,4 C12.96,2.67 11.04,2.67 10.27,4 L2.27,18 C1.5,19.33 2.46,21 4,21 H20 C21.54,21 22.5,19.33 21.73,18 Z" />
+    <path
+        android:strokeColor="#DC2626"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M12,9 V13" />
+    <path
+        android:strokeColor="#DC2626"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M12,17 H12.01" />
 </vector>

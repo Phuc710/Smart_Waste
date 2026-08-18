@@ -25,107 +25,39 @@
         android:paddingTop="12dp"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- 2.1 Default Map Top Header: Menu + Title "Bản đồ 🟢 Đang online" + Bell -->
-        <RelativeLayout
+        <!-- 2.1 Unified Top Floating Bar (Case 01 Mockup: [ ☰ ] [ 🔍 Tìm thùng rác, địa điểm... ] [ 🔔 ]) -->
+        <LinearLayout
             android:id="@+id/headerMapDefault"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingVertical="6dp">
-
-            <ImageView
-                android:id="@+id/btnMapMenu"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                android:background="@drawable/bg_card_clean"
-                android:elevation="2dp"
-                android:padding="9dp"
-                android:src="@drawable/ic_menu_hamburger" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Bản đồ"
-                    android:textColor="#0F172A"
-                    android:textSize="17.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvOnlineStatusPill"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:background="@drawable/bg_chip_completed_active"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="1.5dp"
-                    android:text="🟢 Đang online"
-                    android:textColor="#16A34A"
-                    android:textSize="10.5sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <FrameLayout
-                android:id="@+id/btnMapBell"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="@drawable/bg_card_clean"
-                android:clickable="true"
-                android:elevation="2dp"
-                android:focusable="true">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_bell"
-                    app:tint="#0F172A" />
-
-                <TextView
-                    android:id="@+id/badgeMapNotif"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
-                    android:layout_gravity="top|end"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:background="@drawable/bg_badge_count_red"
-                    android:gravity="center"
-                    android:text="3"
-                    android:textColor="#FFFFFF"
-                    android:textSize="8.5sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
-        </RelativeLayout>
-
-        <!-- 2.2 Case 03: Floating Search Bar + Filter Button -->
-        <LinearLayout
-            android:id="@+id/searchBarContainer"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
+            android:layout_height="46dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Search Input Box -->
+            <!-- 1. Menu Hamburger Button -->
+            <ImageView
+                android:id="@+id/btnMapMenu"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_card_clean"
+                android:clickable="true"
+                android:contentDescription="Menu"
+                android:elevation="3dp"
+                android:focusable="true"
+                android:padding="11dp"
+                android:src="@drawable/ic_menu_hamburger" />
+
+            <!-- 2. Search Input Box -->
             <LinearLayout
+                android:id="@+id/searchBarContainer"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="8dp"
+                android:layout_height="44dp"
+                android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_card_clean"
                 android:elevation="3dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="14dp">
+                android:paddingHorizontal="12dp">
 
                 <ImageView
                     android:layout_width="18dp"
@@ -137,10 +69,10 @@
                     android:id="@+id/etSearchMapBins"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="Tìm thùng rác (VD: BIN_HCM_023)..."
+                    android:hint="Tìm thùng rác, địa điểm..."
                     android:imeOptions="actionSearch"
                     android:inputType="text"
                     android:maxLines="1"
@@ -158,120 +90,230 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <!-- Filter Button -->
+            <!-- 3. Filter Funnel Button (Lucide Funnel) -->
             <FrameLayout
                 android:id="@+id/btnMapFilter"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="@drawable/bg_card_clean"
                 android:clickable="true"
+                android:contentDescription="Bộ lọc"
                 android:elevation="3dp"
                 android:focusable="true">
 
                 <ImageView
+                    android:id="@+id/ivMapFilterIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_filter_funnel"
-                    app:tint="#16A34A" />
+                    android:src="@drawable/ic_lucide_funnel"
+                    app:tint="#0F172A" />
+
+                <!-- Active Filter Indicator Dot -->
+                <View
+                    android:id="@+id/badgeMapFilterActive"
+                    android:layout_width="9dp"
+                    android:layout_height="9dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="7dp"
+                    android:layout_marginEnd="7dp"
+                    android:background="@drawable/bg_badge_filter_dot"
+                    android:visibility="gone" />
             </FrameLayout>
         </LinearLayout>
 
-        <!-- 2.3 Case 08: Active Filter Chips Row -->
-        <HorizontalScrollView
-            android:id="@+id/scrollActiveFilterChips"
+        <!-- Hidden Online status pill for backward-compatible binding -->
+        <TextView
+            android:id="@+id/tvOnlineStatusPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+        <!-- 2.2 Active Filter Chips & Radar Status Container (Only shown when chips/radar are active) -->
+        <LinearLayout
+            android:id="@+id/layoutFilterBarContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:scrollbars="none"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:visibility="gone">
 
+            <!-- Case 05: Floating Radar Status & Radius Setting Pill [ 📡 Radar: 500 m ] -->
             <LinearLayout
-                android:id="@+id/layoutActiveFilterChips"
+                android:id="@+id/pillRadarStatus"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_chip_completed_active"
+                android:clickable="true"
+                android:elevation="3dp"
+                android:focusable="true"
                 android:gravity="center_vertical"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
+                android:visibility="gone">
 
-        <!-- 2.4 Case 07: Top Turn-by-Turn Navigation Banner -->
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_radar_antenna"
+                    app:tint="#FFFFFF" />
+
+                <TextView
+                    android:id="@+id/tvRadarPillRadius"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="Radar: 500 m"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:id="@+id/scrollActiveFilterChips"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/layoutActiveFilterChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+        </LinearLayout>
+
+        <!-- 2.4 Case 04: Top Turn-by-Turn Navigation Header (Card xanh đậm + Sub-metrics row) -->
         <LinearLayout
             android:id="@+id/bannerTurnByTurnNav"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:background="@drawable/bg_banner_green"
-            android:elevation="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp"
+            android:orientation="vertical"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tvNavNextTurnDist"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="↰ 120 m"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvNavNextTurnInstruction"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_weight="1"
-                android:text="Rẽ phải vào Nguyễn Huệ"
-                android:textColor="#FFFFFF"
-                android:textSize="14.5sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- 2.4 Case 14: Top Offline Warning Banner -->
-        <LinearLayout
-            android:id="@+id/bannerOfflineWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_btn_danger_soft"
-            android:elevation="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="14dp"
-            android:paddingVertical="10dp"
-            android:visibility="gone">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_warning_triangle"
-                app:tint="#DC2626" />
-
+            <!-- Main Dark Green Turn Card -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:background="@drawable/bg_banner_green"
+                android:elevation="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
 
                 <TextView
+                    android:id="@+id/tvNavNextTurnDist"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bạn đang ở chế độ offline"
-                    android:textColor="#DC2626"
-                    android:textSize="13sp"
+                    android:text="↱ 120 m"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tvNavNextTurnInstruction"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Một số tính năng và dữ liệu thời gian thực bị giới hạn."
-                    android:textColor="#991B1B"
-                    android:textSize="11sp" />
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:text="Rẽ phải vào\nĐường Nguyễn Thị Minh Khai"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Unified Horizontal Navigation Info Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_card_clean"
+                android:elevation="3dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp">
+
+                <!-- Column 1: ETA -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.04"
+                        android:text="ETA"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvNavEtaText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="1 phút"
+                        android:textColor="#0F172A"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Column 2: KHOẢNG CÁCH -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.2"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.04"
+                        android:text="KHOẢNG CÁCH"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvNavTotalDistance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="373 m"
+                        android:textColor="#0F172A"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Column 3: Speaker Button -->
+                <FrameLayout
+                    android:id="@+id/btnNavSpeakerToggle"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_circle_notif_red"
+                    android:backgroundTint="#F1F5F9"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_volume_up"
+                        app:tint="#0F172A" />
+                </FrameLayout>
             </LinearLayout>
         </LinearLayout>
+
 
     </LinearLayout>
 
@@ -284,65 +326,140 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
         app:layout_constraintBottom_toTopOf="@id/bottomCardsContainer"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Case 08: Self-Pick Radar Toggle Button -->
+        <!-- 1. My Location / Recenter Button ("Tập trung") -->
+        <LinearLayout
+            android:id="@+id/layoutBtnMyLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@+id/btnMyLocation"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_card_clean"
+                android:clickable="true"
+                android:elevation="4dp"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivLocateFabIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_gps_locate"
+                    app:tint="#0F172A" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvBtnMyLocationLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Tập trung"
+                android:textColor="#334155"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- 2. Overview Button ("Tổng quan" - Visible during Navigation / Route) -->
+        <LinearLayout
+            android:id="@+id/layoutBtnNavOverview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:id="@+id/btnNavOverview"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_card_clean"
+                android:clickable="true"
+                android:elevation="4dp"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_nav_overview"
+                    app:tint="#0F172A" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Tổng quan"
+                android:textColor="#334155"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 3. Case 05: Self-Pick Radar Toggle Button -->
         <FrameLayout
             android:id="@+id/btnToggleSelfPickRadar"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginBottom="12dp"
             android:background="@drawable/bg_card_clean"
             android:clickable="true"
             android:elevation="4dp"
             android:focusable="true">
 
             <ImageView
+                android:id="@+id/ivRadarFabIcon"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_route_optimize"
+                android:src="@drawable/ic_radar_antenna"
                 app:tint="#16A34A" />
         </FrameLayout>
+    </LinearLayout>
 
-        <!-- Case 18: Map Layers (Mặc định / Vệ tinh / Địa hình) -->
-        <FrameLayout
-            android:id="@+id/btnMapLayers"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_card_clean"
-            android:clickable="true"
-            android:elevation="4dp"
-            android:focusable="true">
+    <!-- Floating Resume Auto Follow Button ("🎯 Tiếp tục theo dõi") -->
+    <LinearLayout
+        android:id="@+id/btnResumeAutoFollow"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_btn_pill_dark"
+        android:clickable="true"
+        android:elevation="6dp"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottomCardsContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_layer"
-                app:tint="#0F172A" />
-        </FrameLayout>
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_gps_locate"
+            app:tint="#FFFFFF" />
 
-        <!-- Case 05: My Location Button (Locate Driver) -->
-        <FrameLayout
-            android:id="@+id/btnMyLocation"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_card_clean"
-            android:clickable="true"
-            android:elevation="4dp"
-            android:focusable="true">
-
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_gps_locate"
-                app:tint="#2563EB" />
-        </FrameLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="Tiếp tục theo dõi"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
@@ -353,10 +470,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingHorizontal="16dp"
-        android:paddingBottom="12dp"
+        android:layout_marginBottom="12dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- 4.1 CASE 01: Default Map Bottom Preview Card (3 nhiệm vụ gần đây) -->
+        <!-- 4.1 CASE 01: Default Map Bottom Preview Card (Hidden by default to keep map clean) -->
         <LinearLayout
             android:id="@+id/cardDefaultRecentTasks"
             android:layout_width="match_parent"
@@ -365,7 +482,7 @@
             android:elevation="6dp"
             android:orientation="vertical"
             android:padding="16dp"
-            android:visibility="visible">
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -445,7 +562,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 4.2 CASE 04: Selected Bin Preview Card (BIN_HCM_045 | Chi tiết | Dẫn đường) -->
+        <!-- 4.2 CASE 02: Selected Bin Preview Card — compact style -->
         <LinearLayout
             android:id="@+id/cardSelectedBinPreview"
             android:layout_width="match_parent"
@@ -453,24 +570,31 @@
             android:background="@drawable/bg_card_clean"
             android:elevation="6dp"
             android:orientation="vertical"
-            android:padding="16dp"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="12dp"
             android:visibility="gone">
 
+            <!-- Row 1: Icon + Info -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
+                <!-- Bin Icon -->
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:id="@+id/ivSelectedBinAvatar"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:contentDescription="Thùng rác"
                     android:src="@drawable/ic_stat_trash_green" />
 
+                <!-- Name + Address -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="12dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
@@ -478,43 +602,73 @@
                         android:id="@+id/tvSelectedBinName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="BIN_HCM_045"
+                        android:text="BIN_HCM_089"
                         android:textColor="#0F172A"
-                        android:textSize="15.5sp"
+                        android:textSize="14.5sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvSelectedBinAddress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Lê Lợi, Quận 1, TP. HCM"
+                        android:layout_marginTop="1dp"
+                        android:text="45 Võ Văn Tần, Q.3, TP.HCM"
                         android:textColor="#64748B"
-                        android:textSize="12.5sp" />
+                        android:textSize="12sp"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
                 </LinearLayout>
+
+                <!-- Distance badge -->
+                <TextView
+                    android:id="@+id/tvSelectedBinDistanceMeta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="#1A73E8"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Row 2: Fill level label + progress bar + percent -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/tvSelectedBinFillBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/badge_warning"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2.5dp"
-                    android:text="70%"
-                    android:textColor="#D97706"
-                    android:textSize="12sp"
+                    android:text="Mức đầy"
+                    android:textColor="#64748B"
+                    android:textSize="11.5sp" />
+
+                <ProgressBar
+                    android:id="@+id/pbSelectedBinFill"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="0dp"
+                    android:layout_height="5dp"
+                    android:layout_marginHorizontal="10dp"
+                    android:layout_weight="1"
+                    android:max="100"
+                    android:progress="72"
+                    android:progressDrawable="@drawable/bg_bin_percent_red" />
+
+                <TextView
+                    android:id="@+id/tvSelectedBinPercentText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="72%"
+                    android:textColor="#EF4444"
+                    android:textSize="12.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvSelectedBinDistanceMeta"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="📍 Cách 230 m"
-                android:textColor="#64748B"
-                android:textSize="12.5sp" />
-
+            <!-- Row 3: Action Buttons -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -524,10 +678,10 @@
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnViewBinDetailSheet"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="42dp"
                     android:layout_marginEnd="6dp"
                     android:layout_weight="1"
-                    android:background="@drawable/bg_btn_secondary_gray"
+                    android:background="@drawable/bg_button_outlined_gray"
                     android:text="Chi tiết"
                     android:textAllCaps="false"
                     android:textColor="#0F172A"
@@ -537,11 +691,11 @@
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnNavigateToSelectedBin"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="42dp"
                     android:layout_marginStart="6dp"
-                    android:layout_weight="1.2"
-                    android:background="@drawable/bg_btn_primary_green"
-                    android:text="🧭 Dẫn đường"
+                    android:layout_weight="1.3"
+                    android:background="@drawable/bg_button_primary_green"
+                    android:text="↗ Dẫn đường"
                     android:textAllCaps="false"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
@@ -549,7 +703,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 4.3 CASE 06: Active Job Route Card (JOB_1723801234 | 3/5 điểm | Tiếp theo...) -->
+        <!-- 4.3 CASE 03: Active Job Route Card (JOB_1786971461509 | 0/3 điểm | Tuyến: ...) -->
         <LinearLayout
             android:id="@+id/cardActiveJobRoute"
             android:layout_width="match_parent"
@@ -557,9 +711,20 @@
             android:background="@drawable/bg_card_clean"
             android:elevation="6dp"
             android:orientation="vertical"
-            android:padding="16dp"
+            android:paddingHorizontal="18dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="16dp"
             android:visibility="gone">
 
+            <!-- Drag Handle -->
+            <View
+                android:layout_width="36dp"
+                android:layout_height="4dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_drag_handle" />
+
+            <!-- Row 1: Code + Badge -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -571,37 +736,382 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="JOB_1723801234"
+                    android:text="#JOB_1786971461509"
                     android:textColor="#0F172A"
-                    android:textSize="15.5sp"
+                    android:textSize="16.5sp"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvActiveJobStatusBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_tag_dang_thuc_hien"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
+                    android:background="@drawable/bg_btn_soft_green"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
                     android:text="Đang thực hiện"
-                    android:textColor="#16A34A"
-                    android:textSize="11sp"
+                    android:textColor="@color/profile_green_primary"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
+            <!-- Row 2: Progress Fraction -->
             <TextView
                 android:id="@+id/tvActiveJobProgressFraction"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="3 / 5 điểm • Hoàn thành 60%"
-                android:textColor="#64748B"
-                android:textSize="12.5sp" />
+                android:layout_marginTop="8dp"
+                android:text="0 / 3 điểm • Hoàn thành 0%"
+                android:textColor="#334155"
+                android:textSize="13.5sp"
+                android:textStyle="bold" />
 
-            <View
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/pbActiveJobProgress"
+                style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="10dp"
-                android:background="#F1F5F9" />
+                android:layout_height="5dp"
+                android:layout_marginTop="8dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/bg_bin_percent_green" />
+
+            <!-- Row 3: Route Info with Green Pin Icon -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:gravity="top"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="2dp"
+                    android:src="@drawable/ic_location_pin"
+                    app:tint="@color/profile_green_primary" />
+
+                <TextView
+                    android:id="@+id/tvActiveJobRouteInfo"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:lineSpacingMultiplier="1.2"
+                    android:text="Tuyến: Khu vực Tượng đài Bác Hồ, Nguyễn Huệ, Quận 1 → Ga Quốc Tế T2, Trường Sơn, Tân Bình"
+                    android:textColor="#0F172A"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Hidden view for programmatic next stop compatibility -->
+            <TextView
+                android:id="@+id/tvActiveJobStartTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvActiveJobNextStopName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvActiveJobNextStopEta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <!-- Row 4: Full-width Green Button [ Xem chi tiết job › ] -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnViewActiveJobDetail"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_button_primary_green"
+                android:text="Xem chi tiết job   ›"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 4.4 CASE 04: Active Navigation Exit Button Card ([ Thoát dẫn đường  ✕ ]) -->
+        <FrameLayout
+            android:id="@+id/cardActiveNavigationBottom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/btnExitNavigation"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_card_clean"
+                android:clickable="true"
+                android:elevation="6dp"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Thoát dẫn đường"
+                    android:textColor="#DC2626"
+                    android:textSize="15.5sp"
+                    android:textStyle="bold" />
+
+                <FrameLayout
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_btn_soft_red">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="✕"
+                        android:textColor="#DC2626"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 4.15 NAVIGATION CONFIRMATION PREVIEW CARD -->
+        <LinearLayout
+            android:id="@+id/cardNavConfirmPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_clean"
+            android:elevation="8dp"
+            android:orientation="vertical"
+            android:paddingHorizontal="18dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:visibility="gone">
+
+            <!-- Title: XÁC NHẬN DẪN ĐƯỜNG -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="XÁC NHẬN DẪN ĐƯỜNG"
+                android:textColor="#64748B"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+            <!-- Target Bin Info -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_location_pin"
+                    app:tint="#EA4335" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvNavConfirmBinName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BIN_HCM_02"
+                        android:textColor="#0F172A"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvNavConfirmBinAddress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:text="Khu vực Tượng đài Bác Hồ, Nguyễn Huệ, Quận 1"
+                        android:textColor="#64748B"
+                        android:textSize="12.5sp"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Metrics Row: Khoảng cách & Thời gian dự kiến -->
+            <LinearLayout
+                android:id="@+id/layoutNavConfirmMetrics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_btn_soft_blue"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp">
+
+                <!-- Distance -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📍 "
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Khoảng cách: "
+                        android:textColor="#64748B"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvNavConfirmDistance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2.4 km"
+                        android:textColor="#1E293B"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Duration -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏱ "
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Dự kiến: "
+                        android:textColor="#64748B"
+                        android:textSize="12.5sp" />
+
+                    <TextView
+                        android:id="@+id/tvNavConfirmEta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="8 phút"
+                        android:textColor="#1E293B"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Case 02 Offline / GPS Warning Banner -->
+            <LinearLayout
+                android:id="@+id/layoutNavConfirmGpsError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_notif_icon_circle_red"
+                android:orientation="horizontal"
+                android:padding="10dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_warning_triangle" />
+
+                <TextView
+                    android:id="@+id/tvNavConfirmGpsErrorMsg"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="Không xác định được vị trí hiện tại.\nVui lòng bật GPS và thử lại."
+                    android:textColor="#DC2626"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Action Buttons: [ Hủy ]  [ Bắt đầu dẫn đường ] or [ Thử lại ] -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnNavConfirmCancel"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_button_outlined_gray"
+                    android:text="Hủy"
+                    android:textAllCaps="false"
+                    android:textColor="#64748B"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnNavConfirmStart"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1.6"
+                    android:background="@drawable/bg_button_primary_green"
+                    android:text="Bắt đầu dẫn đường"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnNavConfirmRetryGps"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1.6"
+                    android:background="@drawable/bg_button_outlined_gray"
+                    android:text="Thử lại"
+                    android:textAllCaps="false"
+                    android:textColor="#2563EB"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 4.16 ARRIVED AT DESTINATION CARD -->
+        <LinearLayout
+            android:id="@+id/cardNavArrivedBottom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_clean"
+            android:elevation="8dp"
+            android:orientation="vertical"
+            android:paddingHorizontal="18dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -609,97 +1119,61 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_notif_icon_circle_green">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_check"
+                        app:tint="#16A34A" />
+                </FrameLayout>
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/tvActiveJobNextStopName"
+                        android:id="@+id/tvNavArrivedTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tiếp theo: BIN_HCM_045"
+                        android:text="📍 Bạn đã đến BIN_HCM_02"
                         android:textColor="#0F172A"
-                        android:textSize="13.5sp"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
-                        android:id="@+id/tvActiveJobNextStopEta"
+                        android:id="@+id/tvNavArrivedSubtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Cách 1.2 km • 4 phút"
-                        android:textColor="#64748B"
-                        android:textSize="12sp" />
+                        android:text="Khoảng cách tới điểm: ~20 m"
+                        android:textColor="#16A34A"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnViewActiveJobDetail"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:background="@drawable/bg_btn_secondary_gray"
-                    android:paddingHorizontal="14dp"
-                    android:text="Chi tiết"
-                    android:textAllCaps="false"
-                    android:textColor="#0F172A"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- 4.4 CASE 07: Active Navigation Turn-by-Turn Card (2.4 km • 8 phút | [Thoát]) -->
-        <LinearLayout
-            android:id="@+id/cardActiveNavigationBottom"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card_clean"
-            android:elevation="6dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="18dp"
-            android:paddingVertical="14dp"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvNavTotalDistance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2.4 km"
-                    android:textColor="#0F172A"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvNavEtaText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="8 phút • 09:45 đến nơi"
-                    android:textColor="#64748B"
-                    android:textSize="13sp" />
             </LinearLayout>
 
             <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnExitNavigation"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:background="@drawable/bg_btn_danger_soft"
-                android:paddingHorizontal="18dp"
-                android:text="Thoát"
+                android:id="@+id/btnNavArrivedStartCollect"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/bg_button_primary_green"
+                android:text="Bắt đầu thu gom"
                 android:textAllCaps="false"
-                android:textColor="#DC2626"
-                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 4.5 CASE 08: Self-Pick Radar Card (5 thùng >85% trong 1km | [Tạo job]) -->
+        <!-- 4.5 CASE 05: Self-Pick Radar Card (Tìm thấy 6 thùng trong bán kính 500 m | [Tạo job]) -->
         <LinearLayout
             android:id="@+id/cardSelfPickRadarBottom"
             android:layout_width="match_parent"
@@ -710,37 +1184,68 @@
             android:padding="16dp"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tvRadarFoundCount"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="5 thùng >85% trong bán kính 1km"
-                android:textColor="#0F172A"
-                android:textSize="14.5sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Chọn thùng để tạo ca làm việc tự nhận."
-                android:textColor="#64748B"
-                android:textSize="12.5sp" />
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_circle_notif_green">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_route_optimize"
+                        app:tint="#16A34A" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvRadarFoundCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tìm thấy 6 thùng\ntrong bán kính 500 m"
+                        android:textColor="#0F172A"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvRadarCriticalMeta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="Trong đó: 4 thùng mức đầy > 85%"
+                        android:textColor="#DC2626"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btnOpenCreateSelfPickJobSheet"
                 android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_btn_primary_green"
-                android:text="Tạo job (5 điểm)"
+                android:layout_height="48dp"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/bg_button_primary_green"
+                android:text="Tạo job (6 điểm)"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
-                android:textSize="14.5sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 4.6 CASE 13: GPS Off / Denied Card (Không thể xác định vị trí | [Mở cài đặt]) -->
+
+        <!-- 4.7 CASE 07: GPS Off / Denied Card (Không thể xác định vị trí | [Mở cài đặt]) -->
         <LinearLayout
             android:id="@+id/cardGpsDisabled"
             android:layout_width="match_parent"
@@ -788,53 +1293,71 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 4.7 CASE 15: No Bins Found Card (Không tìm thấy thùng rác | [Đặt lại bộ lọc]) -->
+        <!-- 4.8 CASE 06: No Bins Found Card (Không tìm thấy thùng rác | [Đặt lại bộ lọc]) -->
         <LinearLayout
             android:id="@+id/cardNoBinsFound"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_card_clean"
             android:elevation="6dp"
-            android:gravity="center"
             android:orientation="vertical"
             android:padding="20dp"
             android:visibility="gone">
 
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:alpha="0.7"
-                android:src="@drawable/ic_trash_bin_red"
-                app:tint="#64748B" />
-
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="Không tìm thấy thùng rác"
-                android:textColor="#0F172A"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center"
-                android:text="Thử thay đổi bộ lọc hoặc khu vực tìm kiếm."
-                android:textColor="#64748B"
-                android:textSize="12.5sp" />
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_dialog_item_field">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_search_clean"
+                        app:tint="#64748B" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Không tìm thấy thùng rác"
+                        android:textColor="#0F172A"
+                        android:textSize="15.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="Thử thay đổi bộ lọc để tìm\nkết quả phù hợp hơn."
+                        android:textColor="#64748B"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btnResetFiltersFromEmpty"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="14dp"
-                android:background="@drawable/bg_btn_primary_green"
+                android:layout_height="46dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_btn_outline_green"
                 android:text="Đặt lại bộ lọc"
                 android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
+                android:textColor="#16A34A"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 

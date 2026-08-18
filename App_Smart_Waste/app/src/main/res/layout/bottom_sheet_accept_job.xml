@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_map"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="28dp">
+
+    <!-- Blue Clipboard Icon Header -->
+    <ImageView
+        android:id="@+id/imgAcceptJobIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="Xác nhận nhận nhiệm vụ"
+        android:src="@drawable/ic_clipboard_blue_task" />
+
+    <!-- Dialog Title: Xác nhận nhận nhiệm vụ? -->
+    <TextView
+        android:id="@+id/tvAcceptSheetTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Xác nhận nhận nhiệm vụ?"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="17.5sp"
+        android:textStyle="bold" />
+
+    <!-- Job ID: #JOB_1723801234 -->
+    <TextView
+        android:id="@+id/tvAcceptSheetJobCode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:text="#JOB_1723801234"
+        android:textColor="#334155"
+        android:textSize="14.5sp" />
+
+    <!-- Metrics Card (3 columns: 6 điểm | 5.6 km quãng đường | 25 phút ước tính) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_dialog_item_field"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp">
+
+        <!-- 1. Điểm dừng -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvAcceptStopsCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="6"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="điểm"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/profile_border_light" />
+
+        <!-- 2. Quãng đường -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvAcceptDistance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="5.6 km"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="quãng đường"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/profile_border_light" />
+
+        <!-- 3. Thời gian ước tính -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvAcceptDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="25 phút"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="ước tính"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Action Buttons (Hủy & Xác nhận) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCancelAcceptSheet"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_outlined_gray"
+            android:text="Hủy"
+            android:textAllCaps="false"
+            android:textColor="#374151"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnConfirmAcceptSheet"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Xác nhận"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

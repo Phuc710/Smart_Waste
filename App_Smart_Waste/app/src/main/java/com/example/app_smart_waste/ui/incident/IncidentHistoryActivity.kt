@@ -44,8 +44,12 @@ class IncidentHistoryActivity : AppCompatActivity() {
             onNavClick = { finish() }
         )
 
+        val initialFilter = intent.getStringExtra("FILTER") ?: "ALL"
+
         setupRecyclerView()
         setupFilterChips()
+        updateFilterCounts()
+        selectFilter(initialFilter)
         setupListeners()
         playEntranceAnimation()
 
@@ -75,9 +79,22 @@ class IncidentHistoryActivity : AppCompatActivity() {
 
     private fun setupFilterChips() {
         binding.chipIncidentFilterAll.setOnClickListener { selectFilter("ALL") }
-        binding.chipIncidentFilterNew.setOnClickListener { selectFilter("NEW") }
-        binding.chipIncidentFilterInReview.setOnClickListener { selectFilter("IN_REVIEW") }
+        binding.chipIncidentFilterInProgress.setOnClickListener { selectFilter("IN_PROGRESS") }
         binding.chipIncidentFilterResolved.setOnClickListener { selectFilter("RESOLVED") }
+    }
+
+    private fun updateFilterCounts() {
+        val totalCount = allIncidents.size
+        val inProgressCount = allIncidents.count {
+            !it.status.equals("RESOLVED", ignoreCase = true) && !it.status.equals("DONE", ignoreCase = true)
+        }
+        val resolvedCount = allIncidents.count {
+            it.status.equals("RESOLVED", ignoreCase = true) || it.status.equals("DONE", ignoreCase = true)
+        }
+
+        binding.chipIncidentFilterAll.text = "Tất cả ($totalCount)"
+        binding.chipIncidentFilterInProgress.text = "Đang xử lý ($inProgressCount)"
+        binding.chipIncidentFilterResolved.text = "Đã giải quyết ($resolvedCount)"
     }
 
     private fun selectFilter(filter: String) {
@@ -91,14 +108,8 @@ class IncidentHistoryActivity : AppCompatActivity() {
             setTextColor(if (active) white else black)
             typeface = if (active) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
-        binding.chipIncidentFilterNew.apply {
-            val active = filter == "NEW"
-            setBackgroundResource(if (active) R.drawable.bg_chip_cancelled_active else R.drawable.bg_chip_filter_inactive)
-            setTextColor(if (active) white else black)
-            typeface = if (active) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        }
-        binding.chipIncidentFilterInReview.apply {
-            val active = filter == "IN_REVIEW"
+        binding.chipIncidentFilterInProgress.apply {
+            val active = filter == "IN_PROGRESS"
             setBackgroundResource(if (active) R.drawable.bg_chip_inprogress_active else R.drawable.bg_chip_filter_inactive)
             setTextColor(if (active) white else black)
             typeface = if (active) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
@@ -115,9 +126,8 @@ class IncidentHistoryActivity : AppCompatActivity() {
 
     private fun filterList() {
         val filtered = when (currentFilter) {
-            "NEW" -> allIncidents.filter { it.status.equals("NEW", ignoreCase = true) }
-            "IN_REVIEW" -> allIncidents.filter {
-                it.status.equals("IN_REVIEW", ignoreCase = true) || it.status.equals("IN_PROGRESS", ignoreCase = true)
+            "IN_PROGRESS" -> allIncidents.filter {
+                !it.status.equals("RESOLVED", ignoreCase = true) && !it.status.equals("DONE", ignoreCase = true)
             }
             "RESOLVED" -> allIncidents.filter {
                 it.status.equals("RESOLVED", ignoreCase = true) || it.status.equals("DONE", ignoreCase = true)
@@ -150,6 +160,7 @@ class IncidentHistoryActivity : AppCompatActivity() {
 
             if (result.isSuccess) {
                 allIncidents = result.getOrDefault(emptyList())
+                updateFilterCounts()
                 filterList()
             } else {
                 Toast.makeText(this@IncidentHistoryActivity, "Không thể tải danh sách sự cố.", Toast.LENGTH_SHORT).show()
@@ -176,27 +187,72 @@ class IncidentHistoryActivity : AppCompatActivity() {
         dialog.findViewById<TextView>(R.id.tvDialogIncidentTime).text = incident.createdAt ?: "--"
 
         val statusTv = dialog.findViewById<TextView>(R.id.tvDialogIncidentStatus)
-        when (incident.status.uppercase()) {
-            "NEW" -> {
-                statusTv.text = "MỚI TIẾP NHẬN"
-                statusTv.setTextColor(Color.parseColor("#DC2626"))
-                statusTv.setBackgroundResource(R.drawable.bg_badge_pill_red)
+        if (incident.status.equals("RESOLVED", ignoreCase = true) || incident.status.equals("DONE", ignoreCase = true)) {
+            statusTv.text = "ĐÃ GIẢI QUYẾT"
+            statusTv.setTextColor(Color.parseColor("#16A34A"))
+            statusTv.setBackgroundResource(R.drawable.bg_badge_pill_green)
+        } else {
+            statusTv.text = "ĐANG XỬ LÝ"
+            statusTv.setTextColor(Color.parseColor("#2563EB"))
+            statusTv.setBackgroundResource(R.drawable.bg_badge_pill_blue)
+        }
+
+        // Field 5: Load Photo Evidence (URL or Base64 or Signed URL)
+        val layoutPhoto = dialog.findViewById<View>(R.id.layoutDialogIncidentPhoto)
+        val ivPhoto = dialog.findViewById<android.widget.ImageView>(R.id.ivDialogIncidentPhoto)
+        val pbLoading = dialog.findViewById<View>(R.id.pbDialogPhotoLoading)
+
+        val photoUrl = incident.displayPhotoUrl
+        if (incident.hasPhoto || !photoUrl.isNullOrBlank()) {
+            layoutPhoto.visibility = View.VISIBLE
+            pbLoading.visibility = View.VISIBLE
+            ivPhoto.setImageDrawable(null)
+
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                var loadedBitmap: android.graphics.Bitmap? = null
+                try {
+                    if (!photoUrl.isNullOrBlank() && photoUrl.startsWith("data:image")) {
+                        val base64Data = photoUrl.substringAfter("base64,")
+                        val bytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                        loadedBitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    } else {
+                        val baseUrl = com.example.app_smart_waste.core.storage.AppConfig.getBaseUrl(this@IncidentHistoryActivity)
+                        val targetUrl = if (!photoUrl.isNullOrBlank() && (photoUrl.startsWith("http://") || photoUrl.startsWith("https://"))) {
+                            photoUrl
+                        } else {
+                            val reportId = incident.id ?: ""
+                            "${baseUrl}api/incidents/my/$reportId/image"
+                        }
+
+                        val token = com.example.app_smart_waste.core.storage.SecureTokenStorage.getInstance(this@IncidentHistoryActivity).getToken()
+                        val reqBuilder = okhttp3.Request.Builder().url(targetUrl)
+                        if (!token.isNullOrBlank()) {
+                            reqBuilder.addHeader("Authorization", "Bearer $token")
+                        }
+                        val client = okhttp3.OkHttpClient()
+                        val response = client.newCall(reqBuilder.build()).execute()
+                        if (response.isSuccessful) {
+                            val stream = response.body?.byteStream()
+                            if (stream != null) {
+                                loadedBitmap = android.graphics.BitmapFactory.decodeStream(stream)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    pbLoading.visibility = View.GONE
+                    if (loadedBitmap != null) {
+                        ivPhoto.setImageBitmap(loadedBitmap)
+                    } else {
+                        layoutPhoto.visibility = View.GONE
+                    }
+                }
             }
-            "IN_REVIEW", "IN_PROGRESS" -> {
-                statusTv.text = "ĐANG XỬ LÝ"
-                statusTv.setTextColor(Color.parseColor("#2563EB"))
-                statusTv.setBackgroundResource(R.drawable.bg_badge_pill_blue)
-            }
-            "RESOLVED", "DONE" -> {
-                statusTv.text = "ĐÃ GIẢI QUYẾT"
-                statusTv.setTextColor(Color.parseColor("#16A34A"))
-                statusTv.setBackgroundResource(R.drawable.bg_badge_pill_green)
-            }
-            else -> {
-                statusTv.text = incident.status
-                statusTv.setTextColor(Color.GRAY)
-                statusTv.setBackgroundResource(R.drawable.bg_badge_pill_yellow)
-            }
+        } else {
+            layoutPhoto.visibility = View.GONE
         }
 
         dialog.findViewById<Button>(R.id.btnDialogCloseIncident).setOnClickListener {

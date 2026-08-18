@@ -7,12 +7,64 @@ const logger = require('../core/logger');
 const stateStore = require('../core/stateStore');
 const binService = require('../services/binService');
 const jobsDb = require('../services/jobsDb');
+const otaService = require('../services/otaService');
 
 function initMqttBroker() {
     const aedes = new Aedes();
     const mqttServer = net.createServer(aedes.handle);
 
     stateStore.setAedes(aedes);
+
+    // 1. MQTT Client Authentication Hook
+    aedes.authenticate = (client, username, password, callback) => {
+        if (!client) return callback(null, true);
+
+        const clientId = String(client.id || '');
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(clientId)) {
+            const error = new Error('Invalid Client ID format');
+            error.returnCode = 2; // Bad identifier
+            logger.warn('MQTT Auth Rejected', `Invalid client ID: ${clientId}`);
+            return callback(error, false);
+        }
+
+        if (process.env.MQTT_USERNAME && process.env.MQTT_PASSWORD) {
+            const user = username ? username.toString() : '';
+            const pass = password ? password.toString() : '';
+            if (user !== process.env.MQTT_USERNAME || pass !== process.env.MQTT_PASSWORD) {
+                const error = new Error('Bad username or password');
+                error.returnCode = 4;
+                logger.warn('MQTT Auth Rejected', `Invalid credentials for client: ${clientId}`);
+                return callback(error, false);
+            }
+        }
+        callback(null, true);
+    };
+
+    // 2. MQTT Topic Authorization (ACL) Hook
+    aedes.authorizePublish = (client, packet, callback) => {
+        // Allow internal backend publishers (null client)
+        if (!client) return callback(null);
+
+        const clientId = String(client.id || '');
+        // An IoT device can ONLY publish telemetry to wastebin/{clientId}/*
+        if (packet.topic.startsWith(`wastebin/${clientId}/`)) {
+            return callback(null);
+        }
+        logger.warn('MQTT ACL Blocked Pub', `Client ${clientId} tried to publish to unauthorized topic: ${packet.topic}`);
+        callback(new Error(`Unauthorized publish to topic: ${packet.topic}`));
+    };
+
+    aedes.authorizeSubscribe = (client, sub, callback) => {
+        if (!client) return callback(null, sub);
+
+        const clientId = String(client.id || '');
+        // An IoT device can ONLY subscribe to its own command topic wastebin/{clientId}/#
+        if (sub.topic.startsWith(`wastebin/${clientId}/`)) {
+            return callback(null, sub);
+        }
+        logger.warn('MQTT ACL Blocked Sub', `Client ${clientId} tried to subscribe to unauthorized topic: ${sub.topic}`);
+        callback(new Error(`Unauthorized subscription to topic: ${sub.topic}`));
+    };
 
     aedes.on('client', (client) => {
         logger.info('MQTT', 'Client connected:', client?.id || 'unknown');
@@ -23,11 +75,26 @@ function initMqttBroker() {
     });
 
     aedes.on('publish', async (packet, client) => {
-        if (!client || !packet.topic.startsWith('wastebin/') || !packet.topic.endsWith('/status')) return;
+        if (!client || !packet.topic.startsWith('wastebin/')) return;
         
         const parts = packet.topic.split('/');
         const binId = parts[1];
         if (!binId) return;
+
+        // Handle OTA Status & Progress Telemetry
+        if (packet.topic.endsWith('/ota/status')) {
+            try {
+                const data = JSON.parse(packet.payload.toString());
+                otaService.processDeviceOtaStatus(binId, data).catch(err => {
+                    logger.error('MQTT OTA Status Error', `${binId}: ${err.message}`);
+                });
+            } catch (err) {
+                logger.error('MQTT OTA Status Parse', err.message);
+            }
+            return;
+        }
+
+        if (!packet.topic.endsWith('/status')) return;
 
         try {
             const data = JSON.parse(packet.payload.toString());

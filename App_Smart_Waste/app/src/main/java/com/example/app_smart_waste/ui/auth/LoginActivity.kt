@@ -43,9 +43,19 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initSavedCredentials()
+        setupHeader()
         playEntranceMotion()
         setupListeners()
         observeViewModel()
+    }
+
+    private fun setupHeader() {
+        binding.appHeader.setTransparentBackground()
+        binding.appHeader.configure(
+            title = "",
+            actionIconRes = R.drawable.ic_settings,
+            onActionClick = { showServerConfigDialog() }
+        )
     }
 
     private fun initSavedCredentials() {
@@ -157,11 +167,6 @@ class LoginActivity : AppCompatActivity() {
 
             triggerLogin()
         }
-
-        // Config Server IP Modal
-        binding.btnConfigServer.setOnClickListener {
-            showServerConfigDialog()
-        }
     }
 
     private fun triggerLogin() {
@@ -223,50 +228,15 @@ class LoginActivity : AppCompatActivity() {
             imm?.hideSoftInputFromWindow(view.windowToken, 0)
         }
 
-        // 2. Button Success Micro-interaction State
+        // 2. Button Success State
         binding.loadingLayout.visibility = View.GONE
         binding.tvBtnLoginText.visibility = View.GONE
         binding.successLayout.visibility = View.VISIBLE
         binding.btnLogin.isEnabled = false
         binding.btnLogin.alpha = 1.0f
 
-        // Subtle tactile spring feedback
-        binding.btnLogin.animate()
-            .scaleX(1.02f)
-            .scaleY(1.02f)
-            .setDuration(120)
-            .withEndAction {
-                binding.btnLogin.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
-            }
-            .start()
-
-        // 3. Smooth Outflow Transition + Clean Navigation Stack
-        if (!isAnimationEnabled()) {
-            navigateToMainCleanly()
-            return
-        }
-
-        binding.loginCard.animate()
-            .alpha(0f)
-            .translationY(-20f)
-            .setDuration(240)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
-
-        binding.topBrandingSection.animate()
-            .alpha(0f)
-            .translationY(-12f)
-            .setDuration(220)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
-
-        binding.bottomInfoCard.animate()
-            .alpha(0f)
-            .setDuration(200)
-            .withEndAction {
-                navigateToMainCleanly()
-            }
-            .start()
+        // 3. Direct transition to MainActivity without white screen flash
+        navigateToMainCleanly()
     }
 
     private fun navigateToMainCleanly() {
@@ -275,8 +245,6 @@ class LoginActivity : AppCompatActivity() {
             putExtra("SHOW_WELCOME_MESSAGE", true)
         }
         startActivity(intent)
-        @Suppress("DEPRECATION")
-        overridePendingTransition(R.anim.anim_fade_in_smooth, R.anim.anim_fade_out_smooth)
         finish()
     }
 

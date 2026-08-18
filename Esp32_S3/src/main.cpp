@@ -5,6 +5,7 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include "config.h"
+#include "ota_client.h"
 
 // =========================================================
 // STATE MACHINE & BIẾN GLOBAL
@@ -115,13 +116,44 @@ void publishMqttData() {
     }
 }
 
+const int RECENT_CMD_CAPACITY = 16;
+String recentCommandIds[RECENT_CMD_CAPACITY];
+int recentCmdIndex = 0;
+
+bool isRecentCommand(const String& cmdId) {
+    if (cmdId.length() == 0) return false;
+    for (int i = 0; i < RECENT_CMD_CAPACITY; i++) {
+        if (recentCommandIds[i] == cmdId) return true;
+    }
+    return false;
+}
+
+void recordRecentCommand(const String& cmdId) {
+    if (cmdId.length() == 0) return;
+    recentCommandIds[recentCmdIndex] = cmdId;
+    recentCmdIndex = (recentCmdIndex + 1) % RECENT_CMD_CAPACITY;
+}
+
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
     if (!payload || length == 0) return; // Bỏ qua gói tin xóa retain từ broker
+
+    String otaTopic = "wastebin/" + binId + "/ota";
+    if (String(topic) == otaTopic) {
+        StaticJsonDocument<768> otaDoc;
+        DeserializationError err = deserializeJson(otaDoc, payload, length);
+        if (!err) {
+            Serial.println("[MQTT] Received OTA command packet. Forwarding to OtaClient...");
+            OtaClient::handleOtaCommand(mqttClient, binId, otaDoc);
+        } else {
+            Serial.println("[MQTT] Failed to parse OTA command JSON.");
+        }
+        return;
+    }
 
     String commandTopic = "wastebin/" + binId + "/command";
     if (String(topic) != commandTopic) return;
 
-    StaticJsonDocument<192> doc;
+    StaticJsonDocument<256> doc;
     DeserializationError error = deserializeJson(doc, payload, length);
     if (error) {
         Serial.println("[MQTT] Invalid command payload");
@@ -132,10 +164,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     String commandId = doc["commandId"] | "";
     action.toUpperCase();
 
-    // Lệnh retained có thể được giao lại sau khi reconnect. Không chạy servo lần hai,
-    // chỉ phát lại ACK để server biết ESP32 đã áp dụng lệnh này.
-    if (commandId.length() > 0 && commandId == lastCommandId) {
-        Serial.println("[MQTT] Duplicate command, ACK again: " + action);
+    // Check circular buffer for deduplication (Anti-Replay Protection)
+    if (commandId.length() > 0 && (commandId == lastCommandId || isRecentCommand(commandId))) {
+        Serial.println("[MQTT] Duplicate command detected, re-sending ACK only: " + action);
+        lastCommandId = commandId;
+        lastCommandAction = action;
         publishMqttData();
         return;
     }
@@ -178,6 +211,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     lastCommandId = commandId;
     lastCommandAction = action;
     if (commandId.length() > 0) {
+        recordRecentCommand(commandId);
         preferences.putString("last_cmd_id", lastCommandId);
         preferences.putString("last_cmd_action", lastCommandAction);
     }
@@ -219,7 +253,9 @@ void reconnectMqtt() {
         if (mqttClient.connect(clientId.c_str())) {
             Serial.println("MQTT Connected!");
             String commandTopic = "wastebin/" + binId + "/command";
+            String otaTopic = "wastebin/" + binId + "/ota";
             mqttClient.subscribe(commandTopic.c_str(), 1);
+            mqttClient.subscribe(otaTopic.c_str(), 1);
             publishMqttData();
         } else {
             Serial.print("MQTT Connect Failed, rc=");
@@ -328,12 +364,13 @@ void setup() {
 
     // --- CẤU HÌNH MQTT ---
     if (String(mqtt_server).length() > 0) {
-        // Telemetry có tên/vị trí UTF-8 và topic dài, vượt buffer mặc định
-        // 256 byte của PubSubClient. Buffer lớn hơn giúp mọi giá trị % được gửi.
         mqttClient.setBufferSize(768);
         mqttClient.setServer(mqtt_server, mqtt_port);
         mqttClient.setCallback(mqttCallback);
     }
+
+    // --- LOCAL HEALTH-CHECK & BOOT VERIFICATION ---
+    OtaClient::initAndVerifyBoot(mqttClient, binId);
 
     Serial.println(F("\n=================== SYSTEM READY ==================="));
 }

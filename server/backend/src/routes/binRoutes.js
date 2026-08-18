@@ -44,7 +44,10 @@ router.patch('/bins/:id/coordinates', requireAuth, requireAdmin, asyncHandler(as
     res.json({ ok: true });
 }));
 
-// POST /api/bins/:id/command - Send hardware lid / mode command
+const crypto = require('crypto');
+const jobsDb = require('../services/jobsDb');
+
+// POST /api/bins/:id/command - Send hardware lid / mode command (Zero-Trust RBAC & Ownership)
 router.post('/bins/:id/command', requireAuth, asyncHandler(async (req, res) => {
     const binId = String(req.params.id || '');
     const action = String(req.body.action || '').toUpperCase();
@@ -53,14 +56,31 @@ router.post('/bins/:id/command', requireAuth, asyncHandler(async (req, res) => {
         return res.status(400).json({ error: 'Lệnh hoặc mã thiết bị không hợp lệ.' });
     }
 
-    const commandId = new Date().toISOString();
+    // Zero-Trust Authorization:
+    // 1. Admin has global authority to trigger hardware commands.
+    // 2. Staff can ONLY control bins that belong to their currently active IN_PROGRESS collection job.
+    if (req.auth.user.role !== 'admin') {
+        const activeJob = await jobsDb.getEmployeeActiveJob(req.auth.user.id);
+        const isAssigned = activeJob && 
+            activeJob.status === 'IN_PROGRESS' && 
+            Array.isArray(activeJob.target_bin_ids) && 
+            activeJob.target_bin_ids.includes(binId);
+
+        if (!isAssigned) {
+            return res.status(403).json({
+                error: `FORBIDDEN: Bạn không có quyền điều khiển thùng rác #${binId}. Chỉ được điều khiển thùng rác thuộc ca thu gom đang thực hiện của bạn.`
+            });
+        }
+    }
+
+    const commandId = crypto.randomUUID();
     const waitPromise = stateStore.waitForDeviceAck(binId, commandId, 4500);
     
-    await binService.executeBinCommand(binId, action, commandId);
+    await binService.executeBinCommand(binId, action, commandId, req.auth.user.id);
     const result = await waitPromise;
     
     if (result.ok) {
-        res.json({ ok: true, bin: result.data, message: `Thiết bị #${binId} đã thực thi thành công.` });
+        res.json({ ok: true, bin: result.data, commandId, message: `Thiết bị #${binId} đã thực thi thành công.` });
     } else {
         res.status(504).json({ error: `Thiết bị #${binId} không phản hồi (Ngoại tuyến hoặc timeout).` });
     }

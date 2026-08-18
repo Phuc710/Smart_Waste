@@ -154,6 +154,11 @@ enum class JobActionType {
 }
 
 object JobTransitionPolicy {
+    fun canAccept(status: JobStatus): Boolean = status == JobStatus.ASSIGNED
+    fun canStart(status: JobStatus): Boolean = status == JobStatus.ACCEPTED
+    fun canPause(status: JobStatus): Boolean = status == JobStatus.IN_PROGRESS
+    fun canResume(status: JobStatus): Boolean = status == JobStatus.PAUSED
+
     fun allowedActions(status: JobStatus): Set<JobActionType> {
         return when (status) {
             JobStatus.ASSIGNED -> setOf(JobActionType.ACCEPT, JobActionType.REJECT)
@@ -176,17 +181,36 @@ data class GeoCoordinate(
 data class JobStopUiModel(
     val binId: String,
     val order: Int,
-    val coordinate: GeoCoordinate?,
     val status: JobStopStatus,
+    val binName: String? = null,
+    val address: String? = null,
+    val levelPercent: Double? = null,
+    val isOnline: Boolean? = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val collectedAt: String? = null,
+    val note: String? = null,
+    val photoUrl: String? = null,
     val isNext: Boolean = false,
+    val coordinate: GeoCoordinate? = null,
     val bin: SmartBinDto? = null
+)
+
+data class RouteStepDto(
+    @SerializedName("distanceMeters") val distanceMeters: Double? = 0.0,
+    @SerializedName("durationSeconds") val durationSeconds: Double? = 0.0,
+    @SerializedName("street") val street: String? = "",
+    @SerializedName("maneuverType") val maneuverType: String? = "straight",
+    @SerializedName("maneuverModifier") val maneuverModifier: String? = "",
+    @SerializedName("location") val location: List<Double>? = null
 )
 
 data class JobRouteUiModel(
     val coordinates: List<GeoCoordinate>,
     val stops: List<JobStopUiModel>,
     val distanceMeters: Int?,
-    val durationSeconds: Int?
+    val durationSeconds: Int?,
+    val steps: List<RouteStepDto> = emptyList()
 )
 
 data class JobItemDto(
@@ -205,7 +229,8 @@ data class RouteDataDto(
     @SerializedName("durationSeconds") val durationSeconds: Double? = null,
     @SerializedName("geometry") val geometry: String? = null,
     @SerializedName("coordinates") val coordinates: List<List<Double>>? = null,
-    @SerializedName("optimizedOrder") val optimizedOrder: List<Int>? = null
+    @SerializedName("steps") val steps: List<RouteStepDto>? = emptyList(),
+    @SerializedName("optimizedOrder") val optimizedOrder: List<Any>? = null
 )
 
 data class JobProgressDto(
@@ -230,7 +255,9 @@ data class JobDto(
     @SerializedName("started_at") val startedAt: String? = null,
     @SerializedName("paused_at") val pausedAt: String? = null,
     @SerializedName("pause_reason") val pauseReason: String? = null,
-    @SerializedName("completed_at") val completedAt: String? = null
+    @SerializedName("completed_at") val completedAt: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("version") val version: Int? = 1
 )
 
 data class ActiveJobResponse(
@@ -276,7 +303,32 @@ data class LocationPayload(
     @SerializedName("longitude") val longitude: Double,
     @SerializedName("speed") val speed: Double? = null,
     @SerializedName("heading") val heading: Double? = null,
-    @SerializedName("accuracy") val accuracy: Double? = null
+    @SerializedName("accuracy") val accuracy: Double? = null,
+    @SerializedName("timestamp") val timestamp: String? = null,
+    @SerializedName("job_id") val jobId: String? = null,
+    @SerializedName("tracking_session_id") val trackingSessionId: String? = null
+)
+
+data class BatchLocationItem(
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("speed") val speed: Double? = null,
+    @SerializedName("heading") val heading: Double? = null,
+    @SerializedName("accuracy") val accuracy: Double? = null,
+    @SerializedName("timestamp") val timestamp: String? = null
+)
+
+data class BatchLocationPayload(
+    @SerializedName("trackingSessionId") val trackingSessionId: String? = null,
+    @SerializedName("jobId") val jobId: String? = null,
+    @SerializedName("locations") val locations: List<BatchLocationItem> = emptyList()
+)
+
+data class BatchLocationResponse(
+    @SerializedName("ok") val ok: Boolean = true,
+    @SerializedName("syncedCount") val syncedCount: Int = 0,
+    @SerializedName("serverTime") val serverTime: String? = null,
+    @SerializedName("message") val message: String? = null
 )
 
 // 5. Incident Models
@@ -368,8 +420,12 @@ data class IncidentReportDto(
     @SerializedName("created_at") val createdAt: String? = null,
     @SerializedName("resolved_at") val resolvedAt: String? = null,
     @SerializedName("has_photo") val hasPhoto: Boolean = false,
-    @SerializedName("image_url") val imageUrl: String? = null
-)
+    @SerializedName("image_url") val imageUrl: String? = null,
+    @SerializedName("proof_image_url") val proofImageUrl: String? = null
+) {
+    val displayPhotoUrl: String?
+        get() = imageUrl?.takeIf { it.isNotBlank() } ?: proofImageUrl?.takeIf { it.isNotBlank() }
+}
 
 data class IncidentsResponse(
     @SerializedName("ok") val ok: Boolean = true,
@@ -478,6 +534,105 @@ data class RouteResponse(
     @SerializedName("distanceMeters") val distanceMeters: Double? = 0.0,
     @SerializedName("durationSeconds") val durationSeconds: Double? = 0.0,
     @SerializedName("coordinates") val coordinates: List<List<Double>>? = emptyList(),
+    @SerializedName("steps") val steps: List<RouteStepDto>? = emptyList(),
     @SerializedName("optimizedOrder") val optimizedOrder: List<Int>? = emptyList()
+)
+
+// 12. Complete Presentation & UI Models for Jobs Feature
+data class ActiveJobUiModel(
+    val id: String,
+    val status: JobStatus,
+    val source: String? = null,
+    val employeeName: String? = null,
+    val version: Int? = null,
+    val stops: List<JobStopUiModel> = emptyList(),
+    val completedStops: Int = 0,
+    val totalStops: Int = 0,
+    val progressPercent: Int = 0,
+    val nextStop: JobStopUiModel? = null,
+    val distanceMeters: Int? = null,
+    val durationSeconds: Int? = null,
+    val assignedAt: String? = null,
+    val startedAt: String? = null,
+    val pausedAt: String? = null,
+    val pauseReason: String? = null,
+    val completedAt: String? = null,
+    val fromArea: String = "Quận 1",
+    val toArea: String = "Quận 3",
+    val routeDescription: String = "Tuyến thu gom chất thải",
+    val overfullBinsCount: Int = 0,
+    val rawJob: JobDto? = null
+)
+
+data class JobHistoryUiModel(
+    val id: String,
+    val displayCode: String,
+    val status: JobStatus,
+    val statusBadgeText: String,
+    val dateStr: String,
+    val timeRangeStr: String,
+    val totalStops: Int,
+    val distanceKm: Double,
+    val durationMinutes: Int?,
+    val routeOrReason: String,
+    val rawJob: JobDto
+)
+
+sealed interface JobsScreenState {
+    data object InitialLoading : JobsScreenState
+    data object NoActiveJob : JobsScreenState
+    data class Content(val activeJob: ActiveJobUiModel) : JobsScreenState
+    data class PartialContent(val activeJob: ActiveJobUiModel, val message: String) : JobsScreenState
+    data class Error(val message: String, val canRetry: Boolean = true) : JobsScreenState
+}
+
+sealed interface JobOperation {
+    data object Accepting : JobOperation
+    data object Rejecting : JobOperation
+    data object Starting : JobOperation
+    data object Pausing : JobOperation
+    data object Resuming : JobOperation
+    data class Collecting(val binId: String) : JobOperation
+}
+
+sealed interface JobsNetworkState {
+    data object Online : JobsNetworkState
+    data object NoInternet : JobsNetworkState
+    data object BackendUnavailable : JobsNetworkState
+    data object Reconnecting : JobsNetworkState
+}
+
+data class JobsActiveFilter(
+    val showAssigned: Boolean = true,
+    val showInProgress: Boolean = true,
+    val showPaused: Boolean = true
+)
+
+data class JobsHistoryFilter(
+    val fromDate: String? = null,
+    val toDate: String? = null,
+    val showCompleted: Boolean = true,
+    val showCancelled: Boolean = true,
+    val showExpired: Boolean = true,
+    val sortOrder: String = "NEWEST" // NEWEST | OLDEST
+)
+
+data class JobsUiState(
+    val screenState: JobsScreenState = JobsScreenState.InitialLoading,
+    val activeTab: Int = 0, // 0 = Đang hoạt động / Cần xử lý, 1 = Lịch sử
+    val assignedJob: ActiveJobUiModel? = null,
+    val inProgressJob: ActiveJobUiModel? = null,
+    val activeQuickFilter: String = "ALL", // ALL | ASSIGNED | IN_PROGRESS | PAUSED
+    val historyQuickFilter: String = "ALL", // ALL | COMPLETED | CANCELLED | EXPIRED
+    val history: List<JobHistoryUiModel> = emptyList(),
+    val rawHistory: List<JobHistoryUiModel> = emptyList(),
+    val activeFilter: JobsActiveFilter = JobsActiveFilter(),
+    val historyFilter: JobsHistoryFilter = JobsHistoryFilter(),
+    val sortOrder: String = "NEWEST", // NEWEST | OLDEST
+    val selectedStopId: String? = null,
+    val activeOperation: JobOperation? = null,
+    val isRefreshing: Boolean = false,
+    val networkState: JobsNetworkState = JobsNetworkState.Online,
+    val countdownTimestamp: Long = System.currentTimeMillis()
 )
 

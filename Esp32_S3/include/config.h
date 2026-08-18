@@ -4,13 +4,19 @@
 // =========================================================
 // 1. CẤU HÌNH CHÂN GPIO
 // =========================================================
-#define PIN_TRIG_USER    5      // Sensor 1: Phát hiện người
-#define PIN_ECHO_USER    18
+// CẢNH BÁO AN TOÀN PHẦN CỨNG (HARDWARE SAFETY):
+// - HC-SR04 cấp nguồn 5V, chân ECHO xuất mức 5V.
+// - BẮT BUỘC dùng cầu phân áp (1kΩ nối tiếp từ ECHO đến GPIO, 2kΩ từ GPIO xuống GND)
+//   để hạ áp 5V -> 3.33V an toàn cho chân GPIO ESP32 (tối đa 3.6V).
+// - Động cơ Servo BẮT BUỘC dùng nguồn ngoài 5V/2A riêng biệt, chung mass GND với ESP32,
+//   kèm tụ lọc 220uF-470uF chống sụt áp brownout reset.
+#define PIN_TRIG_USER    5      // Sensor 1: Phát hiện người (Trig 3.3V)
+#define PIN_ECHO_USER    18     // Sensor 1: Echo qua cầu phân áp 1k/2k -> 3.3V
 
-#define PIN_TRIG_LEVEL   19     // Sensor 2: Đo lượng rác
-#define PIN_ECHO_LEVEL   21
+#define PIN_TRIG_LEVEL   19     // Sensor 2: Đo lượng rác (Trig 3.3V)
+#define PIN_ECHO_LEVEL   21     // Sensor 2: Echo qua cầu phân áp 1k/2k -> 3.3V
 
-#define PIN_SERVO        13     // Chân tín hiệu Servo
+#define PIN_SERVO        13     // Chân tín hiệu PWM điều khiển Servo
 
 // Nút nhấn để xóa cấu hình WiFi/MQTT và vào chế độ cài đặt lại
 // GPIO 0 = nút BOOT có sẵn trên hầu hết board ESP32 (không cần nối thêm dây!)

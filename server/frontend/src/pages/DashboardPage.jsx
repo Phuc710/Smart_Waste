@@ -393,7 +393,7 @@ export default function DashboardPage({ bins = [], onSendCommand, onSelectBinFor
         bounds.extend([lat, lng]);
 
         const jobs = activeJobs;
-        const speedKmH = Math.round(Number(emp.speed || 0));
+        const speedKmH = Math.round(Number(emp.speed || 0) * 3.6);
         const rawId = String(emp.employee_id || emp.username || emp.id || '');
         let truckCode = 'XE-01';
         if (emp.vehicle_code) {

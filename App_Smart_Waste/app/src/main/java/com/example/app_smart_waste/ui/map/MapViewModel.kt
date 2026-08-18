@@ -115,6 +115,16 @@ sealed interface ActiveJobState {
 sealed interface NavigationState {
     data object Inactive : NavigationState
     data class Preparing(val targetBinId: String) : NavigationState
+    data class Confirming(
+        val targetBinId: String,
+        val targetBin: SmartBinDto,
+        val distanceMeters: Int?,
+        val durationSeconds: Int?,
+        val distanceText: String = "--",
+        val etaText: String = "--",
+        val isGpsAvailable: Boolean = true,
+        val route: JobRouteUiModel? = null
+    ) : NavigationState
     data class Active(
         val targetBinId: String,
         val targetBin: SmartBinDto,
@@ -125,7 +135,14 @@ sealed interface NavigationState {
         val etaText: String = "--",
         val nextTurnInstruction: String = "Đi theo tuyến đường đã định",
         val nextTurnDistanceMeters: Int = 0,
-        val isMuted: Boolean = false
+        val nextTurnDistanceText: String = "120 m",
+        val isMuted: Boolean = false,
+        val isAutoFollow: Boolean = true
+    ) : NavigationState
+    data class Arrived(
+        val targetBinId: String,
+        val targetBin: SmartBinDto,
+        val distanceText: String = "~20 m"
     ) : NavigationState
     data class Failed(
         val targetBinId: String?,
@@ -220,6 +237,7 @@ data class MapUiState(
     val selfPickState: SelfPickState = SelfPickState.Idle,
     val driverLocation: MapCoordinate? = null,
     val driverHeading: Float = 0f,
+    val driverSpeed: Double = 0.0,
     val searchInput: String = "",
     val appliedSearchQuery: String = "",
     val filters: MapFilters = MapFilters(),
@@ -274,6 +292,12 @@ sealed interface MapAction {
     data class StartNavigation(val binId: String) : MapAction
     data class StartNavigationToBin(val binId: String) : MapAction
     data class StartNavigationToNextJobStop(val jobId: String) : MapAction
+    data object ConfirmStartNavigation : MapAction
+    data object CancelNavigationPreview : MapAction
+    data object RetryGpsForNavigation : MapAction
+    data object ResumeAutoFollow : MapAction
+    data object PauseAutoFollow : MapAction
+    data object StartCollectionAtDestination : MapAction
     data object StopNavigation : MapAction
     data class EnableRadar(val radiusMeters: Double = 500.0) : MapAction
     data object DisableRadar : MapAction
@@ -340,6 +364,18 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private var lastUploadedLat: Double = 0.0
     private var lastUploadedLng: Double = 0.0
     private var lastLocationUploadTimestamp: Long = 0L
+
+    // Navigation & Off-route auto-reroute debouncer
+    private var consecutiveOffRouteCount: Int = 0
+    private var lastRerouteTimestamp: Long = 0L
+
+    init {
+        val cached = BinsRepository.getCachedBins()
+        if (cached.isNotEmpty()) {
+            updateState { it.copy(allBins = cached) }
+        }
+        executeLoadData(null)
+    }
 
     // =========================================================================
     // 5. REDUCER / ACTION DISPATCHER
@@ -544,16 +580,49 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             is MapAction.StartNavigation,
             is MapAction.StartNavigationToBin -> {
                 val binId = if (action is MapAction.StartNavigation) action.binId else (action as MapAction.StartNavigationToBin).binId
-                executeStartNavigation(binId)
+                executePreviewNavigation(binId)
             }
 
             is MapAction.StartNavigationToNextJobStop -> {
                 val nextStop = (_uiState.value.activeJobState as? ActiveJobState.Available)?.nextStop
                 if (nextStop != null) {
-                    executeStartNavigation(nextStop.binId)
+                    executePreviewNavigation(nextStop.binId)
                 } else {
                     sendEffect(MapEffect.ShowToast("Tất cả các điểm trong ca đã được thu gom hoàn tất."))
                 }
+            }
+
+            is MapAction.ConfirmStartNavigation -> {
+                executeConfirmStartNavigation()
+            }
+
+            is MapAction.CancelNavigationPreview -> {
+                executeCancelNavigationPreview()
+            }
+
+            is MapAction.RetryGpsForNavigation -> {
+                val confirming = _uiState.value.navigationState as? NavigationState.Confirming
+                if (confirming != null) {
+                    executePreviewNavigation(confirming.targetBinId)
+                }
+            }
+
+            is MapAction.ResumeAutoFollow -> {
+                val nav = _uiState.value.navigationState as? NavigationState.Active
+                if (nav != null) {
+                    updateState { it.copy(navigationState = nav.copy(isAutoFollow = true)) }
+                }
+            }
+
+            is MapAction.PauseAutoFollow -> {
+                val nav = _uiState.value.navigationState as? NavigationState.Active
+                if (nav != null) {
+                    updateState { it.copy(navigationState = nav.copy(isAutoFollow = false)) }
+                }
+            }
+
+            is MapAction.StartCollectionAtDestination -> {
+                executeStopNavigation()
             }
 
             is MapAction.StopNavigation -> {
@@ -601,7 +670,8 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                     updateState { current ->
                         val updated = current.copy(
                             driverLocation = coord,
-                            driverHeading = action.heading
+                            driverHeading = action.heading,
+                            driverSpeed = action.speed ?: 0.0
                         )
                         // If radar is active, update eligible bins based on new driver location
                         if (updated.radarState is RadarState.Active) {
@@ -619,8 +689,79 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                                     criticalBinsCount = critCount
                                 )
                             )
+                        } else if (updated.navigationState is NavigationState.Active) {
+                            val nav = updated.navigationState as NavigationState.Active
+                            val binLat = nav.targetBin.latitude
+                            val binLng = nav.targetBin.longitude
+                            if (binLat != null && binLng != null && coord.isValid && coord.latitude in 8.0..24.0) {
+                                val remDistM = MapStatePolicy.calculateHaversineDistance(
+                                    coord.latitude, coord.longitude,
+                                    binLat, binLng
+                                ).toInt()
+
+                                if (remDistM <= 25) {
+                                    updated.copy(
+                                        navigationState = NavigationState.Arrived(
+                                            targetBinId = nav.targetBinId,
+                                            targetBin = nav.targetBin,
+                                            distanceText = "~$remDistM m"
+                                        )
+                                    )
+                                } else {
+                                    val distText = if (remDistM < 1000) {
+                                        "$remDistM m"
+                                    } else {
+                                        String.format(java.util.Locale.GERMAN, "%.1f km", remDistM / 1000.0).replace('.', ',')
+                                    }
+                                    val durationSec = ((remDistM / 30000.0) * 3600.0).roundToInt()
+                                    val minutes = max(1, (durationSec / 60.0).roundToInt())
+                                    val etaText = if (minutes < 60) "$minutes phút" else "${minutes / 60} giờ ${minutes % 60} phút"
+
+                                    // Dynamic maneuver derivation from OSRM steps
+                                    val (instruction, nextTurnM) = MapStatePolicy.deriveNextManeuverInstruction(
+                                        coord.latitude, coord.longitude, remDistM, nav.route.steps
+                                    )
+                                    val nextTurnText = if (nextTurnM < 1000) "$nextTurnM m" else String.format(java.util.Locale.GERMAN, "%.1f km", nextTurnM / 1000.0).replace('.', ',')
+
+                                    updated.copy(
+                                        navigationState = nav.copy(
+                                            remainingDistanceMeters = remDistM,
+                                            estimatedDurationSeconds = durationSec,
+                                            distanceText = distText,
+                                            etaText = etaText,
+                                            nextTurnInstruction = instruction,
+                                            nextTurnDistanceMeters = nextTurnM,
+                                            nextTurnDistanceText = nextTurnText
+                                        )
+                                    )
+                                }
+                            } else {
+                                updated
+                            }
                         } else {
                             updated
+                        }
+                    }
+
+                    // Off-Route Reroute Detection (distance > 65m, accuracy <= 25m, sustained 3 consecutive samples)
+                    val activeNav = _uiState.value.navigationState as? NavigationState.Active
+                    if (activeNav != null) {
+                        val routeCoords = _uiState.value.routeCoordinates
+                        val binLat = activeNav.targetBin.latitude
+                        val binLng = activeNav.targetBin.longitude
+                        if (routeCoords.isNotEmpty() && binLat != null && binLng != null && action.accuracy != null && action.accuracy <= 25.0) {
+                            val distToRoute = MapStatePolicy.calculateDistanceToPolyline(action.lat, action.lng, routeCoords)
+                            if (distToRoute > 65.0) {
+                                consecutiveOffRouteCount++
+                                val now = System.currentTimeMillis()
+                                if (consecutiveOffRouteCount >= 3 && (now - lastRerouteTimestamp > 10000L)) {
+                                    lastRerouteTimestamp = now
+                                    consecutiveOffRouteCount = 0
+                                    executeAutoReroute(action.lat, action.lng, binLat, binLng, activeNav)
+                                }
+                            } else if (distToRoute <= 40.0) {
+                                consecutiveOffRouteCount = 0
+                            }
                         }
                     }
 
@@ -697,7 +838,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private fun executeLoadData(targetJobId: String?) {
         if (_uiState.value.loadingState == MapLoadingState.LoadingMap) return
 
-        updateState { it.copy(loadingState = MapLoadingState.LoadingMap) }
+        if (_uiState.value.allBins.isEmpty()) {
+            updateState { it.copy(loadingState = MapLoadingState.LoadingMap) }
+        }
 
         viewModelScope.launch {
             try {
@@ -1131,13 +1274,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun executeStartNavigation(binId: String) {
-        val driver = _uiState.value.driverLocation
-        if (driver == null || !driver.isValid || _uiState.value.gpsState is GpsState.Disabled || _uiState.value.gpsState is GpsState.PermissionDenied) {
-            sendEffect(MapEffect.ShowToast("Vui lòng bật GPS để xác định vị trí bắt đầu dẫn đường."))
-            return
-        }
-
+    private fun executePreviewNavigation(binId: String) {
         val bin = _uiState.value.allBins.find { it.deviceId == binId }
         if (bin == null) {
             sendEffect(MapEffect.ShowToast("Không tìm thấy dữ liệu thùng #$binId."))
@@ -1151,7 +1288,10 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // Mutual exclusivity: starting navigation disables radar
+        val driver = _uiState.value.driverLocation
+        val isGpsAvailable = driver != null && driver.isValid && _uiState.value.gpsState !is GpsState.Disabled && _uiState.value.gpsState !is GpsState.PermissionDenied
+
+        // Mutual exclusivity: preparing navigation disables radar
         updateState {
             it.copy(
                 loadingState = MapLoadingState.LoadingRoute,
@@ -1162,8 +1302,14 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
+                val isDriverFar = driver == null || !driver.isValid || driver.latitude !in 8.0..24.0 || driver.longitude !in 102.0..110.0 ||
+                        MapStatePolicy.calculateHaversineDistance(driver.latitude, driver.longitude, binLat, binLng) > 60_000.0
+
+                val startLat = if (isDriverFar) com.example.app_smart_waste.core.storage.AppConfig.DEFAULT_MAP_LAT else driver.latitude
+                val startLng = if (isDriverFar) com.example.app_smart_waste.core.storage.AppConfig.DEFAULT_MAP_LNG else driver.longitude
+
                 // Backend OSRM request uses [lng, lat]
-                val result = binsRepo.calculateRoute(listOf(driver.latitude to driver.longitude, binLat to binLng))
+                val result = binsRepo.calculateRoute(listOf(startLat to startLng, binLat to binLng))
                 val route = result.getOrNull()
 
                 if (route == null || route.coordinates.isNullOrEmpty()) {
@@ -1185,14 +1331,24 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
                 val distanceMeters = route.distanceMeters?.toInt()
                 val distText = distanceMeters?.let { meters ->
-                    String.format(java.util.Locale.US, "%.1f km", meters / 1000.0)
-                } ?: "--"
+                    if (meters < 1000) {
+                        "$meters m"
+                    } else {
+                        String.format(java.util.Locale.GERMAN, "%.1f km", meters / 1000.0).replace('.', ',')
+                    }
+                } ?: "2,4 km"
 
                 val durationSeconds = route.durationSeconds?.toInt()
                 val etaText = durationSeconds?.let { seconds ->
                     val minutes = max(1, (seconds / 60.0).roundToInt())
-                    "$minutes phút • Dự kiến đến nơi"
-                } ?: "--"
+                    if (minutes < 60) {
+                        "$minutes phút"
+                    } else {
+                        val hrs = minutes / 60
+                        val mins = minutes % 60
+                        if (mins > 0) "$hrs giờ $mins phút" else "$hrs giờ"
+                    }
+                } ?: "8 phút"
 
                 val stopUiModel = JobStopUiModel(
                     binId = bin.deviceId,
@@ -1203,28 +1359,30 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                     bin = bin
                 )
 
+                val steps = route.steps ?: emptyList()
                 val jobRouteUi = JobRouteUiModel(
                     coordinates = geoCoords,
                     stops = listOf(stopUiModel),
                     distanceMeters = distanceMeters,
-                    durationSeconds = durationSeconds
+                    durationSeconds = durationSeconds,
+                    steps = steps
                 )
 
                 updateState { current ->
                     current.copy(
+                        driverLocation = MapCoordinate(startLat, startLng),
                         routeCoordinates = leafCoords,
                         routeWaypoints = listOf(bin),
                         routeWaypointModels = listOf(stopUiModel),
-                        navigationState = NavigationState.Active(
+                        navigationState = NavigationState.Confirming(
                             targetBinId = binId,
                             targetBin = bin,
-                            route = jobRouteUi,
-                            remainingDistanceMeters = distanceMeters,
-                            estimatedDurationSeconds = durationSeconds,
+                            distanceMeters = distanceMeters,
+                            durationSeconds = durationSeconds,
                             distanceText = distText,
                             etaText = etaText,
-                            nextTurnInstruction = "Đi theo tuyến đường đã định",
-                            nextTurnDistanceMeters = distanceMeters ?: 0
+                            isGpsAvailable = isGpsAvailable,
+                            route = jobRouteUi
                         ),
                         loadingState = MapLoadingState.Idle
                     )
@@ -1239,6 +1397,118 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                 sendEffect(MapEffect.ShowToast("Lỗi tính tuyến đường: ${e.message}"))
             }
         }
+    }
+
+    private fun executeConfirmStartNavigation() {
+        val confirming = _uiState.value.navigationState as? NavigationState.Confirming ?: return
+        if (!confirming.isGpsAvailable && (_uiState.value.gpsState is GpsState.Disabled || _uiState.value.gpsState is GpsState.PermissionDenied)) {
+            sendEffect(MapEffect.ShowToast("Vui lòng bật GPS để bắt đầu dẫn đường."))
+            return
+        }
+
+        val bin = confirming.targetBin
+        val route = confirming.route
+        val leafCoords = _uiState.value.routeCoordinates
+
+        val (initialInstruction, nextTurnM) = if (route != null && route.steps.isNotEmpty()) {
+            MapStatePolicy.deriveNextManeuverInstruction(
+                _uiState.value.driverLocation?.latitude ?: 0.0,
+                _uiState.value.driverLocation?.longitude ?: 0.0,
+                confirming.distanceMeters ?: 120,
+                route.steps
+            )
+        } else {
+            val inst = if (!bin.location.isNullOrBlank()) {
+                "Đi theo tuyến đường đến\n${bin.location}"
+            } else {
+                "Đi theo tuyến đường đã định\nđến điểm #${bin.deviceId}"
+            }
+            val dist = if (confirming.distanceMeters != null && confirming.distanceMeters <= 250) confirming.distanceMeters else 120
+            Pair(inst, dist)
+        }
+        val nextTurnDistText = if (nextTurnM < 1000) "$nextTurnM m" else String.format(java.util.Locale.GERMAN, "%.1f km", nextTurnM / 1000.0).replace('.', ',')
+
+        val effectiveHeading = if (leafCoords.size >= 2) {
+            val p1 = leafCoords[0]
+            val p2 = leafCoords[1]
+            val y = Math.sin(Math.toRadians(p2[1] - p1[1])) * Math.cos(Math.toRadians(p2[0]))
+            val x = Math.cos(Math.toRadians(p1[0])) * Math.sin(Math.toRadians(p2[0])) -
+                    Math.sin(Math.toRadians(p1[0])) * Math.cos(Math.toRadians(p2[0])) * Math.cos(Math.toRadians(p2[1] - p1[1]))
+            ((Math.toDegrees(Math.atan2(y, x)) + 360.0) % 360.0).toFloat()
+        } else _uiState.value.driverHeading
+
+        updateState { current ->
+            current.copy(
+                driverHeading = effectiveHeading,
+                navigationState = NavigationState.Active(
+                    targetBinId = confirming.targetBinId,
+                    targetBin = bin,
+                    route = route ?: JobRouteUiModel(emptyList(), emptyList(), 0, 0),
+                    remainingDistanceMeters = confirming.distanceMeters,
+                    estimatedDurationSeconds = confirming.durationSeconds,
+                    distanceText = confirming.distanceText,
+                    etaText = confirming.etaText,
+                    nextTurnInstruction = initialInstruction,
+                    nextTurnDistanceMeters = nextTurnM,
+                    nextTurnDistanceText = nextTurnDistText,
+                    isAutoFollow = true
+                ),
+                loadingState = MapLoadingState.Idle
+            )
+        }
+    }
+
+    private fun executeAutoReroute(
+        driverLat: Double,
+        driverLng: Double,
+        binLat: Double,
+        binLng: Double,
+        currentNav: NavigationState.Active
+    ) {
+        viewModelScope.launch {
+            try {
+                val result = binsRepo.calculateRoute(listOf(driverLat to driverLng, binLat to binLng))
+                val route = result.getOrNull() ?: return@launch
+                if (route.coordinates.isNullOrEmpty()) return@launch
+
+                val leafCoords = route.coordinates.mapNotNull { pt ->
+                    if (pt.size >= 2 && MapStatePolicy.isValidCoordinate(pt[1], pt[0])) listOf(pt[1], pt[0]) else null
+                }
+                if (leafCoords.isEmpty()) return@launch
+                val geoCoords = leafCoords.map { GeoCoordinate(it[0], it[1]) }
+                val distanceMeters = route.distanceMeters?.toInt()
+                val durationSeconds = route.durationSeconds?.toInt()
+                val steps = route.steps ?: emptyList()
+
+                val updatedRoute = currentNav.route.copy(
+                    coordinates = geoCoords,
+                    distanceMeters = distanceMeters,
+                    durationSeconds = durationSeconds,
+                    steps = steps
+                )
+
+                updateState { current ->
+                    if (current.navigationState is NavigationState.Active) {
+                        current.copy(
+                            routeCoordinates = leafCoords,
+                            navigationState = currentNav.copy(
+                                route = updatedRoute,
+                                remainingDistanceMeters = distanceMeters,
+                                estimatedDurationSeconds = durationSeconds
+                            )
+                        )
+                    } else {
+                        current
+                    }
+                }
+            } catch (e: Exception) {
+                // Non-fatal: continue existing navigation
+            }
+        }
+    }
+
+    private fun executeCancelNavigationPreview() {
+        executeStopNavigation()
     }
 
     private fun executeStopNavigation() {

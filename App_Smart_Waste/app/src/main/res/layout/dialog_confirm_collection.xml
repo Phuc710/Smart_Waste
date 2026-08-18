@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_map"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="44dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_drag_handle_gray" />
+
+    <!-- Header: Back/Close & Title -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp">
+
+        <ImageView
+            android:id="@+id/btnCloseCollectionSheet"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Quay lại"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/profile_text_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Xác nhận thu gom"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <!-- Step Progress Indicator (e.g. 3/5 with dots) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="14dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvCollectionStepFraction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_avatar_circle_green"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:text="3/5"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/llStepDots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:background="@drawable/bg_role_badge_pill" />
+
+            <View
+                android:layout_width="20dp"
+                android:layout_height="2dp"
+                android:background="@color/profile_green_primary" />
+
+            <View
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:background="@drawable/bg_role_badge_pill" />
+
+            <View
+                android:layout_width="20dp"
+                android:layout_height="2dp"
+                android:background="@color/profile_green_primary" />
+
+            <View
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:background="@drawable/bg_avatar_circle_green" />
+
+            <View
+                android:layout_width="20dp"
+                android:layout_height="2dp"
+                android:background="@color/profile_border_light" />
+
+            <View
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:background="@drawable/bg_drag_handle_gray" />
+
+            <View
+                android:layout_width="20dp"
+                android:layout_height="2dp"
+                android:background="@color/profile_border_light" />
+
+            <View
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:background="@drawable/bg_drag_handle_gray" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Bin Info Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_profile_item_card"
+        android:elevation="1dp"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Trash Icon Frame -->
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_avatar_circle_green">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_trash"
+                    app:tint="@color/white" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvCollectBinId"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BIN_HCM_017"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvCollectBinAddress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="78 Cách Mạng Tháng 8, Q.3"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="12.5sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvCollectBinStatusPill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_tag_dang_thuc_hien"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="Đang đến"
+                android:textColor="@color/profile_tag_blue_text"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="10dp"
+            android:background="@color/profile_border_light" />
+
+        <!-- Row Info: Loại thùng & Mức đầy -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Loại thùng"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvCollectBinType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Rác sinh hoạt"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="13.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mức đầy hiện tại"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvCollectBinFillPercent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="90%"
+                    android:textColor="@color/profile_danger"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Note Input Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="Ghi chú (tùy chọn)"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="12.5sp" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_profile_item_card"
+        android:elevation="1dp"
+        android:padding="10dp">
+
+        <EditText
+            android:id="@+id/etCollectNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:gravity="top|start"
+            android:hint="Nhập ghi chú nếu có..."
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine"
+            android:maxLength="200"
+            android:minLines="2"
+            android:textColor="@color/profile_text_primary"
+            android:textColorHint="@color/profile_text_hint"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvCollectNoteCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/etCollectNote"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="2dp"
+            android:text="0/200"
+            android:textColor="@color/profile_text_hint"
+            android:textSize="11sp" />
+    </RelativeLayout>
+
+    <!-- Photo Attachment Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:text="Ảnh minh chứng (tùy chọn)"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="12.5sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="14dp"
+        android:orientation="horizontal">
+
+        <!-- Add Photo Frame -->
+        <FrameLayout
+            android:id="@+id/btnAddCollectPhoto"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:background="@drawable/bg_dialog_item_field"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_camera"
+                    app:tint="@color/profile_text_secondary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Chụp ảnh"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Selected Photo Thumbnail -->
+        <FrameLayout
+            android:id="@+id/containerCollectPhotoThumb"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:layout_marginStart="10dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivCollectPhotoThumb"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop" />
+
+            <ImageView
+                android:id="@+id/btnRemoveCollectPhoto"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/bg_avatar_circle_green"
+                android:padding="4dp"
+                android:src="@drawable/ic_close"
+                app:tint="@color/white" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Checkbox: Đã cập nhật -->
+    <CheckBox
+        android:id="@+id/cbCollectUpdated"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:buttonTint="@color/profile_green_primary"
+        android:checked="true"
+        android:text="Đã cập nhật"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="13.5sp" />
+
+    <!-- Primary Action Button -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnSubmitCollection"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_button_primary_green"
+        android:text="Xác nhận đã thu gom"
+        android:textColor="@color/white"
+        android:textSize="14.5sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

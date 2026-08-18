@@ -169,7 +169,7 @@
                 android:drawableStart="@drawable/ic_camera_white"
                 android:drawableTint="@color/profile_green_primary"
                 android:drawablePadding="8dp"
-                android:text="📷 Chụp ảnh hiện trường"
+                android:text="Chụp ảnh hiện trường"
                 android:textAllCaps="false"
                 android:textColor="@color/profile_green_primary"
                 android:textSize="14sp"

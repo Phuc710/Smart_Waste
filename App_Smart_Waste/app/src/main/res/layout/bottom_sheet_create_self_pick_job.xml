@@ -13,16 +13,16 @@
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="10dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="14dp"
         android:background="@drawable/bg_drag_handle" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp">
+        android:paddingHorizontal="24dp">
 
-        <!-- Header: Job tự nhặt + Close Button -->
+        <!-- Header: Title + Close Button -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -32,9 +32,9 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
-                android:text="Job tự nhặt"
+                android:text="Tạo job tự nhận"
                 android:textColor="#0F172A"
-                android:textSize="18sp"
+                android:textSize="17.5sp"
                 android:textStyle="bold" />
 
             <ImageView
@@ -45,208 +45,164 @@
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Đóng"
-                android:padding="6dp"
+                android:padding="4dp"
                 android:src="@drawable/ic_close_gray" />
         </RelativeLayout>
 
-        <!-- Summary Strip: Số điểm | Tổng quãng đường | Thời gian dự kiến -->
+        <!-- Graphic: Green Dotted Route Wave with Pin Nodes -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_location_pin"
+                app:tint="#16A34A" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="6dp"
+                android:letterSpacing="0.2"
+                android:text="• • • • •"
+                android:textColor="#86EFAC"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_location_pin"
+                app:tint="#16A34A" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="6dp"
+                android:letterSpacing="0.2"
+                android:text="• • • • •"
+                android:textColor="#86EFAC"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_location_pin"
+                app:tint="#16A34A" />
+        </LinearLayout>
+
+        <!-- Center Subtitle & Big Highlight: 6 điểm dừng -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="Bạn đang tạo job với"
+            android:textColor="#64748B"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvSelfPickStopsCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:text="6 điểm dừng"
+            android:textColor="#16A34A"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- Info Card: Bán kính & Ước tính thời gian -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_card_clean"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_dialog_item_field"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:padding="16dp">
 
+            <!-- 1. Bán kính -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Số điểm"
-                    android:textColor="#64748B"
-                    android:textSize="13sp" />
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_location_pin"
+                    app:tint="#64748B" />
 
                 <TextView
-                    android:id="@+id/tvSelfPickStopsCount"
+                    android:id="@+id/tvSelfPickRadius"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="5 điểm"
+                    android:layout_marginStart="10dp"
+                    android:text="Bán kính: 500 m"
                     android:textColor="#0F172A"
-                    android:textSize="14sp"
+                    android:textSize="13.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginVertical="8dp"
-                android:background="#F1F5F9" />
+                android:layout_marginVertical="10dp"
+                android:background="#E2E8F0" />
 
+            <!-- 2. Ước tính thời gian -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Tổng quãng đường"
-                    android:textColor="#64748B"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/tvSelfPickDistance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2.6 km"
-                    android:textColor="#0F172A"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="8dp"
-                android:background="#F1F5F9" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Thời gian dự kiến"
-                    android:textColor="#64748B"
-                    android:textSize="13sp" />
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_clock_outline"
+                    app:tint="#64748B" />
 
                 <TextView
                     android:id="@+id/tvSelfPickDuration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="18 phút"
+                    android:layout_marginStart="10dp"
+                    android:text="Ước tính thời gian: ~ 35 phút"
                     android:textColor="#0F172A"
-                    android:textSize="14sp"
+                    android:textSize="13.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Danh sách điểm -->
+        <!-- Hidden Views for backward compatibility -->
         <TextView
+            android:id="@+id/tvSelfPickDistance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Danh sách điểm"
-            android:textColor="#0F172A"
-            android:textSize="14.5sp"
-            android:textStyle="bold" />
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/llSelfPickBinsList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:visibility="gone" />
 
-            <!-- Item 1 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="6dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗑 01  BIN_HCM_023"
-                    android:textColor="#0F172A"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="> 85%"
-                    android:textColor="#DC2626"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Item 2 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="6dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗑 02  BIN_HCM_045"
-                    android:textColor="#0F172A"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="90%"
-                    android:textColor="#DC2626"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Item 3 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="6dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗑 03  BIN_HCM_067"
-                    android:textColor="#0F172A"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="88%"
-                    android:textColor="#DC2626"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- CTA: [ Tạo job ] -->
+        <!-- Confirm Button: [ Xác nhận tạo job ] -->
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnConfirmCreateSelfPickJob"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="20dp"
-            android:background="@drawable/bg_btn_primary_green"
-            android:text="Tạo job"
+            android:layout_height="50dp"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Xác nhận tạo job"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="15sp"

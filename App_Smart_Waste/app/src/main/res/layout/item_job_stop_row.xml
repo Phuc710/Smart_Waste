@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardJobStopRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card_profile"
+    android:elevation="0.5dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="10dp"
+    android:layout_marginBottom="6dp">
+
+    <!-- Timeline Indicator Column (Top Line + Circle Number + Bottom Line) -->
+    <RelativeLayout
+        android:layout_width="28dp"
+        android:layout_height="44dp"
+        android:gravity="center">
+
+        <!-- Top Connector Line -->
+        <View
+            android:id="@+id/timelineLineTop"
+            android:layout_width="2dp"
+            android:layout_height="10dp"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:background="@color/profile_green_primary" />
+
+        <!-- Circle Indicator -->
+        <FrameLayout
+            android:id="@+id/containerStopIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/bg_avatar_circle_green">
+
+            <TextView
+                android:id="@+id/tvStopIconGlyph"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/white"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                tools:text="✓" />
+        </FrameLayout>
+
+        <!-- Bottom Connector Line -->
+        <View
+            android:id="@+id/timelineLineBottom"
+            android:layout_width="2dp"
+            android:layout_height="10dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:background="@color/profile_green_primary" />
+    </RelativeLayout>
+
+    <!-- Info Column: Bin ID & Address -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvStopBinId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            tools:text="BIN_HCM_045" />
+
+        <TextView
+            android:id="@+id/tvStopAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/profile_text_secondary"
+            android:textSize="12sp"
+            tools:text="124 Nguyễn Thái Học, Q.1" />
+    </LinearLayout>
+
+    <!-- Right Component: Badge ("Đã thu gom", "Đang đến", "Chưa thu gom") -->
+    <TextView
+        android:id="@+id/tvStopStatusBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_badge_da_thu_gom"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="3dp"
+        android:textColor="@color/profile_green_primary"
+        android:textSize="11.5sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="Đã thu gom"
+        tools:visibility="visible" />
+
+    <!-- Right Component: Timestamp for Completed Timeline (Case 05) -->
+    <TextView
+        android:id="@+id/tvStopCompletedTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="12.5sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="08:05" />
+
+</LinearLayout>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutTopNotifCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:background="@drawable/bg_notif_loading"
+    android:elevation="10dp"
+    android:gravity="center_vertical"
+    android:minHeight="64dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="12dp">
+
+    <!-- Left Icon Container -->
+    <FrameLayout
+        android:id="@+id/containerTopNotifIcon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginEnd="12dp">
+
+        <!-- 1. Loading Spinner -->
+        <ProgressBar
+            android:id="@+id/pbTopNotifLoading"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:indeterminateTint="#2563EB"
+            android:visibility="visible" />
+
+        <!-- 2. Success Icon (Soft green circle with Lucide Check) -->
+        <FrameLayout
+            android:id="@+id/containerTopNotifSuccess"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_notif_icon_circle_green"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_check"
+                app:tint="#16A34A" />
+        </FrameLayout>
+
+        <!-- 3. Error Icon (Soft red circle with Lucide TriangleAlert) -->
+        <FrameLayout
+            android:id="@+id/containerTopNotifError"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_notif_icon_circle_red"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivTopNotifError"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_warning_triangle" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Center Content: Title & Subtitle -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvTopNotifTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đang gửi lệnh mở nắp..."
+            android:textColor="#0F172A"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvTopNotifSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Vui lòng chờ"
+            android:textColor="#64748B"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Right Action Button: [ Thử lại ] (for Error state) -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnTopNotifRetry"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/bg_btn_notif_retry"
+        android:minWidth="72dp"
+        android:paddingHorizontal="12dp"
+        android:text="Thử lại"
+        android:textAllCaps="false"
+        android:textColor="#1E293B"
+        android:textSize="12.5sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+</LinearLayout>

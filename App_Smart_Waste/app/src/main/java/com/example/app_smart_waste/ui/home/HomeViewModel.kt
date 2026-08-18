@@ -9,6 +9,7 @@ import com.example.app_smart_waste.core.model.JobDto
 import com.example.app_smart_waste.core.model.SmartBinDto
 import com.example.app_smart_waste.core.model.UiState
 import com.example.app_smart_waste.data.repository.BinsRepository
+import com.example.app_smart_waste.data.repository.IncidentRepository
 import com.example.app_smart_waste.data.repository.JobsRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,13 +21,16 @@ data class HomeData(
     val activeJob: JobDto?,
     val stats: DailyDriverStatsDto,
     val currentBin: SmartBinDto?,
-    val allBins: List<SmartBinDto> = emptyList()
+    val allBins: List<SmartBinDto> = emptyList(),
+    val pendingJobsCount: Int = 0,
+    val unresolvedIncidentsCount: Int = 0
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val jobsRepository = JobsRepository(application)
     private val binsRepository = BinsRepository(application)
+    private val incidentRepository = IncidentRepository(application)
     private val prefs = application.getSharedPreferences("smart_waste_jobs_prefs", Context.MODE_PRIVATE)
 
     private val _homeState = MutableStateFlow<UiState<HomeData>>(UiState.Loading)
@@ -56,15 +60,37 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val homeDeferred = async { jobsRepository.getMobileHome() }
             val binsDeferred = async { binsRepository.getBins() }
+            val incidentsDeferred = async { incidentRepository.getMyIncidents() }
 
             val home = homeDeferred.await().getOrElse {
                 _homeState.value = UiState.Error(it.message ?: "Không thể tải dữ liệu trang chủ.")
                 return@launch
             }
             val bins = binsDeferred.await().getOrElse { emptyList() }
+            val incidents = incidentsDeferred.await().getOrElse { emptyList() }
+
             val currentBin = findCurrentBin(home.job, bins)
 
-            _homeState.value = UiState.Success(HomeData(home.job, home.stats, currentBin, bins))
+            // 1. Pending/Assigned jobs count (Nhiệm vụ cần xác nhận)
+            val pendingJobsCount = if (home.job != null && (home.job.status.equals("ASSIGNED", ignoreCase = true) || home.job.status.equals("PENDING", ignoreCase = true))) {
+                1
+            } else 0
+
+            // 2. Unresolved incidents count (Báo cáo sự cố đang xử lý)
+            val unresolvedIncidentsCount = incidents.count { incident ->
+                !incident.status.equals("RESOLVED", ignoreCase = true) && !incident.status.equals("DONE", ignoreCase = true)
+            }
+
+            _homeState.value = UiState.Success(
+                HomeData(
+                    activeJob = home.job,
+                    stats = home.stats,
+                    currentBin = currentBin,
+                    allBins = bins,
+                    pendingJobsCount = pendingJobsCount,
+                    unresolvedIncidentsCount = unresolvedIncidentsCount
+                )
+            )
         }
     }
 

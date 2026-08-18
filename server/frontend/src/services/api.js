@@ -136,5 +136,36 @@ export const api = {
   }),
   resetSettings: () => request('/settings/reset', {
     method: 'POST'
+  }),
+
+  // Firmware & OTA Management
+  uploadFirmwareRelease: (formData, headers = {}) => {
+    // If formData is raw buffer / Blob
+    return request('/firmware/releases/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...headers
+      },
+      body: formData
+    });
+  },
+  uploadFirmwareReleaseJson: (payload) => request('/firmware/releases/upload', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+  getFirmwareReleases: (deviceModel) => request(`/firmware/releases${deviceModel ? `?deviceModel=${encodeURIComponent(deviceModel)}` : ''}`),
+  getFirmwareRelease: (id) => request(`/firmware/releases/${encodeURIComponent(id)}`),
+  createOtaDeployment: (releaseId, targetDeviceIds) => request('/ota/deployments', {
+    method: 'POST',
+    body: JSON.stringify({ releaseId, targetDeviceIds })
+  }),
+  getOtaDeployments: () => request('/ota/deployments'),
+  getOtaDeployment: (id) => request(`/ota/deployments/${encodeURIComponent(id)}`),
+  cancelOtaDeployment: (id) => request(`/ota/deployments/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST'
+  }),
+  retryOtaDeviceJob: (jobId) => request(`/ota/device-jobs/${encodeURIComponent(jobId)}/retry`, {
+    method: 'POST'
   })
 };

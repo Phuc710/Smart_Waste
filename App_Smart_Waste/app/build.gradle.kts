@@ -59,6 +59,9 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("io.socket:socket.io-client:2.1.1")
 
+    // Google Play Services Fused Location Provider
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+
     // Security Crypto (Android Keystore EncryptedSharedPreferences)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 

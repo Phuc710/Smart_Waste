@@ -76,7 +76,7 @@ router.delete('/employees/:id', requireAuth, requireAdmin, asyncHandler(async (r
     res.json(result);
 }));
 
-// POST /api/location - Employee GPS update
+// POST /api/location - Employee GPS single update
 router.post('/location', requireAuth, asyncHandler(async (req, res) => {
     const latitude = Number(req.body.latitude);
     const longitude = Number(req.body.longitude);
@@ -86,7 +86,7 @@ router.post('/location', requireAuth, asyncHandler(async (req, res) => {
         return res.status(400).json({ error: 'Tọa độ GPS không hợp lệ.' });
     }
 
-    await employeeService.updateLocation(req.auth.tokenHash, req.auth.user, {
+    const locObj = await employeeService.updateLocation(req.auth.tokenHash, req.auth.user, {
         latitude,
         longitude,
         accuracy: req.body.accuracy,
@@ -94,7 +94,30 @@ router.post('/location', requireAuth, asyncHandler(async (req, res) => {
         speed: req.body.speed
     });
     
-    res.json({ ok: true });
+    res.json({
+        ok: true,
+        serverTime: new Date().toISOString(),
+        location: locObj
+    });
+}));
+
+// POST /api/location/batch - Offline Sync & Batch GPS update
+router.post('/location/batch', requireAuth, asyncHandler(async (req, res) => {
+    const locations = Array.isArray(req.body.locations) ? req.body.locations : [];
+    const trackingSessionId = req.body.trackingSessionId ? String(req.body.trackingSessionId) : null;
+    const jobId = req.body.jobId ? String(req.body.jobId) : null;
+
+    if (locations.length > 200) {
+        return res.status(400).json({ error: 'Số lượng điểm vị trí vượt quá giới hạn tối đa 200 điểm/lần.' });
+    }
+
+    const result = await employeeService.updateLocationBatch(req.auth.tokenHash, req.auth.user, {
+        trackingSessionId,
+        jobId,
+        locations
+    });
+
+    res.json(result);
 }));
 
 // GET /api/employees/:id/incidents - Employee incident reports

@@ -3,7 +3,7 @@
 const { Server } = require('socket.io');
 const logger = require('../core/logger');
 const stateStore = require('../core/stateStore');
-const { parseCookies, getSessionUser } = require('../middleware/auth');
+const { parseCookies, extractToken, getSessionUser } = require('../middleware/auth');
 const { SESSION_COOKIE_NAME, VALID_BIN_ACTIONS, ACTION_LABELS } = require('../config/constants');
 const binService = require('../services/binService');
 
@@ -17,8 +17,10 @@ function initSocketServer(httpServer) {
     // Authentication middleware
     io.use(async (socket, next) => {
         try {
-            const cookies = parseCookies(socket.handshake.headers.cookie || '');
-            const rawToken = cookies[SESSION_COOKIE_NAME];
+            let rawToken = extractToken(socket.handshake);
+            if (!rawToken && socket.handshake.auth && socket.handshake.auth.token) {
+                rawToken = socket.handshake.auth.token;
+            }
             const user = await getSessionUser(rawToken);
             if (!user) return next(new Error('unauthorized'));
             socket.user = user;

@@ -1,9 +1,14 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
+    android:width="20dp"
+    android:height="20dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Lucide Navigation (official icon: polygon 3 11 22 2 13 21 11 13 3 11) -->
     <path
-        android:fillColor="@color/app_primary"
-        android:pathData="M12,2L4.5,20.29l0.71,0.71L12,18l6.79,3 0.71,-0.71z" />
+        android:fillColor="#2563EB"
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M3,11 L22,2 L13,21 L11,13 L3,11 Z" />
 </vector>

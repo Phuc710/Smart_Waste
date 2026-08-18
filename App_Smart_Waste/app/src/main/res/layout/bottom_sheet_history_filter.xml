@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_map"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="24dp">
+
+    <!-- Header: Title & Close -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="Bộ lọc"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="17.5sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnCloseHistoryFilterSheet"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Đóng"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/profile_text_secondary" />
+    </RelativeLayout>
+
+    <!-- Date Range Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Khoảng thời gian"
+        android:textColor="#1E293B"
+        android:textSize="13.5sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- From Date -->
+        <LinearLayout
+            android:id="@+id/btnSelectFromDate"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_profile_item_card"
+            android:clickable="true"
+            android:elevation="1dp"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <TextView
+                android:id="@+id/tvFilterFromDate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="20/05/2025"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="Chọn ngày bắt đầu"
+                android:src="@drawable/ic_calendar"
+                app:tint="@color/profile_text_secondary" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
+            android:text="→"
+            android:textColor="@color/profile_text_secondary"
+            android:textSize="15sp" />
+
+        <!-- To Date -->
+        <LinearLayout
+            android:id="@+id/btnSelectToDate"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_profile_item_card"
+            android:clickable="true"
+            android:elevation="1dp"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <TextView
+                android:id="@+id/tvFilterToDate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="26/05/2025"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="Chọn ngày kết thúc"
+                android:src="@drawable/ic_calendar"
+                app:tint="@color/profile_text_secondary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Status Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Trạng thái"
+        android:textColor="#1E293B"
+        android:textSize="13.5sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:orientation="vertical">
+
+        <!-- Hoàn thành -->
+        <CheckBox
+            android:id="@+id/cbHistoryCompleted"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:buttonTint="@color/profile_green_primary"
+            android:checked="true"
+            android:text="Hoàn thành"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <!-- Đã hủy -->
+        <CheckBox
+            android:id="@+id/cbHistoryCancelled"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:buttonTint="@color/profile_green_primary"
+            android:checked="true"
+            android:text="Đã hủy"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <!-- Hết hạn -->
+        <CheckBox
+            android:id="@+id/cbHistoryExpired"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:buttonTint="@color/profile_green_primary"
+            android:checked="true"
+            android:text="Hết hạn"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Action Buttons (Đặt lại & Áp dụng) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnResetHistoryFilter"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_outlined_gray"
+            android:text="Đặt lại"
+            android:textAllCaps="false"
+            android:textColor="#374151"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnApplyHistoryFilter"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Áp dụng"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

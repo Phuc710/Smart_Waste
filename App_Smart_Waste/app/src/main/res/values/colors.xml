@@ -134,6 +134,10 @@
     <color name="profile_chevron">#94A3B8</color>
 
     <!-- Surfaces -->
+    <color name="profile_card_bg">#FFFFFF</color>
+    <color name="profile_tag_blue_text">#1976D2</color>
+    <color name="profile_border_light">#F1F5F9</color>
+    <color name="profile_text_hint">#94A3B8</color>
     <color name="surface_card">#FFFFFF</color>
     <color name="surface_bg">#FFFFFF</color>
     <color name="white">#FFFFFF</color>

@@ -6,8 +6,8 @@ async function calculateOsrmRoute(coordinates) {
     if (!coordinates || coordinates.length < 2) return null;
     
     const coordinatePath = coordinates.map((point) => `${Number(point[0])},${Number(point[1])}`).join(';');
-    const tripUrl = `https://router.project-osrm.org/trip/v1/driving/${coordinatePath}?source=first&destination=last&roundtrip=false&geometries=geojson&overview=full&steps=false`;
-    const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coordinatePath}?geometries=geojson&overview=full&steps=false`;
+    const tripUrl = `https://router.project-osrm.org/trip/v1/driving/${coordinatePath}?source=first&destination=last&roundtrip=false&geometries=geojson&overview=full&steps=true`;
+    const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coordinatePath}?geometries=geojson&overview=full&steps=true`;
 
     try {
         const routeResponse = await fetch(coordinates.length > 2 ? tripUrl : routeUrl, { 
@@ -16,11 +16,30 @@ async function calculateOsrmRoute(coordinates) {
         const data = await routeResponse.json();
         if (data.code === 'Ok' && (data.trips?.length || data.routes?.length)) {
             const trip = data.trips ? data.trips[0] : data.routes[0];
+            const steps = [];
+            if (Array.isArray(trip.legs)) {
+                for (const leg of trip.legs) {
+                    if (Array.isArray(leg.steps)) {
+                        for (const s of leg.steps) {
+                            steps.push({
+                                distanceMeters: Math.round(s.distance || 0),
+                                durationSeconds: Math.round(s.duration || 0),
+                                street: s.name || '',
+                                maneuverType: s.maneuver?.type || 'straight',
+                                maneuverModifier: s.maneuver?.modifier || '',
+                                location: s.maneuver?.location || []
+                            });
+                        }
+                    }
+                }
+            }
+
             return {
                 provider: 'osrm',
                 distanceMeters: trip.distance,
                 durationSeconds: trip.duration,
                 coordinates: trip.geometry.coordinates,
+                steps: steps,
                 optimizedOrder: data.waypoints?.map((waypoint) => waypoint.waypoint_index) || []
             };
         }
@@ -42,6 +61,7 @@ async function calculateOsrmRoute(coordinates) {
         distanceMeters: Math.round(totalDistMeters),
         durationSeconds: Math.round((totalDistMeters / 30000) * 3600),
         coordinates: straightLineCoords,
+        steps: [],
         optimizedOrder: coordinates.map((_, idx) => idx)
     };
 }

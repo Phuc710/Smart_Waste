@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_map"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="44dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_drag_handle_gray" />
+
+    <!-- Header: Title & Close -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/tvJobReasonSheetTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:text="Chọn lý do"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnCloseJobReasonSheet"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Đóng"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/profile_text_secondary" />
+    </RelativeLayout>
+
+    <!-- Reason Category Chips Flow / Flexbox -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Row 1: Kẹt xe, Xe hỏng, Nghỉ trưa -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipReasonTraffic"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_filter_active"
+                android:gravity="center"
+                android:text="Kẹt xe"
+                android:textColor="@color/profile_green_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/chipReasonBrokenVehicle"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_filter_inactive"
+                android:gravity="center"
+                android:text="Xe hỏng"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/chipReasonLunch"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_filter_inactive"
+                android:gravity="center"
+                android:text="Nghỉ trưa"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 2: Thiết bị lỗi, Khác -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipReasonDeviceError"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1.2"
+                android:background="@drawable/bg_chip_filter_inactive"
+                android:gravity="center"
+                android:text="Thiết bị lỗi"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/chipReasonOther"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="0.8"
+                android:background="@drawable/bg_chip_filter_inactive"
+                android:gravity="center"
+                android:text="Khác"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Note Label -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:text="Ghi chú (tùy chọn)"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="13sp" />
+
+    <!-- Note Input Box with Counter -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_profile_item_card"
+        android:elevation="1dp"
+        android:padding="12dp">
+
+        <EditText
+            android:id="@+id/etJobReasonNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:gravity="top|start"
+            android:hint="Nhập ghi chú..."
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine"
+            android:maxLength="200"
+            android:minLines="3"
+            android:textColor="@color/profile_text_primary"
+            android:textColorHint="@color/profile_text_hint"
+            android:textSize="13.5sp" />
+
+        <TextView
+            android:id="@+id/tvJobReasonCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/etJobReasonNote"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="4dp"
+            android:text="0/200"
+            android:textColor="@color/profile_text_hint"
+            android:textSize="11sp" />
+    </RelativeLayout>
+
+    <!-- Confirm Button -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnConfirmJobReason"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_button_primary_green"
+        android:text="Xác nhận"
+        android:textColor="@color/white"
+        android:textSize="14.5sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

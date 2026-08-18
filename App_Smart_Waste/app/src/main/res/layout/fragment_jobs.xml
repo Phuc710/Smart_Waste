@@ -1,15 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/app_bg">
+    android:background="@color/app_bg"
+    android:orientation="vertical">
 
+    <!-- 1. Pinned Sticky Unified AppHeader (Title: "Nhiệm vụ", Actions: Filter, Sort/Refresh) -->
+    <com.example.app_smart_waste.ui.common.AppHeaderView
+        android:id="@+id/appHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- 2. Primary Tabs: [ Cần xử lý ]  [ Lịch sử ] -->
+    <LinearLayout
+        android:id="@+id/layoutJobsPrimaryTabsWrapper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/app_surface"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/layoutJobsPrimaryTabs"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="20dp"
+            android:orientation="horizontal">
+
+            <!-- Tab 0: Đang hoạt động -->
+            <LinearLayout
+                android:id="@+id/tabActiveJobsHeader"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvTabActiveLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:text="Cần xử lý"
+                    android:textColor="@color/profile_green_primary"
+                    android:textSize="15.5sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:id="@+id/indicatorTabActive"
+                    android:layout_width="56dp"
+                    android:layout_height="3.5dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_role_badge_pill"
+                    android:backgroundTint="@color/profile_green_primary" />
+            </LinearLayout>
+
+            <!-- Tab 1: Lịch sử -->
+            <LinearLayout
+                android:id="@+id/tabHistoryJobsHeader"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvTabHistoryLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:text="Lịch sử"
+                    android:textColor="@color/profile_text_secondary"
+                    android:textSize="15.5sp" />
+
+                <View
+                    android:id="@+id/indicatorTabHistory"
+                    android:layout_width="56dp"
+                    android:layout_height="3.5dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_role_badge_pill"
+                    android:backgroundTint="@color/profile_green_primary"
+                    android:visibility="invisible" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/app_divider" />
+    </LinearLayout>
+
+    <!-- 3. SwipeRefreshLayout with Scrollable Content -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/jobsSwipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/jobsNestedScrollView"
@@ -24,361 +117,830 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingBottom="@dimen/screen_bottom_padding">
+                android:paddingTop="12dp"
+                android:paddingBottom="96dp">
 
-                <!-- 1. Shared Unified AppHeader -->
-                <com.example.app_smart_waste.ui.common.AppHeaderView
-                    android:id="@+id/appHeader"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
+                <!-- ======================================================= -->
+                <!-- 3. CONTAINER TAB 0: ĐANG HOẠT ĐỘNG                     -->
+                <!-- ======================================================= -->
                 <LinearLayout
+                    android:id="@+id/containerActiveTabContent"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="@dimen/screen_horizontal_padding">
+                    android:paddingHorizontal="20dp">
 
-                    <!-- 2. PRIMARY TOP SEGMENTED CONTROL ( [ Đang xử lý ]  [ Lịch sử ] ) -->
-                    <LinearLayout
-                        android:id="@+id/layoutJobsSegmentedControl"
+                    <!-- Active Quick Filters: [ Tất cả ] [ Đã giao ] [ Đang thực hiện ] [ Tạm dừng ] -->
+                    <HorizontalScrollView
+                        android:id="@+id/scrollActiveQuickFilters"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="8dp"
-                        android:background="@drawable/bg_dialog_item_field"
-                        android:orientation="horizontal"
-                        android:padding="3dp">
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:clipToPadding="false"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
 
-                        <!-- Tab 1: Đang xử lý (Active default) -->
                         <LinearLayout
-                            android:id="@+id/tabActiveJobs"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_segmented_tab_active"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/chipActiveAll"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/bg_quick_filter_chip_active"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Tất cả (0)"
+                                android:textColor="@color/white"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/chipActiveAssigned"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/bg_quick_filter_chip_inactive"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Đã giao (0)"
+                                android:textColor="#4B5563"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/chipActiveInProgress"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/bg_quick_filter_chip_inactive"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Đang thực hiện (0)"
+                                android:textColor="#4B5563"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/chipActivePaused"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_quick_filter_chip_inactive"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Tạm dừng (0)"
+                                android:textColor="#4B5563"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                    </HorizontalScrollView>
+
+                    <!-- ERROR STATE: Offline / Data Load Error Card (NO skeleton underneath) -->
+                    <LinearLayout
+                        android:id="@+id/cardJobsOfflineWarning"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bg_card_offline_warning"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="top"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginTop="2dp"
+                                android:src="@drawable/ic_alert_triangle_amber" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="14dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvJobsErrorTitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:includeFontPadding="false"
+                                    android:text="Không tải được danh sách nhiệm vụ"
+                                    android:textColor="#111827"
+                                    android:textSize="15.5sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tvJobsErrorDescription"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:lineSpacingExtra="3dp"
+                                    android:text="Vui lòng kiểm tra kết nối mạng rồi thử lại."
+                                    android:textColor="#4B5563"
+                                    android:textSize="13.5sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnRetryJobsData"
+                            android:layout_width="match_parent"
+                            android:layout_height="42dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_button_retry_green_outline"
+                            android:text="Thử lại"
+                            android:textAllCaps="false"
+                            android:textColor="#16A34A"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- LOADING SKELETON STATE: Only visible during initial loading / refreshing -->
+                    <LinearLayout
+                        android:id="@+id/layoutJobsLoadingSkeleton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <!-- Skeleton Item 1 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingVertical="14dp">
+
+                            <View
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:background="@drawable/bg_skeleton_circle" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <View
+                                    android:layout_width="140dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/bg_skeleton_bar" />
+
+                                <View
+                                    android:layout_width="90dp"
+                                    android:layout_height="10dp"
+                                    android:layout_marginTop="6dp"
+                                    android:background="@drawable/bg_skeleton_bar" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="44dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/bg_skeleton_bar" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#F3F4F6" />
+
+                        <!-- Skeleton Item 2 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingVertical="14dp">
+
+                            <View
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:background="@drawable/bg_skeleton_circle" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <View
+                                    android:layout_width="150dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/bg_skeleton_bar" />
+
+                                <View
+                                    android:layout_width="100dp"
+                                    android:layout_height="10dp"
+                                    android:layout_marginTop="6dp"
+                                    android:background="@drawable/bg_skeleton_bar" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="44dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/bg_skeleton_bar" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#F3F4F6" />
+
+                        <!-- Skeleton Item 3 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingVertical="14dp">
+
+                            <View
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:background="@drawable/bg_skeleton_circle" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <View
+                                    android:layout_width="130dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/bg_skeleton_bar" />
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="10dp"
+                                    android:layout_marginTop="6dp"
+                                    android:background="@drawable/bg_skeleton_bar" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="44dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/bg_skeleton_bar" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- SECTION 1: Nhiệm vụ được giao (Case 01 / Case 02 Preview) -->
+                    <LinearLayout
+                        android:id="@+id/sectionAssignedJobs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="Nhiệm vụ được giao"
+                            android:textColor="@color/profile_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <!-- Assigned Job Card -->
+                        <LinearLayout
+                            android:id="@+id/cardAssignedJobItem"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_profile_item_card"
                             android:clickable="true"
                             android:elevation="1dp"
                             android:focusable="true"
                             android:foreground="?attr/selectableItemBackground"
-                            android:gravity="center"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:id="@+id/tvLabelTabActive"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Đang xử lý"
-                                android:textColor="@color/white"
-                                android:textSize="13.5sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvActiveCountBadge"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_marginStart="8dp"
-                                android:background="@drawable/bg_badge_on_active_tab"
-                                android:gravity="center"
-                                android:text="0"
-                                android:textColor="@color/profile_green_primary"
-                                android:textSize="11sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <!-- Tab 2: Lịch sử (Inactive default) -->
-                        <LinearLayout
-                            android:id="@+id/tabHistoryJobs"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:background="@null"
-                            android:clickable="true"
-                            android:elevation="0dp"
-                            android:focusable="true"
-                            android:foreground="?attr/selectableItemBackground"
-                            android:gravity="center"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:id="@+id/tvLabelTabHistory"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Lịch sử"
-                                android:textColor="@color/app_text_primary"
-                                android:textSize="13.5sp" />
-
-                            <TextView
-                                android:id="@+id/tvHistoryTabCountBadge"
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_marginStart="8dp"
-                                android:background="@drawable/bg_badge_on_inactive_tab"
-                                android:gravity="center"
-                                android:text="0"
-                                android:textColor="@color/app_text_primary"
-                                android:textSize="11sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- ========================================================= -->
-                    <!-- 3. CONTAINER TAB 1: ĐANG XỬ LÝ                            -->
-                    <!-- ========================================================= -->
-                    <LinearLayout
-                        android:id="@+id/layoutActiveJobsContainer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:orientation="vertical"
-                        android:visibility="visible">
-
-                        <!-- SUB-FILTER CHIPS: [ Tất cả ]  [ Đang chờ ]  [ Đang làm ] -->
-                        <LinearLayout
-                            android:id="@+id/layoutActiveSubFilters"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:orientation="horizontal">
-
-                            <!-- Chip: Tất cả -->
-                            <TextView
-                                android:id="@+id/chipActiveSubAll"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="6dp"
-                                android:background="@drawable/bg_chip_filter_active"
-                                android:paddingHorizontal="14dp"
-                                android:paddingVertical="6dp"
-                                android:text="Tất cả"
-                                android:textColor="@color/white"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold" />
-
-                            <!-- Chip: Đang chờ -->
-                            <TextView
-                                android:id="@+id/chipActiveSubPending"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="6dp"
-                                android:background="@drawable/bg_chip_filter_inactive"
-                                android:paddingHorizontal="14dp"
-                                android:paddingVertical="6dp"
-                                android:text="Đang chờ"
-                                android:textColor="@color/app_text_primary"
-                                android:textSize="12.5sp" />
-
-                            <!-- Chip: Đang làm -->
-                            <TextView
-                                android:id="@+id/chipActiveSubInProgress"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@drawable/bg_chip_filter_inactive"
-                                android:paddingHorizontal="14dp"
-                                android:paddingVertical="6dp"
-                                android:text="Đang làm"
-                                android:textColor="@color/app_text_primary"
-                                android:textSize="12.5sp" />
-                        </LinearLayout>
-
-                        <!-- Active Jobs RecyclerView -->
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rvActiveJobsList"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:clipToPadding="false"
-                            android:nestedScrollingEnabled="false"
-                            tools:listitem="@layout/item_job_assigned_card" />
-
-                        <!-- Empty Active State -->
-                        <LinearLayout
-                            android:id="@+id/layoutEmptyActiveJobs"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="20dp"
-                            android:background="@drawable/bg_card_profile"
-                            android:elevation="0.5dp"
-                            android:gravity="center"
                             android:orientation="vertical"
-                            android:padding="32dp"
-                            android:visibility="gone">
+                            android:padding="16dp">
 
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:contentDescription="Trống"
-                                android:src="@drawable/ic_check_circle_green"
-                                app:tint="@color/profile_text_tertiary" />
+                            <!-- Row 1: Code + Status Pill -->
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
 
+                                <TextView
+                                    android:id="@+id/tvAssignedJobCode"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentStart="true"
+                                    android:layout_centerVertical="true"
+                                    android:text="#JOB_1723801234"
+                                    android:textColor="@color/profile_text_primary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tvAssignedJobPill"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:layout_centerVertical="true"
+                                    android:background="@drawable/bg_tag_da_giao"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    android:text="ĐÃ GIAO"
+                                    android:textColor="#D97706"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </RelativeLayout>
+
+                            <!-- Row 2: Location / Route -->
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:text="Không có ca làm việc nào"
-                                android:textColor="@color/profile_text_primary"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
+                                android:id="@+id/tvAssignedAreaFooter"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:gravity="center"
-                                android:text="Hiện tại không có nhiệm vụ thu gom nào cần xử lý. Bạn có thể tự nhận ca từ bản đồ."
-                                android:textColor="@color/profile_text_secondary"
-                                android:textSize="12.5sp" />
+                                android:text="Quận 1 → Quận 3"
+                                android:textColor="#4B5563"
+                                android:textSize="13.5sp" />
 
-                            <androidx.appcompat.widget.AppCompatButton
-                                android:id="@+id/btnOpenMapFromActiveEmpty"
-                                android:layout_width="wrap_content"
-                                android:layout_height="40dp"
-                                android:layout_marginTop="16dp"
-                                android:background="@drawable/bg_btn_primary_green"
-                                android:elevation="0dp"
-                                android:paddingHorizontal="20dp"
-                                android:text="🗺️ Mở bản đồ tìm thùng"
-                                android:textColor="@color/white"
-                                android:textSize="13sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- ========================================================= -->
-                    <!-- 4. CONTAINER TAB 2: LỊCH SỬ THU GOM                        -->
-                    <!-- ========================================================= -->
-                    <LinearLayout
-                        android:id="@+id/layoutHistoryJobsContainer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:orientation="vertical"
-                        android:visibility="gone">
-
-                        <!-- FILTER CHIPS: [ Tất cả ]  [ Hoàn thành ]  [ Đã hủy ] -->
-                        <LinearLayout
-                            android:id="@+id/layoutHistoryFilters"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:id="@+id/chipFilterAll"
-                                android:layout_width="wrap_content"
+                            <!-- Row 3: 3 Inline Metrics with icons -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:background="@drawable/bg_chip_filter_active"
-                                android:paddingHorizontal="14dp"
-                                android:paddingVertical="6dp"
-                                android:text="Tất cả"
-                                android:textColor="@color/white"
-                                android:textSize="12.5sp"
-                                android:textStyle="bold" />
+                                android:layout_marginTop="12dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
 
+                                <!-- Stops -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:contentDescription="Điểm dừng"
+                                        android:src="@drawable/ic_trash"
+                                        app:tint="#4B5563" />
+
+                                    <TextView
+                                        android:id="@+id/tvAssignedStopsMetric"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="5 điểm"
+                                        android:textColor="@color/profile_text_primary"
+                                        android:textSize="13.5sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <!-- Distance -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="24dp"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:contentDescription="Quãng đường"
+                                        android:src="@drawable/ic_route_nodes"
+                                        app:tint="#4B5563" />
+
+                                    <TextView
+                                        android:id="@+id/tvAssignedDistanceMetric"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="4.2 km"
+                                        android:textColor="@color/profile_text_primary"
+                                        android:textSize="13.5sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <!-- Duration -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="24dp"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:contentDescription="Thời gian"
+                                        android:src="@drawable/ic_clock_outline"
+                                        app:tint="#4B5563" />
+
+                                    <TextView
+                                        android:id="@+id/tvAssignedDurationMetric"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="18 phút"
+                                        android:textColor="@color/profile_text_primary"
+                                        android:textSize="13.5sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Row 4: Timestamp -->
                             <TextView
-                                android:id="@+id/chipFilterCompleted"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:background="@drawable/bg_chip_filter_inactive"
-                                android:paddingHorizontal="14dp"
-                                android:paddingVertical="6dp"
-                                android:text="Hoàn thành"
-                                android:textColor="@color/app_text_primary"
-                                android:textSize="12.5sp" />
-
-                            <TextView
-                                android:id="@+id/chipFilterCancelled"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:background="@drawable/bg_chip_filter_inactive"
-                                android:paddingHorizontal="14dp"
-                                android:paddingVertical="6dp"
-                                android:text="Đã hủy"
-                                android:textColor="@color/app_text_primary"
-                                android:textSize="12.5sp" />
-                        </LinearLayout>
-
-                        <!-- History RecyclerView -->
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rvHistoryJobsList"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:clipToPadding="false"
-                            android:nestedScrollingEnabled="false"
-                            tools:listitem="@layout/item_job_history_card" />
-
-                        <!-- Empty History State -->
-                        <LinearLayout
-                            android:id="@+id/layoutEmptyHistoryJobs"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="20dp"
-                            android:background="@drawable/bg_card_profile"
-                            android:elevation="0.5dp"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:padding="32dp"
-                            android:visibility="gone">
-
-                            <ImageView
-                                android:layout_width="44dp"
-                                android:layout_height="44dp"
-                                android:contentDescription="Trống"
-                                android:src="@drawable/ic_check_circle_green"
-                                app:tint="@color/profile_text_tertiary" />
-
-                            <TextView
+                                android:id="@+id/tvAssignedJobTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="10dp"
-                                android:text="Chưa có lịch sử thu gom"
-                                android:textColor="@color/profile_text_primary"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="Các ca kết thúc sẽ hiển thị tại đây."
-                                android:textColor="@color/profile_text_secondary"
+                                android:text="Giao lúc: 08:15"
+                                android:textColor="#64748B"
                                 android:textSize="12.5sp" />
                         </LinearLayout>
                     </LinearLayout>
 
+                    <!-- SECTION 2: Đang thực hiện (Case 01 / Case 03 Preview) -->
+                    <LinearLayout
+                        android:id="@+id/sectionInProgressJobs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="Đang thực hiện"
+                            android:textColor="@color/profile_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <!-- In Progress Job Card -->
+                        <LinearLayout
+                            android:id="@+id/cardInProgressJobItem"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_profile_item_card"
+                            android:clickable="true"
+                            android:elevation="1dp"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <!-- Row 1: Code + Status Pill -->
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+
+                                <TextView
+                                    android:id="@+id/tvInProgressJobCode"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentStart="true"
+                                    android:layout_centerVertical="true"
+                                    android:text="#JOB_1723801122"
+                                    android:textColor="@color/profile_text_primary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tvInProgressJobPill"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:layout_centerVertical="true"
+                                    android:background="@drawable/bg_tag_dang_thuc_hien"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    android:text="ĐANG THỰC HIỆN"
+                                    android:textColor="#2563EB"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </RelativeLayout>
+
+                            <!-- Row 2: Location / Route -->
+                            <TextView
+                                android:id="@+id/tvInProgressAreaFooter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Quận 4 → Quận 7"
+                                android:textColor="#4B5563"
+                                android:textSize="13.5sp" />
+
+                            <!-- Row 3: 3 Inline Metrics with icons -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <!-- Stops -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:contentDescription="Điểm dừng"
+                                        android:src="@drawable/ic_trash"
+                                        app:tint="#4B5563" />
+
+                                    <TextView
+                                        android:id="@+id/tvInProgressStopsMetric"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="3 điểm"
+                                        android:textColor="@color/profile_text_primary"
+                                        android:textSize="13.5sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <!-- Distance -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="24dp"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:contentDescription="Quãng đường"
+                                        android:src="@drawable/ic_route_nodes"
+                                        app:tint="#4B5563" />
+
+                                    <TextView
+                                        android:id="@+id/tvInProgressDistanceMetric"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="2.6 km"
+                                        android:textColor="@color/profile_text_primary"
+                                        android:textSize="13.5sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <!-- Duration -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="24dp"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:contentDescription="Thời gian"
+                                        android:src="@drawable/ic_clock_outline"
+                                        app:tint="#4B5563" />
+
+                                    <TextView
+                                        android:id="@+id/tvInProgressDurationMetric"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="12 phút"
+                                        android:textColor="@color/profile_text_primary"
+                                        android:textSize="13.5sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Row 4: Timestamp -->
+                            <TextView
+                                android:id="@+id/tvInProgressJobTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="Bắt đầu lúc: 09:35"
+                                android:textColor="#64748B"
+                                android:textSize="12.5sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- CASE 07: No Task Empty State (Matching design mockup) -->
+                    <LinearLayout
+                        android:id="@+id/layoutJobsEmptyState"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:id="@+id/imgEmptyJobsIllustration"
+                            android:layout_width="240dp"
+                            android:layout_height="180dp"
+                            android:layout_marginBottom="20dp"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/nv_empty" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Hiện chưa có nhiệm vụ"
+                            android:textColor="#111827"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="28dp"
+                            android:gravity="center"
+                            android:lineSpacingExtra="3dp"
+                            android:text="Bạn chưa có ca thu gom\nđang hoạt động."
+                            android:textColor="#4B5563"
+                            android:textSize="14sp" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnRefreshEmptyJobs"
+                            android:layout_width="160dp"
+                            android:layout_height="44dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="@drawable/bg_button_retry_green_outline"
+                            android:text="↻  Làm mới"
+                            android:textAllCaps="false"
+                            android:textColor="#16A34A"
+                            android:textSize="14.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvViewHistoryFromEmpty"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:padding="8dp"
+                            android:text="Xem lịch sử"
+                            android:textColor="#16A34A"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
+
+                <!-- ======================================================= -->
+                <!-- 4. CONTAINER TAB 1: LỊCH SỬ (CASE 06)                   -->
+                <!-- ======================================================= -->
+                <LinearLayout
+                    android:id="@+id/containerHistoryTabContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="20dp"
+                    android:visibility="gone">
+
+
+
+                    <!-- History Quick Filters: [ Tất cả ] [ Hoàn thành ] [ Đã hủy ] [ Hết hạn ] -->
+                    <HorizontalScrollView
+                        android:id="@+id/scrollHistoryQuickFilters"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:clipToPadding="false"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/chipHistoryAll"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/bg_quick_filter_chip_active"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Tất cả (0)"
+                                android:textColor="@color/white"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/chipHistoryCompleted"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/bg_quick_filter_chip_inactive"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Hoàn thành (0)"
+                                android:textColor="#4B5563"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/chipHistoryCancelled"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/bg_quick_filter_chip_inactive"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Đã hủy (0)"
+                                android:textColor="#4B5563"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/chipHistoryExpired"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_quick_filter_chip_inactive"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="16dp"
+                                android:text="Hết hạn (0)"
+                                android:textColor="#4B5563"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                    </HorizontalScrollView>
+
+                    <!-- History RecyclerView -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvHistoryJobsList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        tools:listitem="@layout/item_job_history_card" />
+
+                    <!-- History Empty State -->
+                    <LinearLayout
+                        android:id="@+id/layoutHistoryEmptyState"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="28dp"
+                        android:layout_marginBottom="32dp"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="180dp"
+                            android:layout_height="130dp"
+                            android:layout_marginBottom="16dp"
+                            android:alpha="0.85"
+                            android:src="@drawable/nv_empty" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Chưa có lịch sử nhiệm vụ"
+                            android:textColor="#111827"
+                            android:textSize="16.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:gravity="center"
+                            android:lineSpacingExtra="2dp"
+                            android:text="Các ca thu gom đã hoàn thành hoặc\nđã kết thúc sẽ hiển thị tại đây."
+                            android:textColor="#6B7280"
+                            android:textSize="13.5sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- CENTERED LOADING OVERLAY -->
-    <LinearLayout
-        android:id="@+id/layoutLoadingCenter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:background="@drawable/bg_card_profile"
-        android:elevation="8dp"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="18dp"
-        android:visibility="gone">
-
-        <ProgressBar
-            android:id="@+id/pbLoadingJobs"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:indeterminate="true"
-            android:indeterminateTint="@color/profile_green_primary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Đang tải dữ liệu ca làm..."
-            android:textColor="@color/profile_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-</FrameLayout>
+</LinearLayout>

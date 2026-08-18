@@ -118,6 +118,46 @@
         android:textColor="@color/profile_text_tertiary"
         android:textSize="12.5sp" />
 
+    <!-- Field 5: Ảnh minh chứng hiện trường -->
+    <LinearLayout
+        android:id="@+id/layoutDialogIncidentPhoto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ảnh minh chứng hiện trường:"
+            android:textColor="@color/profile_text_secondary"
+            android:textSize="12sp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="170dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_card_clean">
+
+            <ImageView
+                android:id="@+id/ivDialogIncidentPhoto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:contentDescription="Ảnh hiện trường"
+                android:scaleType="centerCrop" />
+
+            <ProgressBar
+                android:id="@+id/pbDialogPhotoLoading"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="@color/profile_green_primary"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
+
     <!-- Button Close -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnDialogCloseIncident"

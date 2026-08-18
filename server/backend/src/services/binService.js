@@ -93,17 +93,24 @@ async function saveEvent(binId, type, payload) {
     }
 }
 
-function publishCommand(binId, action, commandId) {
+function publishCommand(binId, action, commandId, issuedAt, expiresAt) {
     return new Promise((resolve, reject) => {
         const aedes = stateStore.getAedes();
         if (!aedes) return resolve();
         
+        const envelope = {
+            commandId,
+            action,
+            issuedAt: issuedAt || new Date().toISOString(),
+            expiresAt: expiresAt || new Date(Date.now() + 30000).toISOString()
+        };
+
         const packet = {
             topic: `wastebin/${binId}/command`,
-            payload: Buffer.from(JSON.stringify({ action, commandId })),
+            payload: Buffer.from(JSON.stringify(envelope)),
             qos: 1,
-            // Retain so ESP32 receives command even if briefly disconnected
-            retain: true
+            // DO NOT RETAIN instant action commands to avoid ghost triggers on device reconnect
+            retain: false
         };
         aedes.publish(packet, (error) => error ? reject(error) : resolve());
     });
@@ -123,7 +130,7 @@ function clearRetainedCommand(binId) {
     });
 }
 
-async function executeBinCommand(binId, action, commandId = new Date().toISOString()) {
+async function executeBinCommand(binId, action, commandId = new Date().toISOString(), userId = null) {
     const current = stateStore.latestBins.get(binId) || { device_id: binId };
     
     // Kiểm tra tính xác thực 2 chiều: Thiết bị BẮT BUỘC phải Online mới nhận lệnh
@@ -134,6 +141,9 @@ async function executeBinCommand(binId, action, commandId = new Date().toISOStri
         throw err;
     }
 
+    const issuedAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 30000).toISOString();
+
     const patch = {
         ...current,
         last_command: action,
@@ -143,9 +153,10 @@ async function executeBinCommand(binId, action, commandId = new Date().toISOStri
     };
     
     stateStore.latestBins.set(binId, patch);
-    stateStore.pendingCommands.set(binId, { action, commandId, lastPublishedAt: Date.now() });
+    stateStore.pendingCommands.set(binId, { action, commandId, lastPublishedAt: Date.now(), expiresAt });
     stateStore.emit('binData', { binId, data: patch });
 
+    // 1. Sync to smart_bins
     await supabaseRequest(`smart_bins?device_id=eq.${encodeURIComponent(binId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
@@ -157,10 +168,26 @@ async function executeBinCommand(binId, action, commandId = new Date().toISOStri
         })
     }).catch((error) => stateStore.reportDatabaseStatus(false, error));
 
-    // Phát lệnh qua MQTT tới thiết bị thật
-    await publishCommand(binId, action, commandId);
+    // 2. Insert into dedicated device_commands queue table
+    await supabaseRequest('device_commands', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+            id: commandId,
+            device_id: binId,
+            action,
+            status: 'sent',
+            issued_by: userId || null,
+            issued_at: issuedAt,
+            expires_at: expiresAt,
+            last_attempt_at: issuedAt,
+            attempts: 1
+        })
+    }).catch(() => {});
 
-    // Không dùng fake simulation! Chỉ có ACK từ thiết bị thật hoặc MQTT simulator mới hoàn tất lệnh
+    // 3. Phát lệnh qua MQTT tới thiết bị thật (with Command Envelope)
+    await publishCommand(binId, action, commandId, issuedAt, expiresAt);
+
     return patch;
 }
 
@@ -201,11 +228,12 @@ async function acknowledgeBinCommand(binId, data) {
 
     const processedAt = new Date().toISOString();
     stateStore.pendingCommands.delete(binId);
+    stateStore.processedCommandTimes.set(binId, commandId);
     const updated = { ...current, ...data, command_status: 'done', command_processed_at: processedAt };
     stateStore.latestBins.set(binId, updated);
     stateStore.emit('binData', { binId, data: updated });
     stateStore.resolveDeviceAck(binId, commandId, { ok: true, data: updated, action });
-    logger.info('MQTT ACK', `${binId}: ${action}`);
+    logger.info('MQTT ACK', `${binId}: ${action} (Cmd: ${commandId})`);
 
     clearRetainedCommand(binId).catch(() => {});
     Promise.all([
@@ -214,6 +242,11 @@ async function acknowledgeBinCommand(binId, data) {
             headers: { Prefer: 'return=minimal' },
             body: JSON.stringify({ command_status: 'done', command_processed_at: processedAt })
         }).catch((error) => stateStore.reportDatabaseStatus(false, error)),
+        supabaseRequest(`device_commands?id=eq.${encodeURIComponent(commandId)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ status: 'done', acknowledged_at: processedAt })
+        }).catch(() => {}),
         saveEvent(binId, 'command', { action, acknowledged: true, commandId })
     ]).catch((err) => logger.error('ACK DB save', err.message));
 }

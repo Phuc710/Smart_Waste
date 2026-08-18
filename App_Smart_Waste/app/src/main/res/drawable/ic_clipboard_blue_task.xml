@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Clipboard Board Body (Blue with rounded corners) -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M14,10C11.79,10 10,11.79 10,14V40C10,42.21 11.79,44 14,44H34C36.21,44 38,42.21 38,40V14C38,11.79 36.21,10 34,10H30V9C30,7.34 28.66,6 27,6H21C19.34,6 18,7.34 18,9V10H14Z" />
+    <!-- Top Clip Ring -->
+    <path
+        android:fillColor="#1D4ED8"
+        android:pathData="M21,7H27C27.55,7 28,7.45 28,8V11H20V8C20,7.45 20.45,7 21,7Z" />
+    <!-- 3 White text lines on clipboard -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,18H32V20.5H16V18ZM16,24.5H32V27H16V24.5ZM16,31H26V33.5H16V31Z" />
+</vector>

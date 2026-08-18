@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layoutNotifCenterRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_bg"
+    android:orientation="vertical">
+
+    <!-- 1. Standardized Unified AppHeader -->
+    <com.example.app_smart_waste.ui.common.AppHeaderView
+        android:id="@+id/appHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Subtle Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/app_divider" />
+
+    <!-- 2. Notifications List Container -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Recycler View -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvNotifications"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="@dimen/screen_horizontal_padding"
+            android:paddingTop="8dp"
+            android:paddingBottom="40dp"
+            tools:listitem="@layout/item_notification_center_card" />
+
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/layoutNotifEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:alpha="0.45"
+                android:contentDescription="Trống"
+                android:src="@drawable/ic_chat_bell"
+                app:tint="@color/app_text_tertiary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Không có thông báo mới"
+                android:textColor="@color/app_text_secondary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Các thông báo về nhiệm vụ và sự cố sẽ xuất hiện tại đây."
+                android:textColor="@color/app_text_tertiary"
+                android:textSize="12.5sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+</LinearLayout>

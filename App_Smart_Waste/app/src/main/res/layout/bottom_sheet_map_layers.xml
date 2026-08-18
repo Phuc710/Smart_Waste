@@ -13,16 +13,16 @@
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="10dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="14dp"
         android:background="@drawable/bg_drag_handle" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp">
+        android:paddingHorizontal="24dp">
 
-        <!-- Header -->
+        <!-- Header: Lớp bản đồ + Close icon -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,8 +34,8 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:text="Lớp bản đồ"
-                android:textColor="@color/profile_text_primary"
-                android:textSize="18sp"
+                android:textColor="#0F172A"
+                android:textSize="17.5sp"
                 android:textStyle="bold" />
 
             <ImageView
@@ -46,164 +46,127 @@
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Đóng"
-                android:padding="6dp"
+                android:padding="4dp"
                 android:src="@drawable/ic_close_gray" />
         </RelativeLayout>
 
-        <!-- 1. Default Vector Layer -->
+        <!-- 1. Mặc định (Default Layer) -->
         <LinearLayout
             android:id="@+id/btnLayerDefault"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/bg_card_clean"
+            android:layout_height="52dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <TextView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_chip_filter_active"
-                android:gravity="center"
-                android:text="🗺️"
-                android:textSize="18sp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Mặc định (Vector Clean)"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Bản đồ đường phố tiêu chuẩn, tối ưu pin"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
+            android:orientation="horizontal">
 
             <ImageView
-                android:id="@+id/ivCheckDefault"
+                android:id="@+id/ivRadioDefault"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@drawable/ic_check_circle_green"
-                android:visibility="visible" />
+                app:tint="#16A34A" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:text="Mặc định"
+                android:textColor="#0F172A"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <!-- Hidden for code interop -->
+            <ImageView
+                android:id="@+id/ivCheckDefault"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- 2. Satellite Layer -->
+        <!-- 2. Vệ tinh (Satellite Layer) -->
         <LinearLayout
             android:id="@+id/btnLayerSatellite"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/bg_card_clean"
+            android:layout_height="52dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <TextView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_chip_filter_inactive"
-                android:gravity="center"
-                android:text="🛰️"
-                android:textSize="18sp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Vệ tinh (Satellite)"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Hình ảnh chụp từ vệ tinh thực tế độ phân giải cao"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
+            android:orientation="horizontal">
 
             <ImageView
-                android:id="@+id/ivCheckSatellite"
+                android:id="@+id/ivRadioSatellite"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@drawable/ic_check_circle_green"
+                android:src="@drawable/ic_check_circle_outline"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:text="Vệ tinh"
+                android:textColor="#0F172A"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <!-- Hidden for code interop -->
+            <ImageView
+                android:id="@+id/ivCheckSatellite"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- 3. Terrain Layer -->
+        <!-- 3. Địa hình (Terrain Layer) -->
         <LinearLayout
             android:id="@+id/btnLayerTerrain"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_card_clean"
+            android:layout_height="52dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <TextView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_chip_filter_inactive"
-                android:gravity="center"
-                android:text="⛰️"
-                android:textSize="18sp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Địa hình (Terrain)"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Hiển thị độ cao, đồi dốc và địa hình tự nhiên"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="11.5sp" />
-            </LinearLayout>
+            android:orientation="horizontal">
 
             <ImageView
-                android:id="@+id/ivCheckTerrain"
+                android:id="@+id/ivRadioTerrain"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@drawable/ic_check_circle_green"
+                android:src="@drawable/ic_check_circle_outline"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:text="Địa hình"
+                android:textColor="#0F172A"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <!-- Hidden for code interop -->
+            <ImageView
+                android:id="@+id/ivCheckTerrain"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
                 android:visibility="gone" />
         </LinearLayout>
+
+        <!-- Close Button: [ Đóng ] -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCloseLayersButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_button_outlined_gray"
+            android:text="Đóng"
+            android:textAllCaps="false"
+            android:textColor="#0F172A"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
 
     </LinearLayout>
 </LinearLayout>

@@ -10,7 +10,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Radio,
-  History
+  History,
+  Cpu
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
@@ -31,7 +32,10 @@ export default function Sidebar({
     { id: 'map', label: 'Bản đồ & Định vị', icon: MapPin },
     { id: 'smart_bins', label: 'Smart Bins', icon: Trash2 },
     { id: 'operations', label: 'Lịch sử & Vận hành', icon: History },
-    ...(isAdmin ? [{ id: 'employees', label: 'Quản lý nhân sự', icon: Users }] : []),
+    ...(isAdmin ? [
+      { id: 'employees', label: 'Quản lý nhân sự', icon: Users },
+      { id: 'firmware', label: 'Cập nhật Firmware', icon: Cpu }
+    ] : []),
     { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings }
   ];
 

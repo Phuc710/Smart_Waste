@@ -5,239 +5,209 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet_rounded"
     android:orientation="vertical"
-    android:paddingBottom="24dp">
+    android:paddingBottom="28dp">
 
-    <!-- Top Drag Handle -->
+    <!-- Drag Handle -->
     <View
         android:layout_width="38dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="10dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="14dp"
         android:background="@drawable/bg_drag_handle" />
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fillViewport="true"
-        android:overScrollMode="never">
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp">
 
+        <!-- 1. Header: Chọn loại sự cố + Close Button -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tvIncidentSheetTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:text="Chọn loại sự cố"
+                android:textColor="#0F172A"
+                android:textSize="17.5sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btnCloseIncidentSheet"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Đóng"
+                android:padding="4dp"
+                android:src="@drawable/ic_close_gray" />
+        </RelativeLayout>
+
+        <!-- 2. Incident Category Chips (Row 1: Thùng hỏng | Kẹt nắp) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="20dp">
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
 
-            <!-- 1. Header with Title & Close button -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <TextView
-                    android:id="@+id/tvIncidentSheetTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:text="Báo cáo sự cố"
-                    android:textColor="@color/profile_text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <ImageView
-                    android:id="@+id/btnCloseIncidentSheet"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Đóng"
-                    android:padding="6dp"
-                    android:src="@drawable/ic_close_gray" />
-            </RelativeLayout>
-
-            <!-- 2. SECTION: Chọn loại sự cố (5 Categories) -->
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Chọn loại sự cố"
-                android:textColor="@color/profile_text_primary"
+                android:id="@+id/chipIssueBroken"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_incident_active"
+                android:gravity="center"
+                android:text="Thùng hỏng"
+                android:textColor="#DC2626"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <!-- Category Grid / Chips -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="vertical">
-
-                <!-- Row 1: Thùng hỏng | Nắp kẹt | Cảm biến lỗi -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/chipIssueBroken"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginEnd="6dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_chip_filter_active"
-                        android:gravity="center"
-                        android:text="Thùng hỏng"
-                        android:textColor="@color/profile_green_primary"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/chipIssueLidStuck"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginHorizontal="3dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_chip_filter_inactive"
-                        android:gravity="center"
-                        android:text="Nắp kẹt"
-                        android:textColor="@color/profile_text_primary"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/chipIssueSensor"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="6dp"
-                        android:layout_weight="1.2"
-                        android:background="@drawable/bg_chip_filter_inactive"
-                        android:gravity="center"
-                        android:text="Cảm biến lỗi"
-                        android:textColor="@color/profile_text_primary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
-                <!-- Row 2: Rác tràn | Khác -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/chipIssueOverflow"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginEnd="6dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_chip_filter_inactive"
-                        android:gravity="center"
-                        android:text="Rác tràn"
-                        android:textColor="@color/profile_text_primary"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/chipIssueOther"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="6dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/bg_chip_filter_inactive"
-                        android:gravity="center"
-                        android:text="Khác"
-                        android:textColor="@color/profile_text_primary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 3. SECTION: Mô tả chi tiết (không bắt buộc) -->
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Mô tả chi tiết (không bắt buộc)"
-                android:textColor="@color/profile_text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:id="@+id/chipIssueLidStuck"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_incident_inactive"
+                android:gravity="center"
+                android:text="Kẹt nắp"
+                android:textColor="#0F172A"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Row 2: Lỗi cảm biến | Tràn đầy -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipIssueSensor"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_incident_inactive"
+                android:gravity="center"
+                android:text="Lỗi cảm biến"
+                android:textColor="#0F172A"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/chipIssueOverflow"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_incident_inactive"
+                android:gravity="center"
+                android:text="Tràn đầy"
+                android:textColor="#0F172A"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Row 3: Khác -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipIssueOther"
+                android:layout_width="120dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_chip_incident_inactive"
+                android:gravity="center"
+                android:text="Khác"
+                android:textColor="#0F172A"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 3. Section: Mô tả chi tiết (tuỳ chọn) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Mô tả chi tiết (tuỳ chọn)"
+            android:textColor="#0F172A"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- Input Box with Char Counter -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_dialog_item_field"
+            android:padding="12dp">
 
             <EditText
                 android:id="@+id/etIncidentDescription"
                 android:layout_width="match_parent"
-                android:layout_height="88dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_input_box"
+                android:layout_height="90dp"
+                android:background="@null"
                 android:gravity="top|start"
-                android:hint="Nhập mô tả tình trạng thực tế..."
-                android:padding="12dp"
-                android:textColor="@color/profile_text_primary"
-                android:textColorHint="@color/profile_text_secondary"
+                android:hint="Nhập mô tả sự cố..."
+                android:importantForAutofill="no"
+                android:inputType="textMultiLine"
+                android:maxLength="200"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
                 android:textSize="13.5sp" />
 
-            <!-- 4. SECTION: Thêm ảnh (tối đa 3 ảnh) -->
             <TextView
+                android:id="@+id/tvIncidentCharCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Thêm ảnh (tối đa 3 ảnh)"
-                android:textColor="@color/profile_text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:layout_below="@id/etIncidentDescription"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="4dp"
+                android:text="0/200"
+                android:textColor="#94A3B8"
+                android:textSize="11.5sp" />
+        </RelativeLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+        <!-- Hidden photo attachment views for programmatic compatibility -->
+        <FrameLayout
+            android:id="@+id/containerPhoto1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone">
 
-                <!-- Photo Thumb 1 -->
-                <FrameLayout
-                    android:id="@+id/containerPhoto1"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:layout_marginEnd="10dp"
-                    android:background="@drawable/bg_card_clean">
+            <ImageView
+                android:id="@+id/ivPhotoThumb1"
+                android:layout_width="48dp"
+                android:layout_height="48dp" />
+        </FrameLayout>
 
-                    <ImageView
-                        android:id="@+id/ivPhotoThumb1"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/img_garbage_truck_empty" />
-                </FrameLayout>
+        <FrameLayout
+            android:id="@+id/btnAddPhotoIncident"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
-                <!-- Add Button [+] -->
-                <FrameLayout
-                    android:id="@+id/btnAddPhotoIncident"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:background="@drawable/bg_card_clean"
-                    android:clickable="true"
-                    android:focusable="true">
+        <!-- 4. Submit Button: [ Gửi báo cáo ] -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnSubmitIncidentSheet"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Gửi báo cáo"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:text="+"
-                        android:textColor="@color/profile_text_secondary"
-                        android:textSize="28sp" />
-                </FrameLayout>
-            </LinearLayout>
-
-            <!-- 5. Submit Button -->
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnSubmitIncidentSheet"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="22dp"
-                android:background="@drawable/bg_btn_danger_solid"
-                android:text="Gửi báo cáo"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-    </ScrollView>
+    </LinearLayout>
 </LinearLayout>

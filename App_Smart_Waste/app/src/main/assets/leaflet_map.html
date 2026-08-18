@@ -6,7 +6,7 @@
     <title>SmartWaste GIS Map</title>
     <link rel="stylesheet" href="leaflet.css" />
     <style>
-        body, html, #map {
+        body, html {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -15,192 +15,341 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            overflow: hidden;
         }
 
-        /* 1. Driver Location Dot & Radar Pulse */
-        .driver-marker-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .driver-radar-pulse {
-            width: 48px;
-            height: 48px;
-            background: rgba(37, 99, 235, 0.22);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: pulse-ring 2.4s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-        }
-        .driver-dot {
-            width: 22px;
-            height: 22px;
-            background: #2563eb;
-            border: 3px solid #ffffff;
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease-out;
-        }
-        .driver-heading-arrow {
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-bottom: 8px solid #ffffff;
-            margin-top: -2px;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(1.6); opacity: 0; }
+        #map-viewport {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f8fafc;
         }
 
-        /* 2. Trash Bin Custom SVG Pin Markers */
+        /* 
+         * Overscan container for seamless 360-degree Heading-Up camera rotation without white edges.
+         * 220vmax x 220vmax guarantees complete viewport coverage at any aspect ratio & device orientation.
+         */
+        #map {
+            position: absolute;
+            width: 220vmax;
+            height: 220vmax;
+            top: 50%;
+            left: 50%;
+            margin-top: -110vmax;
+            margin-left: -110vmax;
+            background-color: #f8fafc;
+            transform-origin: 50% 50%;
+            will-change: transform;
+            transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* =====================================================================
+         * 1. GOOGLE MAPS NAVIGATION VEHICLE PUCKS
+         * ===================================================================== */
+        .gps-location-container {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: auto;
+        }
+
+        /* Forward Light Cone (Vision Field Beam) */
+        .gps-light-cone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 54px;
+            height: 64px;
+            margin-top: -56px;
+            margin-left: -27px;
+            background: linear-gradient(to top, rgba(26, 115, 232, 0.42), rgba(26, 115, 232, 0.0) 80%);
+            clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+            -webkit-clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+            pointer-events: none;
+            transform-origin: 50% 100%;
+            transition: transform 0.25s ease-out;
+            z-index: 1;
+        }
+
+        /* Ambient Radar Pulse Rings */
+        .gps-pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 36px;
+            height: 36px;
+            margin-top: -18px;
+            margin-left: -18px;
+            border-radius: 50%;
+            background: rgba(26, 115, 232, 0.20);
+            border: 1.5px solid rgba(26, 115, 232, 0.45);
+            pointer-events: none;
+            z-index: 2;
+            will-change: transform, opacity;
+            transform-origin: center center;
+            animation: gps-radar-wave 2.4s cubic-bezier(0.2, 0.55, 0.35, 1) infinite;
+        }
+
+        .gps-pulse-ring.is-delayed {
+            animation-delay: -1.2s;
+        }
+
+        @keyframes gps-radar-wave {
+            0% {
+                transform: scale(0.65);
+                opacity: 0;
+            }
+            15% {
+                opacity: 0.70;
+            }
+            80% {
+                transform: scale(1.85);
+                opacity: 0.05;
+            }
+            100% {
+                transform: scale(2.05);
+                opacity: 0;
+            }
+        }
+
+        /* Core high-contrast blue GPS circle */
+        .gps-core-marker {
+            position: relative;
+            z-index: 3;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #1A73E8;
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 3px 10px rgba(26, 115, 232, 0.65), 0 1px 4px rgba(0,0,0,0.30);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        /* White Navigation Arrow */
+        .gps-nav-arrow {
+            width: 14px;
+            height: 14px;
+            display: block;
+            fill: #FFFFFF;
+            transition: transform 0.25s ease-out;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+        }
+
+        /* =====================================================================
+         * 2. TRASH BIN CUSTOM SVG PIN MARKERS (Counter-Rotated on Map Turn)
+         * ===================================================================== */
         .bin-pin-wrapper {
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-end;
+            width: 36px;
+            height: 48px;
             cursor: pointer;
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: auto;
+            transform-origin: 18px 48px; /* Fixed anchor point at pin tip */
+            will-change: transform;
+            transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1), filter 0.20s ease-out;
         }
         .bin-pin-wrapper:active {
-            transform: scale(0.92);
+            transform: scale(0.90);
+        }
+        .bin-pin-wrapper.is-selected {
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.40));
         }
 
-        /* Selection Halo Ring */
-        .bin-selected-halo {
-            position: absolute;
-            top: -6px;
-            left: -6px;
-            right: -6px;
-            bottom: 0;
-            border: 3px solid #16a34a;
-            border-radius: 16px 16px 6px 16px;
-            box-shadow: 0 0 14px rgba(22, 163, 74, 0.6);
-            animation: halo-pulse 1.8s infinite ease-in-out;
+        .bin-pin-svg {
+            display: block;
+            width: 36px;
+            height: 48px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.22));
+        }
+
+        /* Waypoint and Truck Pin Wrappers */
+        .waypoint-pin-wrapper {
+            position: relative;
+            transform-origin: center center;
+            will-change: transform;
+            transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* =====================================================================
+         * 3. RADAR CENTER PULSE MARKER (Case 05 Self-Pick)
+         * ===================================================================== */
+        .radar-sweep-circle {
+            stroke-dasharray: 7 7;
+            animation: radar-dash 14s linear infinite;
+        }
+
+        @keyframes radar-dash {
+            to { stroke-dashoffset: -140; }
+        }
+
+        .radar-beacon {
+            position: relative;
+            width: 64px;
+            height: 64px;
             pointer-events: none;
         }
-        @keyframes halo-pulse {
-            0% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.08); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 0.9; }
-        }
 
-        .bin-pin-card {
-            min-width: 34px;
-            height: 38px;
-            border-radius: 12px 12px 4px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 7px;
-            color: #ffffff;
-            font-weight: 800;
-            font-size: 11px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            border: 1.5px solid #ffffff;
-            z-index: 2;
-        }
-
-        /* Colors based on waste level category dispatched from Android single source of truth */
-        .bin-critical {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-        .bin-warning {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        }
-        .bin-normal {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-        }
-        .bin-offline {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-        }
-
-        .bin-pin-beak {
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 6px solid #ffffff;
-            margin-top: -1px;
-            z-index: 2;
-        }
-
-        /* 3. Waypoint Route Stop Numbers */
-        .waypoint-badge {
-            width: 32px;
-            height: 32px;
+        .radar-beacon-ring,
+        .radar-beacon-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
             border-radius: 50%;
-            background: #ffffff;
-            border: 2.5px solid #2563eb;
-            color: #2563eb;
-            font-weight: 800;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.28);
-            transition: transform 0.2s ease-out;
-        }
-        .waypoint-collected {
-            border-color: #16a34a !important;
-            color: #ffffff !important;
-            background: #16a34a !important;
-        }
-        .waypoint-next {
-            border-color: #f59e0b !important;
-            color: #ffffff !important;
-            background: #f59e0b !important;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
-            transform: scale(1.15);
+            transform: translate(-50%, -50%);
         }
 
-        /* 4. Radar Sweep Pulse for Self-Pick */
-        .radar-sweep-circle {
-            animation: radar-sweep 2.8s infinite ease-out;
+        .radar-beacon-ring {
+            width: 26px;
+            height: 26px;
+            border: 1.5px solid rgba(22, 163, 74, 0.58);
+            background: rgba(34, 197, 94, 0.10);
+            will-change: transform, opacity;
+            animation: radar-pulse 2.8s ease-out infinite;
         }
-        @keyframes radar-sweep {
-            0% { fill-opacity: 0.18; stroke-opacity: 0.8; stroke-width: 2; }
-            50% { fill-opacity: 0.08; stroke-opacity: 0.4; stroke-width: 3; }
-            100% { fill-opacity: 0.18; stroke-opacity: 0.8; stroke-width: 2; }
+
+        .radar-beacon-ring:nth-child(2) { animation-delay: -0.93s; }
+        .radar-beacon-ring:nth-child(3) { animation-delay: -1.86s; }
+
+        .radar-beacon-core {
+            width: 10px;
+            height: 10px;
+            background: #16a34a;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 5px rgba(22, 163, 74, 0.55);
+        }
+
+        @keyframes radar-pulse {
+            0% { transform: translate(-50%, -50%) scale(0.45); opacity: 0; }
+            15% { opacity: 0.75; }
+            100% { transform: translate(-50%, -50%) scale(2.35); opacity: 0; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .gps-pulse-ring,
+            .radar-sweep-circle,
+            .radar-beacon-ring,
+            .gps-nav-arrow,
+            .bin-pin-wrapper,
+            .waypoint-pin-wrapper,
+            #map {
+                animation: none !important;
+                transition: none !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="map"></div>
+    <div id="map-viewport">
+        <div id="map"></div>
+    </div>
 
     <script src="leaflet.js"></script>
     <script>
-        // Leaflet Map Initialization
+        // Safe Global Error Logging for Android WebView debugging
+        window.addEventListener('error', function(err) {
+            console.error('[SmartWasteMap Error]:', err.message, 'at', err.filename, ':', err.lineno);
+        });
+
+        // 1. Leaflet Map Initialization
         var map = L.map('map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            preferCanvas: true,            // HTML5 Canvas renderer for 10x faster vector paths
+            fadeAnimation: false,          // Instant tile rendering without fade latency
+            markerZoomAnimation: true,
+            zoomAnimation: true,
+            inertia: true,
+            inertiaDeceleration: 3000
         }).setView([10.7769, 106.7009], 15);
 
-        // Tile Layers
-        var defaultLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
-        var terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
+        // High-contrast clean light tiles with fast streaming & caching
+        var defaultLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            subdomains: 'abcd',
+            keepBuffer: 8,
+            updateWhenIdle: false,
+            updateWhenZooming: false,
+            crossOrigin: true
+        }).addTo(map);
+
         var currentLayer = defaultLayer;
 
-        // Map Elements Storage
+        // Fallback to OSM tile server on error
+        defaultLayer.on('tileerror', function() {
+            if (currentLayer === defaultLayer) {
+                var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, keepBuffer: 6 });
+                osm.addTo(map);
+            }
+        });
+
+        // Map State & Elements Storage
         var driverMarker = null;
+        var driverAnimationFrame = null;
         var routePolyline = null;
         var routeOutline = null;
+        var routeDashLine = null;
+        var routeArrowMarkers = [];
         var binMarkersMap = new Map(); // binId -> L.Marker
+        var routeWaypointsMap = new Map(); // binId -> { order, isDestination, isCollected, isTruck }
         var waypointMarkers = [];
         var radarCircle = null;
+        var radarCenterMarker = null;
+        var lastRadarRadius = null;
         var selectedBinId = null;
+        var navDestinationCoords = null;
+        var navTargetBinId = null;
+
+        // =====================================================================
+        // HEADING-UP NAVIGATION & BEARING ENGINE STATE
+        // =====================================================================
+        var isNavigationMode = false;
+        var isAutoFollow = true;
+        var cumulativeCameraBearing = 0; // Unwrapped angle avoiding 360° wrapping jumps
+        var lastRawHeading = 0;
+        var lastStableBearing = 0;
+        var lastKnownSpeed = 0;
+        var isProgrammaticPan = false;
+
+        // =====================================================================
+        // UTILITY & VALIDATION FUNCTIONS
+        // =====================================================================
+
+        function normalizeCoord(lat, lng) {
+            if (lat === null || lat === undefined || lng === null || lng === undefined) return null;
+            var numLat = typeof lat === 'number' ? lat : parseFloat(String(lat).trim());
+            var numLng = typeof lng === 'number' ? lng : parseFloat(String(lng).trim());
+            if (!Number.isFinite(numLat) || !Number.isFinite(numLng)) return null;
+            if (numLat < -90.0 || numLat > 90.0 || numLng < -180.0 || numLng > 180.0) return null;
+            return [numLat, numLng];
+        }
 
         function isValidCoord(lat, lng) {
-            return typeof lat === 'number' && typeof lng === 'number' &&
-                Number.isFinite(lat) && Number.isFinite(lng) &&
-                lat >= -90.0 && lat <= 90.0 &&
-                lng >= -180.0 && lng <= 180.0;
+            return normalizeCoord(lat, lng) !== null;
+        }
+
+        function normalizeHeading(heading) {
+            if (heading === null || heading === undefined) return 0;
+            var num = typeof heading === 'number' ? heading : parseFloat(String(heading).trim());
+            if (!Number.isFinite(num)) return 0;
+            return ((num % 360) + 360) % 360;
         }
 
         function sanitizeId(raw) {
@@ -210,57 +359,357 @@
             return str;
         }
 
+        function calculateBearing(lat1, lng1, lat2, lng2) {
+            var dLon = (lng2 - lng1) * Math.PI / 180;
+            var lat1Rad = lat1 * Math.PI / 180;
+            var lat2Rad = lat2 * Math.PI / 180;
+            var y = Math.sin(dLon) * Math.cos(lat2Rad);
+            var x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+            var brng = Math.atan2(y, x) * 180 / Math.PI;
+            return (brng + 360) % 360;
+        }
+
+        function getShortestAngleDelta(fromAngle, toAngle) {
+            var diff = ((toAngle - fromAngle) % 360 + 540) % 360 - 180;
+            return diff;
+        }
+
         // =====================================================================
-        // SMART WASTE MAP API (CENTRALIZED CONTRACT)
+        // BEARING ENGINE: Route Segment Tangent & GPS Fallback
         // =====================================================================
-        window.SmartWasteMap = {
-            // 1. Initialize
-            initialize: function(config) {
-                if (config && config.center && Array.isArray(config.center) && config.center.length >= 2) {
-                    var lat = config.center[0];
-                    var lng = config.center[1];
-                    if (isValidCoord(lat, lng)) {
-                        map.setView([lat, lng], config.zoom || 15);
+
+        function getRouteForwardBearing(lat, lng) {
+            if (!routePolyline) return lastStableBearing || 0;
+            var latlngs = routePolyline.getLatLngs();
+            if (!latlngs || latlngs.length < 2) return lastStableBearing || 0;
+
+            var nearestIdx = 0;
+            var minDist = Infinity;
+            var targetLL = L.latLng(lat, lng);
+
+            for (var i = 0; i < latlngs.length; i++) {
+                var d = targetLL.distanceTo(latlngs[i]);
+                if (d < minDist) {
+                    minDist = d;
+                    nearestIdx = i;
+                }
+            }
+
+            // Look ahead to find forward tangent vector
+            var nextIdx = Math.min(nearestIdx + 1, latlngs.length - 1);
+            if (nextIdx !== nearestIdx) {
+                return calculateBearing(latlngs[nearestIdx].lat, latlngs[nearestIdx].lng, latlngs[nextIdx].lat, latlngs[nextIdx].lng);
+            }
+            return (latlngs.length >= 2) ? calculateBearing(latlngs[0].lat, latlngs[0].lng, latlngs[1].lat, latlngs[1].lng) : (lastStableBearing || 0);
+        }
+
+        function resolveEffectiveHeading(rawHeading, speed, lat, lng) {
+            var normHeading = normalizeHeading(rawHeading);
+            var numSpeed = typeof speed === 'number' ? speed : parseFloat(String(speed || 0));
+            if (!Number.isFinite(numSpeed)) numSpeed = 0;
+
+            if (isNavigationMode) {
+                // Rule 1: Vehicle moving (speed >= 1.2 m/s) with valid GPS course -> use GPS
+                if (numSpeed >= 1.2 && normHeading > 0.1) {
+                    lastStableBearing = normHeading;
+                    return normHeading;
+                }
+
+                // Rule 2: Stopped / Slow or GPS course unstable -> fallback to forward route segment tangent
+                if (routePolyline) {
+                    var segmentBearing = getRouteForwardBearing(lat, lng);
+                    if (segmentBearing > 0.1) {
+                        lastStableBearing = segmentBearing;
+                        return segmentBearing;
                     }
                 }
+
+                // Rule 3: Keep last known stable bearing (never snap to 0° North when stopping at red lights)
+                if (lastStableBearing > 0.1) {
+                    return lastStableBearing;
+                }
+
+                return normHeading;
+            } else {
+                return normHeading;
+            }
+        }
+
+        // =====================================================================
+        // HEADING-UP CAMERA CONTROLLER (Continuous Angle & Offset Math)
+        // =====================================================================
+
+        function applyCameraBearing(targetBearing, immediate) {
+            var delta = getShortestAngleDelta(cumulativeCameraBearing, targetBearing);
+
+            // Deadband filtering: Ignore micro-jitter (< 2.0°) when vehicle is slow
+            if (Math.abs(delta) < 2.0 && lastKnownSpeed < 1.5 && !immediate) {
+                return;
+            }
+
+            // Accumulate unwrapped continuous angle (e.g. 355° -> 365° instead of jump to 5°)
+            cumulativeCameraBearing = cumulativeCameraBearing + delta;
+
+            var mapEl = document.getElementById('map');
+            if (mapEl) {
+                if (immediate) {
+                    mapEl.style.transition = 'none';
+                } else {
+                    mapEl.style.transition = 'transform 0.38s cubic-bezier(0.25, 1, 0.5, 1)';
+                }
+                mapEl.style.transform = 'rotate(' + (-cumulativeCameraBearing) + 'deg)';
+            }
+
+            // Counter-rotate all marker pins so icons and stop numbers remain upright
+            updateMarkerCounterRotations(cumulativeCameraBearing);
+        }
+
+        function updateMarkerCounterRotations(bearing) {
+            var pins = document.querySelectorAll('.bin-pin-wrapper');
+            for (var i = 0; i < pins.length; i++) {
+                var p = pins[i];
+                var isSelected = p.classList.contains('is-selected');
+                var scale = isSelected ? 'scale(1.18)' : '';
+                p.style.transform = 'rotate(' + bearing + 'deg) ' + scale;
+            }
+
+            var waypoints = document.querySelectorAll('.waypoint-pin-wrapper');
+            for (var j = 0; j < waypoints.length; j++) {
+                waypoints[j].style.transform = 'rotate(' + bearing + 'deg)';
+            }
+        }
+
+        /*
+         * Precise Lower-Middle Vehicle Positioning:
+         * Calculates screen offset under arbitrary camera rotation angle θ,
+         * anchoring vehicle at (W/2, H * 0.72) so 70%+ of the road ahead is visible.
+         */
+        function panToVehicleLowerMiddle(lat, lng, zoom, duration) {
+            var z = zoom || map.getZoom() || 17.5;
+            if (z < 16) z = 17.5;
+
+            if (!isNavigationMode) {
+                isProgrammaticPan = true;
+                map.panTo([lat, lng], { animate: true, duration: duration || 0.38 });
+                setTimeout(function() { isProgrammaticPan = false; }, (duration || 0.38) * 1000 + 50);
+                return;
+            }
+
+            // Screen offset: 22% below center -> vehicle sits at 72% Y from top
+            var rad = (cumulativeCameraBearing * Math.PI) / 180.0;
+            var offsetY = window.innerHeight * 0.22;
+            var deltaX = -offsetY * Math.sin(rad);
+            var deltaY = offsetY * Math.cos(rad);
+
+            var driverPixel = map.project([lat, lng], z);
+            var centerPixel = L.point(driverPixel.x - deltaX, driverPixel.y - deltaY);
+            var targetLatLng = map.unproject(centerPixel, z);
+
+            isProgrammaticPan = true;
+            map.panTo(targetLatLng, { animate: true, duration: duration || 0.38 });
+            setTimeout(function() { isProgrammaticPan = false; }, (duration || 0.38) * 1000 + 50);
+        }
+
+        // =====================================================================
+        // SMOOTH MARKER ANIMATION (Frame Cancellation)
+        // =====================================================================
+
+        function moveMarkerSmoothly(marker, destination, duration) {
+            if (!marker || !map.hasLayer(marker)) return;
+            if (driverAnimationFrame) {
+                cancelAnimationFrame(driverAnimationFrame);
+                driverAnimationFrame = null;
+            }
+
+            var start = marker.getLatLng();
+            var end = L.latLng(destination[0], destination[1]);
+            var distance = start.distanceTo(end);
+
+            // Teleport if distance > 250m or duration is 0
+            if (distance > 250 || !duration || duration <= 0) {
+                marker.setLatLng(end);
+                return;
+            }
+
+            var startedAt = performance.now();
+            function tick(now) {
+                var progress = Math.min((now - startedAt) / duration, 1.0);
+                var eased = 1.0 - Math.pow(1.0 - progress, 3);
+                marker.setLatLng([
+                    start.lat + (end.lat - start.lat) * eased,
+                    start.lng + (end.lng - start.lng) * eased
+                ]);
+                if (progress < 1.0) {
+                    driverAnimationFrame = requestAnimationFrame(tick);
+                } else {
+                    driverAnimationFrame = null;
+                }
+            }
+            driverAnimationFrame = requestAnimationFrame(tick);
+        }
+
+        // =====================================================================
+        // MARKER GENERATION (Unified Clean Style)
+        // =====================================================================
+
+        function createBinIcon(b, isSelected, stopOrder, isDestination) {
+            var level = typeof b.levelPercent === 'number' ? b.levelPercent :
+                        (typeof b.level_percent === 'number' ? b.level_percent :
+                        (typeof b.level === 'number' ? b.level : 0));
+            level = Math.round(level);
+
+            var isDone = b.isCollected === true || b.is_collected === true || b.status === 'COLLECTED';
+            var pinColor = '#64748B'; // Slate Gray
+            var wrapperClass = 'bin-pin-wrapper';
+
+            if (isDone) {
+                pinColor = '#10B981'; // Emerald Green
+            } else if (level >= 85) {
+                pinColor = '#EF4444'; // Red Danger
+            } else if (level >= 70) {
+                pinColor = '#F59E0B'; // Amber Warning
+            }
+
+            if (isSelected) {
+                wrapperClass += ' is-selected';
+            }
+
+            var innerContent = '';
+            if (isDestination) {
+                pinColor = '#EA4335';
+                innerContent = '<circle cx="18" cy="18" r="5.5" fill="#FFFFFF"/>';
+            } else if (stopOrder !== undefined && stopOrder !== null && stopOrder !== '') {
+                var orderText = isDone ? '✓' : String(stopOrder);
+                var fontSize = orderText.length > 2 ? '11' : (orderText === '✓' ? '14' : '13');
+                innerContent = '<circle cx="18" cy="18" r="9.5" fill="rgba(0,0,0,0.18)"/>' +
+                               '<text x="18" y="19" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" font-size="' + fontSize + '" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif">' + orderText + '</text>';
+            } else {
+                innerContent = '<rect x="15" y="8" width="6" height="2.2" rx="1.1" fill="#FFFFFF"/>' +
+                               '<rect x="11" y="10.8" width="14" height="2.8" rx="1.4" fill="#FFFFFF"/>' +
+                               '<path d="M12.2,14.4 L13.6,24.2 C13.75,25.3 14.6,26.2 15.7,26.2 L20.3,26.2 C21.4,26.2 22.25,25.3 22.4,24.2 L23.8,14.4 Z" fill="#FFFFFF"/>' +
+                               '<rect x="14.4" y="16.5" width="1.4" height="6.6" rx="0.7" fill="' + pinColor + '"/>' +
+                               '<rect x="17.3" y="16.5" width="1.4" height="6.6" rx="0.7" fill="' + pinColor + '"/>' +
+                               '<rect x="20.2" y="16.5" width="1.4" height="6.6" rx="0.7" fill="' + pinColor + '"/>';
+            }
+
+            var svgDropPin = '<svg class="bin-pin-svg" viewBox="0 0 36 48" width="36" height="48" xmlns="http://www.w3.org/2000/svg">' +
+                             '<path fill="' + pinColor + '" d="M18,46 C16.5,43.5 3,17.5 3,17 A15,15 0 1,1 33,17 C33,17.5 19.5,43.5 18,46 Z"/>' +
+                             innerContent +
+                             '</svg>';
+
+            var transformStyle = cumulativeCameraBearing ? ('style="transform: rotate(' + cumulativeCameraBearing + 'deg)' + (isSelected ? ' scale(1.18)' : '') + ';"') : '';
+            var html = '<div class="' + wrapperClass + '" ' + transformStyle + '>' + svgDropPin + '</div>';
+
+            return L.divIcon({
+                className: '',
+                html: html,
+                iconSize: [36, 48],
+                iconAnchor: [18, 48]
+            });
+        }
+
+        // =====================================================================
+        // CENTRALIZED SMART WASTE MAP API CONTRACT
+        // =====================================================================
+
+        window.SmartWasteMap = {
+            // 1. Initial Center & Zoom
+            init: function(lat, lng, zoom) {
+                var coord = normalizeCoord(lat, lng);
+                if (coord) {
+                    map.setView(coord, Number(zoom) || 15);
+                }
             },
 
-            // 2. Set Map Layer (default, satellite, terrain)
+            initialize: function(config) {
+                if (config && Array.isArray(config.center) && config.center.length >= 2) {
+                    SmartWasteMap.init(config.center[0], config.center[1], config.zoom);
+                }
+            },
+
+            // 2. Set Map Layer
             setLayer: function(layerName) {
-                if (currentLayer) map.removeLayer(currentLayer);
-                if (layerName === 'satellite') {
-                    satelliteLayer.addTo(map);
-                    currentLayer = satelliteLayer;
-                } else if (layerName === 'terrain') {
-                    terrainLayer.addTo(map);
-                    currentLayer = terrainLayer;
-                } else {
-                    defaultLayer.addTo(map);
-                    currentLayer = defaultLayer;
-                }
+                // Backward compatibility
             },
 
-            // 3. Set & Update Driver Location
-            setDriverLocation: function(lat, lng, heading) {
-                if (!isValidCoord(lat, lng)) return;
+            // 3. Set & Update Driver Location with Heading-Up & Course-Up Support
+            setDriverLocation: function(lat, lng, heading, speed) {
+                var coord = normalizeCoord(lat, lng);
+                if (!coord) return;
+                var targetLat = coord[0];
+                var targetLng = coord[1];
+
+                var rawHeading = normalizeHeading(heading);
+                lastRawHeading = rawHeading;
+                lastKnownSpeed = typeof speed === 'number' ? speed : parseFloat(String(speed || 0));
+
+                // 1. Resolve Effective Travel Heading (GPS vs Route Segment Fallback)
+                var effectiveHeading = resolveEffectiveHeading(rawHeading, lastKnownSpeed, targetLat, targetLng);
+
+                // 2. In Heading-Up navigation mode:
+                //    - Vehicle arrow points UP (0° relative to screen)
+                //    - Map underneath rotates by -effectiveHeading
+                //    In North-Up overview mode:
+                //    - Vehicle arrow rotates to compass heading
+                //    - Map stays at 0° (North Up)
+                var arrowRotation = isNavigationMode ? 0 : effectiveHeading;
+                var coneRotation = isNavigationMode ? 0 : effectiveHeading;
+
+                var gpsHtml =
+                    '<div class="gps-location-container">' +
+                    '  <div class="gps-light-cone" id="gpsLightCone" style="transform: rotate(' + coneRotation + 'deg);"></div>' +
+                    '  <div class="gps-pulse-ring"></div>' +
+                    '  <div class="gps-pulse-ring is-delayed"></div>' +
+                    '  <div class="gps-core-marker" id="gpsCoreMarker">' +
+                    '    <svg class="gps-nav-arrow" id="gpsNavArrow" style="transform: rotate(' + arrowRotation + 'deg);" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+                    '      <path d="M12 2L4.5 20.29l0.71 0.71L12 18l6.79 3 0.71-0.71z"/>' +
+                    '    </svg>' +
+                    '  </div>' +
+                    '</div>';
+
+                var icon = L.divIcon({
+                    className: '',
+                    html: gpsHtml,
+                    iconSize: [64, 64],
+                    iconAnchor: [32, 32]
+                });
+
                 if (!driverMarker) {
-                    var icon = L.divIcon({
-                        className: '',
-                        html: '<div class="driver-marker-container"><div class="driver-radar-pulse"><div class="driver-dot" id="driverDot"><div class="driver-heading-arrow"></div></div></div></div>',
-                        iconSize: [48, 48],
-                        iconAnchor: [24, 24]
+                    driverMarker = L.marker([targetLat, targetLng], {
+                        icon: icon,
+                        zIndexOffset: 2000
+                    }).addTo(map);
+
+                    driverMarker.on('click', function() {
+                        var current = driverMarker.getLatLng();
+                        SmartWasteMap.focusDriver(current.lat, current.lng, 17.5);
                     });
-                    driverMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 }).addTo(map);
                 } else {
-                    driverMarker.setLatLng([lat, lng]);
+                    moveMarkerSmoothly(driverMarker, [targetLat, targetLng], 380);
+                    var arrow = document.getElementById('gpsNavArrow');
+                    var cone = document.getElementById('gpsLightCone');
+                    if (arrow) {
+                        arrow.style.transform = 'rotate(' + arrowRotation + 'deg)';
+                    }
+                    if (cone) {
+                        cone.style.transform = 'rotate(' + coneRotation + 'deg)';
+                    }
+                    if (!arrow) {
+                        driverMarker.setIcon(icon);
+                    }
                 }
-                if (heading !== undefined && heading !== null && Number.isFinite(heading)) {
-                    var el = document.getElementById('driverDot');
-                    if (el) el.style.transform = 'rotate(' + heading + 'deg)';
+
+                // 3. HEADING-UP CAMERA FOLLOW:
+                // If in active navigation and auto-follow is active:
+                // - Rotate camera smoothly to face travel heading
+                // - Center vehicle at 72% Y (lower-middle)
+                if (isNavigationMode && isAutoFollow) {
+                    applyCameraBearing(effectiveHeading, false);
+                    panToVehicleLowerMiddle(targetLat, targetLng, 17.5, 0.38);
                 }
             },
 
-            // 4. Render Bins on Map (Keyed Map Update with SVG pins & levelCategory from Android)
+            // 4. Render Bins on Map (Keyed Map Update with Fast Diffing)
             setBins: function(binsData) {
                 try {
                     var bins = typeof binsData === 'string' ? JSON.parse(binsData) : binsData;
@@ -268,69 +717,67 @@
 
                     var activeIds = new Set();
 
-                    bins.forEach(function(b) {
-                        if (!b) return;
+                    for (var i = 0; i < bins.length; i++) {
+                        var b = bins[i];
+                        if (!b) continue;
                         var id = sanitizeId(b.id || b.deviceId || b.device_id);
-                        if (!id) return;
+                        if (!id) continue;
                         activeIds.add(id);
 
-                        var lat = b.lat !== undefined ? b.lat : b.latitude;
-                        var lng = b.lng !== undefined ? b.lng : b.longitude;
-                        if (!isValidCoord(lat, lng)) return;
+                        var rawLat = b.lat !== undefined ? b.lat : b.latitude;
+                        var rawLng = b.lng !== undefined ? b.lng : b.longitude;
+                        var coord = normalizeCoord(rawLat, rawLng);
+                        if (!coord) continue;
+                        var lat = coord[0];
+                        var lng = coord[1];
 
-                        var level = Math.round(b.levelPercent || b.level_percent || b.level || 0);
-                        var isOffline = b.isOnline === false || b.is_online === false;
-                        var isDone = b.isCollected || b.is_collected || b.status === 'COLLECTED';
+                        var isAtDestination = (navTargetBinId && id === navTargetBinId) ||
+                            (navDestinationCoords && Math.abs(lat - navDestinationCoords[0]) < 0.00015 && Math.abs(lng - navDestinationCoords[1]) < 0.00015);
+
                         var isSelected = (id === selectedBinId);
-                        var category = b.levelCategory || b.level_category || '';
-
-                        var cls = 'bin-normal';
-                        if (isOffline) {
-                            cls = 'bin-offline';
-                        } else if (category === 'CRITICAL') {
-                            cls = 'bin-critical';
-                        } else if (category === 'WARNING') {
-                            cls = 'bin-warning';
-                        } else {
-                            cls = 'bin-normal';
-                        }
-
-                        var iconText = isDone ? '✓' : (level + '%');
-                        var haloHtml = isSelected ? '<div class="bin-selected-halo"></div>' : '';
-
-                        var html = '<div class="bin-pin-wrapper">' +
-                                   haloHtml +
-                                   '<div class="bin-pin-card ' + cls + '">' +
-                                   '<span>🗑 ' + iconText + '</span>' +
-                                   '</div>' +
-                                   '<div class="bin-pin-beak"></div>' +
-                                   '</div>';
-
-                        var icon = L.divIcon({
-                            className: '',
-                            html: html,
-                            iconSize: [44, 46],
-                            iconAnchor: [22, 44]
-                        });
+                        var wpInfo = routeWaypointsMap.get(id);
+                        var stopOrder = wpInfo ? wpInfo.order : null;
+                        var rawLevel = typeof b.levelPercent === 'number' ? b.levelPercent : (typeof b.level === 'number' ? b.level : 0);
+                        var iconKey = id + '_' + (isSelected ? '1' : '0') + '_' + Math.round(rawLevel) + '_' + (b.isCollected ? '1' : '0') + '_' + (stopOrder || 'none') + '_' + (isAtDestination ? 'dest' : 'normal');
 
                         if (binMarkersMap.has(id)) {
                             var existing = binMarkersMap.get(id);
-                            existing.setLatLng([lat, lng]);
-                            existing.setIcon(icon);
-                            if (isSelected) existing.setZIndexOffset(900);
-                            else existing.setZIndexOffset(100);
+                            existing._binData = b;
+                            var curLL = existing.getLatLng();
+                            if (Math.abs(curLL.lat - lat) > 0.000001 || Math.abs(curLL.lng - lng) > 0.000001) {
+                                existing.setLatLng([lat, lng]);
+                            }
+                            if (existing._iconKey !== iconKey) {
+                                existing._iconKey = iconKey;
+                                existing.setIcon(createBinIcon(b, isSelected, stopOrder, isAtDestination));
+                                existing.setZIndexOffset(isSelected ? 999 : (stopOrder ? 500 + stopOrder : 100));
+                            }
+                            if (!map.hasLayer(existing)) {
+                                existing.addTo(map);
+                            }
                         } else {
-                            var marker = L.marker([lat, lng], { icon: icon, zIndexOffset: isSelected ? 900 : 100 }).addTo(map);
-                            marker.on('click', function() {
-                                if (window.AndroidBridge && window.AndroidBridge.onBinClicked) {
-                                    window.AndroidBridge.onBinClicked(id);
-                                }
+                            var icon = createBinIcon(b, isSelected, stopOrder, isAtDestination);
+                            var marker = L.marker([lat, lng], {
+                                icon: icon,
+                                zIndexOffset: isSelected ? 999 : (stopOrder ? 500 + stopOrder : 100)
                             });
+                            marker._binData = b;
+                            marker._iconKey = iconKey;
+
+                            (function(binId) {
+                                marker.on('click', function() {
+                                    if (window.AndroidBridge && typeof window.AndroidBridge.onBinClicked === 'function') {
+                                        window.AndroidBridge.onBinClicked(binId);
+                                    }
+                                });
+                            })(id);
+
+                            marker.addTo(map);
                             binMarkersMap.set(id, marker);
                         }
-                    });
+                    }
 
-                    // Remove stale markers not in activeIds
+                    // Clean up removed bin markers
                     binMarkersMap.forEach(function(marker, id) {
                         if (!activeIds.has(id)) {
                             map.removeLayer(marker);
@@ -342,125 +789,289 @@
                 }
             },
 
-            // 5. Select Bin & Highlight Halo
+            // 5. Select Bin
             setSelectedBin: function(binId) {
                 selectedBinId = sanitizeId(binId);
                 binMarkersMap.forEach(function(marker, id) {
                     var isSelected = (id === selectedBinId);
-                    marker.setZIndexOffset(isSelected ? 900 : 100);
-                    var el = marker.getElement();
-                    if (el) {
-                        var wrapper = el.querySelector('.bin-pin-wrapper');
-                        if (wrapper) {
-                            var halo = wrapper.querySelector('.bin-selected-halo');
-                            if (isSelected && !halo) {
-                                var newHalo = document.createElement('div');
-                                newHalo.className = 'bin-selected-halo';
-                                wrapper.insertBefore(newHalo, wrapper.firstChild);
-                            } else if (!isSelected && halo) {
-                                wrapper.removeChild(halo);
-                            }
-                        }
+                    var wpInfo = routeWaypointsMap.get(id);
+                    var stopOrder = wpInfo ? wpInfo.order : null;
+                    var isAtDestination = (navTargetBinId && id === navTargetBinId);
+                    if (marker._binData) {
+                        marker.setIcon(createBinIcon(marker._binData, isSelected, stopOrder, isAtDestination));
+                    }
+                    marker.setZIndexOffset(isSelected ? 999 : (stopOrder ? 500 + stopOrder : 100));
+                    if (isSelected) {
+                        map.panTo(marker.getLatLng(), { animate: true, duration: 0.35 });
                     }
                 });
             },
 
-            // 6. Draw Polyline Route with Waypoints
+            // 6. Draw Polyline Route (Clean Google Maps Navigation Line with Heading-Up Initial Focus)
             setRoute: function(routeCoordsJson, waypointsJson) {
                 SmartWasteMap.clearRoute();
 
                 try {
-                    var coords = typeof routeCoordsJson === 'string' ? JSON.parse(routeCoordsJson) : routeCoordsJson;
-                    if (!coords || coords.length < 2) return;
+                    var rawCoords = typeof routeCoordsJson === 'string' ? JSON.parse(routeCoordsJson) : routeCoordsJson;
+                    if (!Array.isArray(rawCoords) || rawCoords.length < 2) return;
 
-                    // Outer Soft Glow Casing
-                    routeOutline = L.polyline(coords, {
-                        color: '#93c5fd',
-                        weight: 8,
-                        opacity: 0.65,
-                        lineJoin: 'round',
-                        lineCap: 'round'
-                    }).addTo(map);
-
-                    // Inner Main Vivid Polyline
-                    routePolyline = L.polyline(coords, {
-                        color: '#2563eb',
-                        weight: 5,
-                        opacity: 0.95,
-                        lineJoin: 'round',
-                        lineCap: 'round'
-                    }).addTo(map);
-
-                    // Waypoints markers
-                    if (waypointsJson) {
-                        var waypoints = typeof waypointsJson === 'string' ? JSON.parse(waypointsJson) : waypointsJson;
-                        if (Array.isArray(waypoints)) {
-                            waypoints.forEach(function(wp, idx) {
-                                var isDone = wp.isCollected || wp.is_collected || wp.status === 'COLLECTED';
-                                var isNext = wp.isNext === true;
-                                var order = wp.order !== undefined ? wp.order : (idx + 1);
-                                var label = isDone ? '✓' : order;
-
-                                var badgeCls = 'waypoint-badge';
-                                if (isDone) {
-                                    badgeCls += ' waypoint-collected';
-                                } else if (isNext) {
-                                    badgeCls += ' waypoint-next';
-                                }
-
-                                var icon = L.divIcon({
-                                    className: '',
-                                    html: '<div class="' + badgeCls + '">' + label + '</div>',
-                                    iconSize: [32, 32],
-                                    iconAnchor: [16, 16]
-                                });
-                                var lat = wp.lat !== undefined ? wp.lat : wp.latitude;
-                                var lng = wp.lng !== undefined ? wp.lng : wp.longitude;
-                                if (isValidCoord(lat, lng)) {
-                                    var wm = L.marker([lat, lng], { icon: icon, zIndexOffset: isNext ? 600 : 500 }).addTo(map);
-                                    waypointMarkers.push(wm);
-                                }
-                            });
+                    var coords = [];
+                    for (var i = 0; i < rawCoords.length; i++) {
+                        var pt = rawCoords[i];
+                        if (Array.isArray(pt) && pt.length >= 2) {
+                            var normalized = normalizeCoord(pt[0], pt[1]);
+                            if (normalized) coords.push(normalized);
                         }
                     }
+                    if (coords.length < 2) return;
 
-                    map.fitBounds(routePolyline.getBounds(), { padding: [60, 60], animate: true });
+                    isNavigationMode = true;
+                    isAutoFollow = true;
+
+                    // 1. Destination Coordinates
+                    var lastPt = coords[coords.length - 1];
+                    navDestinationCoords = [lastPt[0], lastPt[1]];
+
+                    // 2. Initial Start Heading calculation
+                    var startPt = coords[0];
+                    var initialBearing = coords.length > 1 ? calculateBearing(startPt[0], startPt[1], coords[1][0], coords[1][1]) : 0;
+                    lastStableBearing = initialBearing;
+
+                    // 3. Outer border outline for high contrast Google Maps blue route
+                    routeOutline = L.polyline(coords, {
+                        color: '#1557B0',
+                        weight: 8.5,
+                        opacity: 0.85,
+                        lineJoin: 'round',
+                        lineCap: 'round',
+                        smoothFactor: 1.0
+                    }).addTo(map);
+
+                    // 4. Main Continuous Solid Blue Navigation Route
+                    routePolyline = L.polyline(coords, {
+                        color: '#1A73E8',
+                        weight: 6,
+                        opacity: 1.0,
+                        lineJoin: 'round',
+                        lineCap: 'round',
+                        smoothFactor: 1.0
+                    }).addTo(map);
+
+                    // 5. Process Waypoints
+                    var waypoints = null;
+                    if (waypointsJson) {
+                        waypoints = typeof waypointsJson === 'string' ? JSON.parse(waypointsJson) : waypointsJson;
+                    }
+
+                    routeWaypointsMap.clear();
+
+                    if (Array.isArray(waypoints) && waypoints.length > 0) {
+                        var lastWp = waypoints[waypoints.length - 1];
+                        if (lastWp && lastWp.deviceId) {
+                            navTargetBinId = sanitizeId(lastWp.deviceId);
+                        }
+
+                        waypoints.forEach(function(wp, idx) {
+                            var isTruck = wp.isTruck === true || wp.type === 'TRUCK';
+                            var isDone = wp.isCollected === true || wp.is_collected === true || wp.status === 'COLLECTED';
+                            var isLast = (idx === waypoints.length - 1 && waypoints.length > 0) || wp.isDestination === true || wp.type === 'DESTINATION';
+                            var order = typeof wp.order === 'number' ? wp.order : (idx + 1);
+
+                            var rawLat = wp.lat !== undefined ? wp.lat : wp.latitude;
+                            var rawLng = wp.lng !== undefined ? wp.lng : wp.longitude;
+                            var coord = normalizeCoord(rawLat, rawLng);
+                            if (!coord) return;
+
+                            var devId = sanitizeId(wp.deviceId || wp.id);
+                            if (devId) {
+                                routeWaypointsMap.set(devId, {
+                                    order: order,
+                                    isDestination: isLast,
+                                    isCollected: isDone,
+                                    isTruck: isTruck
+                                });
+                            }
+
+                            if (isTruck || !devId || !binMarkersMap.has(devId)) {
+                                var icon = null;
+                                if (isTruck) {
+                                    icon = L.divIcon({
+                                        className: '',
+                                        html: '<div class="waypoint-pin-wrapper" style="width: 30px; height: 30px; background: #1A73E8; border: 2px solid #FFFFFF; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">' +
+                                              '  <svg viewBox="0 0 24 24" width="16" height="16" fill="#FFFFFF"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>' +
+                                              '</div>',
+                                        iconSize: [30, 30],
+                                        iconAnchor: [15, 15]
+                                    });
+                                } else if (isLast) {
+                                    icon = createBinIcon({ levelPercent: 100 }, false, null, true);
+                                }
+
+                                if (icon) {
+                                    var wm = L.marker(coord, {
+                                        icon: icon,
+                                        zIndexOffset: isLast ? 800 : (500 + idx)
+                                    }).addTo(map);
+                                    waypointMarkers.push(wm);
+                                }
+                            }
+                        });
+                    }
+
+                    // Refresh existing bin markers with updated route stop numbers inside
+                    binMarkersMap.forEach(function(marker, id) {
+                        var isSelected = (id === selectedBinId);
+                        var wpInfo = routeWaypointsMap.get(id);
+                        var stopOrder = wpInfo ? wpInfo.order : null;
+                        var isAtDestination = (navTargetBinId && id === navTargetBinId) || (wpInfo && wpInfo.isDestination);
+                        if (marker._binData) {
+                            marker.setIcon(createBinIcon(marker._binData, isSelected, stopOrder, isAtDestination));
+                            marker.setZIndexOffset(isSelected ? 999 : (stopOrder ? 500 + stopOrder : 100));
+                        }
+                    });
+
+                    // Set initial driver position & camera focus in Heading-Up mode
+                    SmartWasteMap.setDriverLocation(startPt[0], startPt[1], initialBearing, 0);
+                    SmartWasteMap.focusDriver(startPt[0], startPt[1], 17.5);
                 } catch(e) {
                     console.error("SmartWasteMap.setRoute error: ", e);
                 }
             },
 
-            // 7. Clear Route
+            // 7. Clear Route & Reset Camera to North-Up
             clearRoute: function() {
+                isNavigationMode = false;
+                isAutoFollow = true;
+                navDestinationCoords = null;
+                navTargetBinId = null;
+                routeWaypointsMap.clear();
+
+                // Smoothly reset camera rotation to North-Up (0 deg)
+                applyCameraBearing(0, false);
+
                 if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
                 if (routeOutline) { map.removeLayer(routeOutline); routeOutline = null; }
+                if (routeDashLine) { map.removeLayer(routeDashLine); routeDashLine = null; }
+                routeArrowMarkers.forEach(function(m) { map.removeLayer(m); });
+                routeArrowMarkers = [];
                 waypointMarkers.forEach(function(m) { map.removeLayer(m); });
                 waypointMarkers = [];
+
+                // Reset all bin markers back to regular trash can icons
+                binMarkersMap.forEach(function(marker, id) {
+                    var isSelected = (id === selectedBinId);
+                    if (marker._binData) {
+                        marker.setIcon(createBinIcon(marker._binData, isSelected, null, false));
+                        marker.setZIndexOffset(isSelected ? 999 : 100);
+                    }
+                });
+
+                // Re-orient driver arrow to actual compass heading
+                if (driverMarker) {
+                    var arrow = document.getElementById('gpsNavArrow');
+                    var cone = document.getElementById('gpsLightCone');
+                    if (arrow) {
+                        arrow.style.transform = 'rotate(' + lastRawHeading + 'deg)';
+                    }
+                    if (cone) {
+                        cone.style.transform = 'rotate(' + lastRawHeading + 'deg)';
+                    }
+                }
             },
 
-            // 8. Radar Pulse Circle
+            // 8. Radar Pulse Circle (Case 05 Self-Pick Radar Sweep)
             setRadar: function(lat, lng, radiusMeters, enabled) {
-                if (radarCircle) {
-                    map.removeLayer(radarCircle);
-                    radarCircle = null;
+                var coord = normalizeCoord(lat, lng);
+                if (!enabled || !coord) {
+                    if (radarCircle) { map.removeLayer(radarCircle); radarCircle = null; }
+                    if (radarCenterMarker) { map.removeLayer(radarCenterMarker); radarCenterMarker = null; }
+                    lastRadarRadius = null;
+                    return;
                 }
-                if (enabled && isValidCoord(lat, lng)) {
-                    radarCircle = L.circle([lat, lng], {
-                        radius: radiusMeters || 500,
+
+                var rawRadius = typeof radiusMeters === 'number' ? radiusMeters : parseFloat(String(radiusMeters));
+                var r = (Number.isFinite(rawRadius) && rawRadius > 0) ? rawRadius : 500;
+                var isFirstRender = !radarCircle;
+                var radiusChanged = (lastRadarRadius !== r);
+                lastRadarRadius = r;
+
+                if (!radarCircle) {
+                    radarCircle = L.circle(coord, {
+                        radius: r,
                         color: '#16a34a',
                         fillColor: '#22c55e',
-                        fillOpacity: 0.16,
+                        fillOpacity: 0.10,
+                        opacity: 0.78,
                         weight: 2,
                         className: 'radar-sweep-circle'
                     }).addTo(map);
-                    map.setView([lat, lng], 15.5, { animate: true });
+                } else {
+                    radarCircle.setLatLng(coord);
+                    if (radiusChanged) radarCircle.setRadius(r);
+                }
+
+                var radarIcon = L.divIcon({
+                    className: '',
+                    html: '<div class="radar-beacon"><span class="radar-beacon-ring"></span><span class="radar-beacon-ring"></span><span class="radar-beacon-ring"></span><span class="radar-beacon-core"></span></div>',
+                    iconSize: [64, 64],
+                    iconAnchor: [32, 32]
+                });
+
+                if (!radarCenterMarker) {
+                    radarCenterMarker = L.marker(coord, {
+                        icon: radarIcon,
+                        interactive: false,
+                        keyboard: false,
+                        zIndexOffset: 1200
+                    }).addTo(map);
+                } else {
+                    radarCenterMarker.setLatLng(coord);
+                }
+
+                if (isFirstRender || radiusChanged) {
+                    map.fitBounds(radarCircle.getBounds(), { padding: [45, 45], maxZoom: 16, animate: true });
                 }
             },
 
             // 9. Focus Camera on Location
             focus: function(lat, lng, zoom) {
-                if (isValidCoord(lat, lng)) {
-                    map.setView([lat, lng], zoom || 17, { animate: true, duration: 0.5 });
+                var coord = normalizeCoord(lat, lng);
+                if (coord) {
+                    map.setView(coord, Number(zoom) || 17, { animate: true, duration: 0.5 });
+                }
+            },
+
+            // 10. Focus Camera on Driver with Heading-Up Orientation & Lower-Middle Offset
+            focusDriver: function(lat, lng, zoom) {
+                var coord = normalizeCoord(lat, lng);
+                if (!coord) return;
+                isAutoFollow = true;
+                var z = Number(zoom) || 17.5;
+
+                var effectiveHeading = resolveEffectiveHeading(lastRawHeading, lastKnownSpeed, coord[0], coord[1]);
+
+                if (isNavigationMode) {
+                    applyCameraBearing(effectiveHeading, false);
+                    panToVehicleLowerMiddle(coord[0], coord[1], z, 0.45);
+                } else {
+                    map.setView(coord, z, { animate: true, duration: 0.45 });
+                }
+            },
+
+            // 11. Resume Auto Follow (Re-center Button Action)
+            resumeAutoFollow: function() {
+                isAutoFollow = true;
+                if (driverMarker) {
+                    var ll = driverMarker.getLatLng();
+                    SmartWasteMap.focusDriver(ll.lat, ll.lng, 17.5);
+                }
+            },
+
+            // 12. Toggle Overview Route Zoom
+            showRouteOverview: function() {
+                if (routePolyline) {
+                    isAutoFollow = false;
+                    map.fitBounds(routePolyline.getBounds(), { padding: [60, 60], animate: true });
                 }
             }
         };
@@ -474,32 +1085,60 @@
         window.setRadarCircle = SmartWasteMap.setRadar;
         window.setMapLayer = SmartWasteMap.setLayer;
         window.zoomToBin = SmartWasteMap.focus;
+        window.focusDriver = SmartWasteMap.focusDriver;
+        window.resumeAutoFollow = SmartWasteMap.resumeAutoFollow;
+        window.showRouteOverview = SmartWasteMap.showRouteOverview;
         window.centerOnDriver = function() {
             if (driverMarker) {
-                map.setView(driverMarker.getLatLng(), 16, { animate: true, duration: 0.5 });
+                SmartWasteMap.focusDriver(driverMarker.getLatLng().lat, driverMarker.getLatLng().lng, 17.5);
             } else {
                 map.setView([10.7769, 106.7009], 15, { animate: true });
             }
         };
 
+        // =====================================================================
+        // USER INTERACTION LISTENERS (Map Drag & Touch Event Handling)
+        // =====================================================================
+
+        map.on('dragstart movestart', function() {
+            if (!isProgrammaticPan && isAutoFollow && isNavigationMode) {
+                isAutoFollow = false;
+                if (window.AndroidBridge && typeof window.AndroidBridge.onMapDragStarted === 'function') {
+                    window.AndroidBridge.onMapDragStarted();
+                }
+            }
+        });
+
         // Map Click Listener
         map.on('click', function(e) {
-            if (window.AndroidBridge && window.AndroidBridge.onMapClicked) {
+            if (window.AndroidBridge && typeof window.AndroidBridge.onMapClicked === 'function') {
                 window.AndroidBridge.onMapClicked(e.latlng.lat, e.latlng.lng);
             }
         });
 
         // Notify Android Map is ready
         map.whenReady(function() {
-            if (window.AndroidBridge && window.AndroidBridge.onMapReady) {
+            map.invalidateSize(false);
+            if (window.AndroidBridge && typeof window.AndroidBridge.onMapReady === 'function') {
                 window.AndroidBridge.onMapReady();
             }
         });
-        if (map._loaded) {
-            if (window.AndroidBridge && window.AndroidBridge.onMapReady) {
-                window.AndroidBridge.onMapReady();
+
+        // Resize with Debounce
+        var resizeTimer = null;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() { map.invalidateSize(false); }, 120);
+        });
+
+        // Document Visibility Change (Pause animations when backgrounded)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && driverAnimationFrame) {
+                cancelAnimationFrame(driverAnimationFrame);
+                driverAnimationFrame = null;
             }
-        }
+        });
     </script>
 </body>
 </html>
+

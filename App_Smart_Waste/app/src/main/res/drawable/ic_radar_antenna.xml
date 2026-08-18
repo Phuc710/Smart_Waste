@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Center antenna mast & signal waves matching Case 05 Mockup -->
+    <path
+        android:fillColor="#16A34A"
+        android:pathData="M12,2A2,2 0 0,0 10,4C10,4.74 10.4,5.39 11,5.73V18H10A1,1 0 0,0 9,19V21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V19A1,1 0 0,0 14,18H13V5.73C13.6,5.39 14,4.74 14,4A2,2 0 0,0 12,2Z"/>
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M7.8,8A6,6 0 0,0 7.8,16"/>
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M16.2,8A6,6 0 0,1 16.2,16"/>
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M4.5,5A10,10 0 0,0 4.5,19"/>
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M19.5,5A10,10 0 0,1 19.5,19"/>
+</vector>

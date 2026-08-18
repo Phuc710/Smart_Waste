@@ -31,17 +31,11 @@ class BinDetailActivity : AppCompatActivity() {
         binding = ActivityBinDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Apply Top and Bottom insets
-        ViewCompat.setOnApplyWindowInsetsListener(binding.binDetailHeaderBar) { view, insets ->
-            val statusBarInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            view.setPadding(
-                view.paddingLeft,
-                statusBarInset + (12 * resources.displayMetrics.density).toInt(),
-                view.paddingRight,
-                view.paddingBottom
-            )
-            insets
-        }
+        binding.appHeader.configure(
+            title = if (!binId.isNullOrBlank()) "Thùng rác #$binId" else "Chi tiết thùng rác",
+            navIconRes = R.drawable.ic_arrow_back,
+            onNavClick = { finish() }
+        )
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.layoutBinBottomActions) { view, insets ->
             val navBarInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
@@ -64,8 +58,6 @@ class BinDetailActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnBack.setOnClickListener { finish() }
-
         binding.btnConfirmCollect = binding.root.findViewById(R.id.btnConfirmCollect)
         binding.btnConfirmCollect.setOnClickListener {
             val bId = binId ?: return@setOnClickListener
@@ -125,7 +117,7 @@ class BinDetailActivity : AppCompatActivity() {
     }
 
     private fun bindBinData(bin: SmartBinDto) {
-        binding.tvBinDetailHeader.text = "Thùng rác #${bin.deviceId}"
+        binding.appHeader.setTitle("Thùng rác #${bin.deviceId}")
         binding.tvBinName.text = bin.name ?: "Thùng rác ${bin.deviceId}"
         val level = (bin.levelPercent ?: 0.0).roundToInt()
         binding.tvBinLevelBig.text = "$level%"

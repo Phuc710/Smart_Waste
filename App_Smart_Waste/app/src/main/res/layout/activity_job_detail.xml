@@ -7,12 +7,13 @@
     android:background="@color/app_bg"
     android:orientation="vertical">
 
-    <!-- 1. Shared Unified AppHeader -->
+    <!-- 1. Unified AppHeader -->
     <com.example.app_smart_waste.ui.common.AppHeaderView
-        android:id="@+id/detailAppHeader"
+        android:id="@+id/appHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
+    <!-- Main Scrollable Content -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -25,180 +26,371 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="@dimen/screen_horizontal_padding"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
             android:paddingBottom="24dp">
 
-            <!-- 2. Hero Summary Card -->
+            <!-- 2. Job Info Row: Code + Status Badge -->
             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvJobDetailCode"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/profile_text_primary"
+                    android:textSize="17.5sp"
+                    android:textStyle="bold"
+                    tools:text="#JOB_1723801234" />
+
+                <TextView
+                    android:id="@+id/tvJobDetailStatusPill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_duoc_giao"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:textColor="#2563EB"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="ĐƯỢC GIAO" />
+            </LinearLayout>
+
+            <!-- Time Subtitle: Giao lúc: ... / Bắt đầu: ... / Tạm dừng: ... / Hoàn thành: ... -->
+            <TextView
+                android:id="@+id/tvJobDetailTimeSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="12.5sp"
+                tools:text="Giao lúc: 08:15 • 26/05/2025" />
+
+            <!-- 3. Case 04 Special: Progress Bar Section (Visible only when PAUSED) -->
+            <LinearLayout
+                android:id="@+id/layoutDetailProgressSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvDetailProgressText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="Tiến độ: 2/4 điểm" />
+
+                    <TextView
+                        android:id="@+id/tvDetailProgressPercent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="50%" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/pbDetailProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="6dp"
+                    android:max="100"
+                    android:progress="50"
+                    android:progressDrawable="@drawable/bg_bin_percent_orange" />
+            </LinearLayout>
+
+            <!-- 4. Case 04 Special: Paused Warning Card (Visible only when PAUSED) -->
+            <LinearLayout
+                android:id="@+id/cardDetailPausedWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_warning_paused_card"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Lý do tạm dừng"
+                    android:textColor="#C2410C"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_alert_triangle_amber"
+                        app:tint="#EA580C" />
+
+                    <TextView
+                        android:id="@+id/tvDetailPausedReason"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textColor="#9A3412"
+                        android:textSize="12.5sp"
+                        tools:text="Kẹt xe đường Nam Kỳ Khởi Nghĩa" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 5. Case 05 Special: Top Summary Statistics (7/7 điểm | 100% hoàn thành | 0 sự cố) -->
+            <LinearLayout
+                android:id="@+id/cardDetailCompletedSummary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_card_profile"
                 android:elevation="1dp"
-                android:orientation="vertical"
-                android:padding="18dp">
+                android:orientation="horizontal"
+                android:paddingVertical="12dp"
+                android:visibility="gone"
+                android:weightSum="3"
+                tools:visibility="visible">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/tvJobDetailCode"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="#JOB_1723801234"
-                        android:textColor="@color/profile_text_primary"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvJobDetailStatusPill"
+                        android:id="@+id/tvCompletedStopsCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_role_badge_pill"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="3dp"
-                        android:text="Mới được giao"
-                        android:textColor="#D97706"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="7/7" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="điểm"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11.5sp" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvJobDetailDispatcher"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Nguồn nhiệm vụ: Điều phối giao"
-                    android:textColor="@color/profile_text_secondary"
-                    android:textSize="13sp" />
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@color/profile_divider" />
 
-                <!-- 3 Metrics Columns -->
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/bg_dialog_item_field"
-                    android:orientation="horizontal"
-                    android:padding="12dp"
-                    android:weightSum="3">
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
+                        android:text="100%"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:id="@+id/tvJobDetailStops"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textColor="@color/profile_text_primary"
-                            android:textSize="17sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="1dp"
-                            android:text="điểm gom"
-                            android:textColor="@color/profile_text_secondary"
-                            android:textSize="11.5sp" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="24dp"
-                        android:background="@color/profile_divider" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tvJobDetailDistance"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textColor="@color/profile_text_primary"
-                            android:textSize="17sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="1dp"
-                            android:text="quãng đường"
-                            android:textColor="@color/profile_text_secondary"
-                            android:textSize="11.5sp" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="24dp"
-                        android:background="@color/profile_divider" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tvJobDetailDuration"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textColor="@color/profile_text_primary"
-                            android:textSize="17sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="1dp"
-                            android:text="dự kiến"
-                            android:textColor="@color/profile_text_secondary"
-                            android:textSize="11.5sp" />
-                    </LinearLayout>
+                        android:layout_marginTop="2dp"
+                        android:text="hoàn thành"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11.5sp" />
                 </LinearLayout>
 
-                <!-- Button Xem Tuyến Đường Trực Quan -->
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnDetailViewRouteMap"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_dialog_item_field"
-                    android:gravity="center"
-                    android:text="🗺️ Xem tuyến đường trên bản đồ"
-                    android:textColor="@color/profile_green_primary"
-                    android:textSize="13.5sp"
-                    android:textStyle="bold" />
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@color/profile_divider" />
 
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvCompletedIncidentCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="sự cố"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- 3. Section Title: Danh sách thùng rác chi tiết -->
+            <!-- 6. Compact Route Map Card (Bo góc 12dp, chiều cao gọn gàng ~170dp) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardDetailMapContainer"
+                android:layout_width="match_parent"
+                android:layout_height="170dp"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1.5dp">
+
+                <WebView
+                    android:id="@+id/mapDetailWebView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- 7. Active Job Summary Statistics (3 Columns: Điểm | Quãng đường | Thời gian ước tính) -->
+            <LinearLayout
+                android:id="@+id/cardDetailActiveSummary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_card_profile"
+                android:elevation="1dp"
+                android:orientation="horizontal"
+                android:paddingVertical="12dp"
+                android:weightSum="3"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvJobDetailStops"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="5" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="điểm"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@color/profile_divider" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvJobDetailDistance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="4.2 km" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="quãng đường"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@color/profile_divider" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvJobDetailDuration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/profile_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="18 phút" />
+
+                    <TextView
+                        android:id="@+id/tvJobDetailDurationLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="thời gian ước tính"
+                        android:textColor="@color/profile_text_secondary"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 8. Stop List Title: "Danh sách điểm dừng" / "Lộ trình đã hoàn thành" -->
             <TextView
+                android:id="@+id/tvDetailStopListTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:layout_marginBottom="10dp"
-                android:text="Danh sách thùng rác chi tiết"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
                 android:textColor="@color/profile_text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                tools:text="Danh sách điểm dừng" />
 
-            <!-- Container for Bin Cards -->
+            <!-- Container for Stops List (Timeline Connector Rows) -->
             <LinearLayout
                 android:id="@+id/llBinsDetailContainer"
                 android:layout_width="match_parent"
@@ -208,44 +400,47 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Bottom Action Bar -->
+    <!-- 9. Dynamic Bottom Action Bar (Adapts per Case 02, 03, 04, 05) -->
     <LinearLayout
         android:id="@+id/layoutDetailBottomActions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
+        android:background="@color/app_surface"
         android:elevation="8dp"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
 
-        <Button
-            android:id="@+id/btnDetailRejectJob"
+        <!-- Action 1 (Secondary / Left Button) -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnDetailActionLeft"
             android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_marginEnd="6dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_btn_danger_soft_pink"
+            android:background="@drawable/bg_button_outlined_red"
+            android:drawableStart="@drawable/ic_close"
+            android:drawablePadding="6dp"
+            android:gravity="center"
             android:text="Từ chối"
             android:textAllCaps="false"
-            android:textColor="#DC2626"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            app:backgroundTint="@null" />
+            android:textColor="@color/profile_danger"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnDetailAcceptOrStartJob"
+        <!-- Action 2 (Primary / Right Button) -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnDetailActionRight"
             android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1.5"
-            android:background="@drawable/bg_btn_primary_green"
-            android:paddingHorizontal="16dp"
+            android:layout_height="48dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_button_primary_green"
+            android:gravity="center"
             android:text="Nhận nhiệm vụ"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            app:backgroundTint="@null" />
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </LinearLayout>

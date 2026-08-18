@@ -135,16 +135,16 @@ async function cancelJob(jobId) {
     return enrichedJob;
 }
 
-async function selfPickJob({ employeeId, employeeName = 'Nhân viên thu gom', binIds = [] }) {
+async function selfPickJob({ tokenHash, employeeId, employeeName = 'Nhân viên thu gom', binIds = [] }) {
     if (!Array.isArray(binIds) || binIds.length === 0) {
-        const err = new Error('Cần chọn ít nhất 1 thùng rác.');
+        const err = new Error('Cần chọn ít nhất 1 thùng rác để tự nhận thu gom.');
         err.statusCode = 400;
         throw err;
     }
 
     const existing = await jobsDb.getEmployeeActiveJob(employeeId);
     if (existing) {
-        const err = new Error('Bạn đang có nhiệm vụ chưa hoàn tất. Hãy hoàn thành trước khi tự chọn thùng mới.');
+        const err = new Error('Bạn đang có nhiệm vụ chưa hoàn tất. Vui lòng hoàn thành trước khi nhận nhiệm vụ mới.');
         err.statusCode = 409;
         throw err;
     }
@@ -160,10 +160,9 @@ async function selfPickJob({ employeeId, employeeName = 'Nhân viên thu gom', b
     ];
     const routeData = await calculateOsrmRoute(coordinates).catch(() => null);
 
-    const result = await callServiceRpc('rpc_self_pick_job', {
+    const result = await callServiceRpc('rpc_driver_self_pick_job', {
+        p_token_hash: tokenHash,
         p_job_id: 'JOB_' + Date.now(),
-        p_employee_id: employeeId,
-        p_employee_name: employeeName,
         p_bin_ids: binIds,
         p_route_data: routeData
     });
@@ -176,70 +175,97 @@ async function selfPickJob({ employeeId, employeeName = 'Nhân viên thu gom', b
     return newJob;
 }
 
-async function acceptJob(jobId) {
-    const job = await jobsDb.transitionJob(jobId, ['ASSIGNED'], 'ACCEPTED', {
-        accepted_at: new Date().toISOString()
-    });
-    const enriched = await jobsDb.attachProgress(job);
-    stateStore.emit('jobUpdated', enriched);
-    return enriched;
-}
-
-async function rejectJob(jobId) {
-    const oldJob = await jobsDb.getJob(jobId);
-    if (!oldJob) {
-        const err = new Error('Không tìm thấy job.');
-        err.statusCode = 404;
+async function acceptJob({ tokenHash, jobId }) {
+    if (!jobId) {
+        const err = new Error('Thiếu jobId.');
+        err.statusCode = 400;
         throw err;
     }
+    const result = await callServiceRpc('rpc_driver_accept_job', {
+        p_token_hash: tokenHash,
+        p_job_id: jobId
+    });
+    const rawJob = Array.isArray(result) ? result[0] : result;
+    const enriched = await jobsDb.attachProgress(rawJob);
+    stateStore.emit('jobUpdated', enriched);
+    return enriched;
+}
 
-    const result = await callServiceRpc('rpc_reject_job', {
+async function rejectJob({ tokenHash, jobId }) {
+    if (!jobId) {
+        const err = new Error('Thiếu jobId.');
+        err.statusCode = 400;
+        throw err;
+    }
+    const result = await callServiceRpc('rpc_driver_reject_job', {
+        p_token_hash: tokenHash,
+        p_job_id: jobId
+    });
+    const rawJob = Array.isArray(result) ? result[0] : result;
+    const enriched = await jobsDb.attachProgress(rawJob);
+    stateStore.emit('jobUpdated', enriched);
+    return enriched;
+}
+
+async function startJob({ tokenHash, jobId }) {
+    if (!jobId) {
+        const err = new Error('Thiếu jobId.');
+        err.statusCode = 400;
+        throw err;
+    }
+    const result = await callServiceRpc('rpc_driver_start_job', {
+        p_token_hash: tokenHash,
+        p_job_id: jobId
+    });
+    const rawJob = Array.isArray(result) ? result[0] : result;
+    const enriched = await jobsDb.attachProgress(rawJob);
+    stateStore.emit('jobUpdated', enriched);
+    return enriched;
+}
+
+async function pauseJob({ tokenHash, jobId, reason = '' }) {
+    if (!jobId) {
+        const err = new Error('Thiếu jobId.');
+        err.statusCode = 400;
+        throw err;
+    }
+    const result = await callServiceRpc('rpc_driver_pause_job', {
+        p_token_hash: tokenHash,
         p_job_id: jobId,
-        p_expected_version: oldJob.version
+        p_reason: String(reason || '')
     });
-    const job = Array.isArray(result) ? result[0] : result;
-    const enriched = await jobsDb.attachProgress(job);
+    const rawJob = Array.isArray(result) ? result[0] : result;
+    const enriched = await jobsDb.attachProgress(rawJob);
     stateStore.emit('jobUpdated', enriched);
     return enriched;
 }
 
-async function startJob(jobId) {
-    const job = await jobsDb.transitionJob(jobId, ['ACCEPTED'], 'IN_PROGRESS', {
-        started_at: new Date().toISOString()
-    });
-    const enriched = await jobsDb.attachProgress(job);
-    stateStore.emit('jobUpdated', enriched);
-    return enriched;
-}
-
-async function pauseJob(jobId, reason = '') {
-    const job = await jobsDb.transitionJob(jobId, ['IN_PROGRESS'], 'PAUSED', {
-        paused_at: new Date().toISOString(),
-        pause_reason: String(reason || '')
-    });
-    const enriched = await jobsDb.attachProgress(job);
-    stateStore.emit('jobUpdated', enriched);
-    return enriched;
-}
-
-async function resumeJob(jobId) {
-    const job = await jobsDb.transitionJob(jobId, ['PAUSED'], 'IN_PROGRESS', {
-        paused_at: null
+async function resumeJob({ tokenHash, jobId }) {
+    if (!jobId) {
+        const err = new Error('Thiếu jobId.');
+        err.statusCode = 400;
+        throw err;
+    }
+    const result = await callServiceRpc('rpc_driver_resume_job', {
+        p_token_hash: tokenHash,
+        p_job_id: jobId
     });
     stateStore.pauseAlertSentSet.delete(jobId);
-    const enriched = await jobsDb.attachProgress(job);
+    const rawJob = Array.isArray(result) ? result[0] : result;
+    const enriched = await jobsDb.attachProgress(rawJob);
     stateStore.emit('jobUpdated', enriched);
     return enriched;
 }
 
-async function collectBin({ jobId, binId, status = 'COLLECTED', note, photoUrl }) {
-    if (!binId) {
-        const err = new Error('Thiếu binId.');
+async function collectBin({ tokenHash, jobId, binId, status = 'COLLECTED', note, photoUrl }) {
+    if (!jobId || !binId) {
+        const err = new Error('Thiếu jobId hoặc binId.');
         err.statusCode = 400;
         throw err;
     }
 
-    const rpcResult = await callServiceRpc('rpc_collect_bin', {
+    const rpcResult = await callServiceRpc('rpc_driver_collect_bin', {
+        p_token_hash: tokenHash,
         p_job_id:    jobId,
         p_bin_id:    binId,
         p_status:    status,

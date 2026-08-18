@@ -46,17 +46,19 @@ class RouteDetailActivity : AppCompatActivity() {
         binding = ActivityRouteDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Apply Top & Bottom Insets
-        ViewCompat.setOnApplyWindowInsetsListener(binding.topHeaderBar) { view, insets ->
-            val statusBarInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            view.setPadding(
-                view.paddingLeft,
-                statusBarInset + (8 * resources.displayMetrics.density).toInt(),
-                view.paddingRight,
-                view.paddingBottom
-            )
-            insets
-        }
+        binding.topHeaderBar.configure(
+            title = "Chi tiết thu gom",
+            navIconRes = R.drawable.ic_arrow_back,
+            onNavClick = { finish() },
+            secondaryActionIconRes = R.drawable.ic_chat_bell,
+            onSecondaryActionClick = {
+                Toast.makeText(this, "Liên hệ điều phối viên", Toast.LENGTH_SHORT).show()
+            },
+            actionIconRes = R.drawable.ic_more_vert,
+            onActionClick = {
+                Toast.makeText(this, "Tùy chọn tuyến đường", Toast.LENGTH_SHORT).show()
+            }
+        )
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.layoutBottomActions) { view, insets ->
             val navBarInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
@@ -116,16 +118,6 @@ class RouteDetailActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnBack.setOnClickListener { finish() }
-
-        binding.btnChat.setOnClickListener {
-            Toast.makeText(this, "Liên hệ điều phối viên", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnMore.setOnClickListener {
-            Toast.makeText(this, "Tùy chọn tuyến đường", Toast.LENGTH_SHORT).show()
-        }
-
         binding.btnOptimizeRoute.setOnClickListener {
             Toast.makeText(this, "Đã tối ưu hóa lộ trình ngắn nhất", Toast.LENGTH_SHORT).show()
         }
@@ -164,6 +156,7 @@ class RouteDetailActivity : AppCompatActivity() {
                 "ASSIGNED", "PENDING", "ACCEPTED" -> {
                     val res = jobsRepo.startJob(job.id)
                     if (res.isSuccess) {
+                        GpsTracker.getInstance(this@RouteDetailActivity).startRouteTracking(job.id)
                         Toast.makeText(this@RouteDetailActivity, "Đã bắt đầu tuyến thu gom!", Toast.LENGTH_SHORT).show()
                         viewModel.loadRouteDetail(job.id)
                     }
@@ -178,6 +171,7 @@ class RouteDetailActivity : AppCompatActivity() {
                 "PAUSED" -> {
                     val res = jobsRepo.resumeJob(job.id)
                     if (res.isSuccess) {
+                        GpsTracker.getInstance(this@RouteDetailActivity).startRouteTracking(job.id)
                         Toast.makeText(this@RouteDetailActivity, "Đã tiếp tục tuyến.", Toast.LENGTH_SHORT).show()
                         viewModel.loadRouteDetail(job.id)
                     }
@@ -189,6 +183,7 @@ class RouteDetailActivity : AppCompatActivity() {
     private fun handleCompleteRouteClick() {
         val job = currentJob ?: return
         lifecycleScope.launch {
+            GpsTracker.getInstance(this@RouteDetailActivity).stopRouteTracking()
             val remainingStops = job.items?.filter { it.status != "COLLECTED" } ?: emptyList()
             for (stop in remainingStops) {
                 jobsRepo.collectBin(job.id, stop.binId, "Hoàn tất tuyến")

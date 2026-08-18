@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingBottom="@dimen/screen_bottom_padding">
+        android:paddingBottom="96dp">
 
         <!-- 1. Shared Unified AppHeader (Scrolls naturally with page) -->
         <com.example.app_smart_waste.ui.common.AppHeaderView

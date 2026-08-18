@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Location
@@ -21,7 +22,9 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.CheckBox
@@ -45,6 +48,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.app_smart_waste.R
 import com.example.app_smart_waste.core.location.GpsTracker
+import com.example.app_smart_waste.core.model.BinCommandResult
 import com.example.app_smart_waste.core.model.IncidentAttachmentState
 import com.example.app_smart_waste.core.model.IncidentReason
 import com.example.app_smart_waste.core.model.IncidentSubmissionState
@@ -52,11 +56,19 @@ import com.example.app_smart_waste.core.model.JobStopStatus
 import com.example.app_smart_waste.core.model.SmartBinDto
 import com.example.app_smart_waste.core.network.RealtimeManager
 import com.example.app_smart_waste.core.utils.TimeUtils
+import com.example.app_smart_waste.data.repository.BinsRepository
 import com.example.app_smart_waste.databinding.FragmentMapBinding
 import com.example.app_smart_waste.databinding.ItemMapFilterChipBinding
+import com.example.app_smart_waste.ui.common.TopCommandNotificationManager
 import com.example.app_smart_waste.ui.incident.IncidentReportActivity
 import com.example.app_smart_waste.ui.jobs.JobExecutionActivity
 import com.example.app_smart_waste.ui.main.MainActivity
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -85,13 +97,16 @@ class MapFragment : Fragment() {
     private val viewModel: MapViewModel by viewModels()
 
     private var gpsTracker: GpsTracker? = null
+    private var fusedLocationClient: FusedLocationProviderClient? = null
+    private var fusedLocationCallback: LocationCallback? = null
     private var locationManager: LocationManager? = null
     private var locationListener: LocationListener? = null
     private var connectivityManager: ConnectivityManager? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var isMapReady = false
 
-    // Realtime Manager
+    // Repositories
+    private val binsRepo by lazy { BinsRepository(requireContext()) }
     private val realtimeManager by lazy { RealtimeManager(requireContext()) }
 
     // Render Cache Deduplication
@@ -100,13 +115,13 @@ class MapFragment : Fragment() {
     private var lastRouteHash: Int = 0
     private var lastRadarState: RadarState = RadarState.Disabled
     private var lastRenderedLayer: MapLayer = MapLayer.DEFAULT
+    private var wasNavigationActive: Boolean = false
 
     // Active Dialog References for live updates
     private var activeBinDetailDialog: BottomSheetDialog? = null
     private var activeOpenLidDialog: BottomSheetDialog? = null
     private var activeSelfPickDialog: BottomSheetDialog? = null
     private var activeIncidentDialog: BottomSheetDialog? = null
-    private var activeMapLayersDialog: BottomSheetDialog? = null
 
     // Image Picker for Incident Report Sheet D
     private var incidentPhotoTargetBinId: String? = null
@@ -135,6 +150,7 @@ class MapFragment : Fragment() {
         lastRouteHash = 0
         lastRadarState = RadarState.Disabled
         lastRenderedLayer = MapLayer.DEFAULT
+        wasNavigationActive = false
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.topMapContainer) { topContainer, insets ->
             val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
@@ -211,6 +227,38 @@ class MapFragment : Fragment() {
         super.onStop()
     }
 
+    // Pending external navigation queue
+    private var pendingTargetBinId: String? = null
+    private var pendingStartNav: Boolean = false
+
+    fun selectAndNavigateBin(binId: String, startNavigation: Boolean = false) {
+        if (binId.isBlank()) return
+        if (isMapReady && isAdded && _binding != null) {
+            if (startNavigation) {
+                viewModel.handleAction(MapAction.StartNavigationToBin(binId))
+            } else {
+                viewModel.handleAction(MapAction.SelectBin(binId))
+            }
+        } else {
+            pendingTargetBinId = binId
+            pendingStartNav = startNavigation
+        }
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden && _binding != null) {
+            if (isMapReady) {
+                binding.mapWebView.evaluateJavascript("if (window.map) { map.invalidateSize({ animate: false }); }", null)
+                renderMap(viewModel.uiState.value)
+            }
+            pendingTargetBinId?.let { targetId ->
+                selectAndNavigateBin(targetId, pendingStartNav)
+                pendingTargetBinId = null
+            }
+        }
+    }
+
     // =========================================================================
     // 1. SETUP VIEWS & WEBVIEW
     // =========================================================================
@@ -218,24 +266,38 @@ class MapFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupViews() {
         binding.mapWebView.apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.allowFileAccess = true
-            settings.allowContentAccess = false
-            settings.loadWithOverviewMode = true
-            settings.useWideViewPort = true
-            settings.javaScriptCanOpenWindowsAutomatically = false
-            settings.setSupportMultipleWindows(false)
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+            setBackgroundColor(Color.parseColor("#F8FAFC"))
+
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                allowFileAccess = true
+                allowContentAccess = false
+                loadWithOverviewMode = true
+                useWideViewPort = true
+                setSupportZoom(false)
+                displayZoomControls = false
+                builtInZoomControls = false
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
+                offscreenPreRaster = true
+                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            }
 
             addJavascriptInterface(WebAppBridge(), "AndroidBridge")
 
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
+                    view?.evaluateJavascript("if (window.SmartWasteMap && window.AndroidBridge) { window.AndroidBridge.onMapReady(); }", null)
                 }
             }
 
-            loadUrl("file:///android_asset/leaflet_map.html")
+            if (url == null) {
+                loadUrl("file:///android_asset/leaflet_map.html")
+            }
         }
     }
 
@@ -243,9 +305,14 @@ class MapFragment : Fragment() {
         @JavascriptInterface
         fun onMapReady() {
             activity?.runOnUiThread {
-                if (_binding != null && isAdded && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                if (_binding != null && isAdded) {
                     isMapReady = true
+                    binding.mapWebView.evaluateJavascript("if (window.map) { map.invalidateSize({ animate: false }); }", null)
                     renderMap(viewModel.uiState.value)
+                    pendingTargetBinId?.let { targetId ->
+                        selectAndNavigateBin(targetId, pendingStartNav)
+                        pendingTargetBinId = null
+                    }
                 }
             }
         }
@@ -267,9 +334,23 @@ class MapFragment : Fragment() {
         }
 
         @JavascriptInterface
+        fun onMapDragStarted() {
+            activity?.runOnUiThread {
+                if (_binding != null && isAdded) {
+                    viewModel.handleAction(MapAction.PauseAutoFollow)
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun onMapClicked(lat: Double, lng: Double) {
             activity?.runOnUiThread {
                 if (_binding != null && isAdded) {
+                    // Hide soft keyboard & unfocus search
+                    val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(binding.etSearchMapBins.windowToken, 0)
+                    binding.etSearchMapBins.clearFocus()
+
                     if (viewModel.uiState.value.navigationState !is NavigationState.Active) {
                         viewModel.handleAction(MapAction.ClearSelection)
                     }
@@ -288,8 +369,8 @@ class MapFragment : Fragment() {
             it.applyPressEffect { (activity as? MainActivity)?.switchTab(R.id.navItemProfile) }
         }
 
-        binding.btnMapBell.setOnClickListener {
-            it.applyPressEffect { (activity as? MainActivity)?.navigateToTab(R.id.navigation_jobs) }
+        binding.btnMapFilter.setOnClickListener {
+            it.applyPressEffect { showFilterBottomSheet() }
         }
 
         // Search Input Box
@@ -308,35 +389,43 @@ class MapFragment : Fragment() {
             }
         }
 
-        binding.btnMapFilter.setOnClickListener {
-            it.applyPressEffect { showFilterBottomSheet() }
-        }
-
         // Floating Controls
         binding.btnMyLocation.setOnClickListener {
             it.applyPressEffect {
-                val driver = viewModel.uiState.value.driverLocation
-                if (driver != null && driver.isValid) {
-                    binding.mapWebView.evaluateJavascript("SmartWasteMap.focus(${driver.latitude}, ${driver.longitude}, 16);", null)
+                val isNavActive = viewModel.uiState.value.navigationState is NavigationState.Active
+                if (isNavActive) {
+                    viewModel.handleAction(MapAction.ResumeAutoFollow)
+                    binding.mapWebView.evaluateJavascript("SmartWasteMap.resumeAutoFollow();", null)
                 } else {
-                    Toast.makeText(requireContext(), "Chưa xác định được vị trí GPS.", Toast.LENGTH_SHORT).show()
+                    val driver = viewModel.uiState.value.driverLocation
+                    if (driver != null && driver.isValid) {
+                        binding.mapWebView.evaluateJavascript("SmartWasteMap.focus(${driver.latitude}, ${driver.longitude}, 16);", null)
+                    } else {
+                        Toast.makeText(requireContext(), "Chưa xác định được vị trí GPS.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
 
-        binding.btnMapLayers.setOnClickListener {
-            it.applyPressEffect { showMapLayersBottomSheet() }
+        binding.btnNavOverview.setOnClickListener {
+            it.applyPressEffect {
+                binding.mapWebView.evaluateJavascript("SmartWasteMap.showRouteOverview();", null)
+            }
         }
 
         binding.btnToggleSelfPickRadar.setOnClickListener {
             it.applyPressEffect {
                 val driver = viewModel.uiState.value.driverLocation
                 if (driver == null || !driver.isValid) {
-                    Toast.makeText(requireContext(), "Cần vị trí GPS để quét radar 500m.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Cần vị trí GPS để quét radar.", Toast.LENGTH_SHORT).show()
                     return@applyPressEffect
                 }
                 viewModel.handleAction(MapAction.ToggleRadar)
             }
+        }
+
+        binding.pillRadarStatus.setOnClickListener {
+            it.applyPressEffect { showRadarRadiusBottomSheet() }
         }
 
         // Bottom Cards Actions
@@ -382,6 +471,48 @@ class MapFragment : Fragment() {
             }
         }
 
+        binding.btnNavConfirmCancel.setOnClickListener {
+            it.applyPressEffect {
+                viewModel.handleAction(MapAction.CancelNavigationPreview)
+            }
+        }
+
+        binding.btnNavConfirmStart.setOnClickListener {
+            it.applyPressEffect {
+                viewModel.handleAction(MapAction.ConfirmStartNavigation)
+            }
+        }
+
+        binding.btnNavConfirmRetryGps.setOnClickListener {
+            it.applyPressEffect {
+                viewModel.handleAction(MapAction.RetryGpsForNavigation)
+            }
+        }
+
+        binding.btnResumeAutoFollow.setOnClickListener {
+            it.applyPressEffect {
+                viewModel.handleAction(MapAction.ResumeAutoFollow)
+                binding.mapWebView.evaluateJavascript("SmartWasteMap.resumeAutoFollow();", null)
+            }
+        }
+
+        binding.btnNavArrivedStartCollect.setOnClickListener {
+            it.applyPressEffect {
+                val arrived = viewModel.uiState.value.navigationState as? NavigationState.Arrived
+                val activeJob = viewModel.uiState.value.activeJob
+                if (activeJob != null && arrived != null) {
+                    val intent = Intent(requireContext(), JobExecutionActivity::class.java).apply {
+                        putExtra("JOB_ID", activeJob.id)
+                        putExtra("BIN_ID", arrived.targetBinId)
+                    }
+                    startActivity(intent)
+                } else if (arrived != null) {
+                    viewModel.handleAction(MapAction.StartCollectionAtDestination)
+                    showBinDetailBottomSheet(arrived.targetBinId)
+                }
+            }
+        }
+
         binding.btnOpenCreateSelfPickJobSheet.setOnClickListener {
             it.applyPressEffect { showCreateSelfPickJobSheet() }
         }
@@ -389,6 +520,7 @@ class MapFragment : Fragment() {
         binding.btnOpenGpsSettings.setOnClickListener {
             it.applyPressEffect { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
         }
+
 
         binding.btnResetFiltersFromEmpty.setOnClickListener {
             it.applyPressEffect {
@@ -472,6 +604,10 @@ class MapFragment : Fragment() {
 
     private fun renderActiveFilterChips(state: MapUiState) {
         val chips = state.activeChips
+        binding.badgeMapFilterActive.isVisible = chips.isNotEmpty()
+        val isRadar = (state.radarState is RadarState.Active)
+        val isNavActive = state.navigationState is NavigationState.Active || state.mode == MapMode.NAVIGATION
+        binding.layoutFilterBarContainer.isVisible = (chips.isNotEmpty() || isRadar) && !isNavActive
         binding.scrollActiveFilterChips.isVisible = chips.isNotEmpty()
         binding.layoutActiveFilterChips.removeAllViews()
 
@@ -489,29 +625,56 @@ class MapFragment : Fragment() {
     }
 
     private fun renderStatusOverlays(state: MapUiState) {
-        // Navigation Banner
+        // Navigation Banner & Header Controls Visibility
         val nav = state.navigationState
         if (nav is NavigationState.Active) {
+            binding.headerMapDefault.isVisible = false
+            binding.layoutFilterBarContainer.isVisible = false
             binding.bannerTurnByTurnNav.isVisible = true
-            binding.tvNavNextTurnDist.text = "↰ ${nav.distanceText}"
-            binding.tvNavNextTurnInstruction.text = nav.nextTurnInstruction
-        } else {
-            binding.bannerTurnByTurnNav.isVisible = false
-        }
 
-        // Offline / Backend Banner
-        val isNetworkOffline = state.networkState is NetworkState.NoInternet || state.networkState is NetworkState.BackendUnavailable
-        binding.bannerOfflineWarning.isVisible = isNetworkOffline
-        if (isNetworkOffline) {
-            binding.bannerOfflineWarning.setOnClickListener {
-                it.applyPressEffect { viewModel.handleAction(MapAction.RetryMapData) }
+            val arrow = when {
+                nav.nextTurnInstruction.contains("phải", ignoreCase = true) -> "↱"
+                nav.nextTurnInstruction.contains("trái", ignoreCase = true) -> "↰"
+                nav.nextTurnInstruction.contains("Quay đầu", ignoreCase = true) -> "⮌"
+                nav.nextTurnInstruction.contains("vòng xuyến", ignoreCase = true) -> "⟲"
+                nav.nextTurnInstruction.contains("Điểm đến", ignoreCase = true) -> "📍"
+                else -> "↑"
             }
+            binding.tvNavNextTurnDist.text = "$arrow ${nav.nextTurnDistanceText}"
+            binding.tvNavNextTurnInstruction.text = nav.nextTurnInstruction
+            binding.tvNavEtaText.text = nav.etaText
+            binding.tvNavTotalDistance.text = nav.distanceText
+        } else {
+            binding.headerMapDefault.isVisible = true
+            binding.bannerTurnByTurnNav.isVisible = false
         }
     }
 
     private fun renderFloatingControls(state: MapUiState) {
+        val isNavActive = state.navigationState is NavigationState.Active
+        val isAutoFollow = (state.navigationState as? NavigationState.Active)?.isAutoFollow == true
+
+        // Overview button visible during navigation or active route
+        binding.layoutBtnNavOverview.isVisible = isNavActive || state.routeCoordinates.isNotEmpty()
+        binding.tvBtnMyLocationLabel.isVisible = isNavActive
+
+        // Radar FAB visible only in non-navigation mode
+        binding.btnToggleSelfPickRadar.isVisible = !isNavActive
         val isRadar = state.radarState is RadarState.Active
         binding.btnToggleSelfPickRadar.isSelected = isRadar
+        if (isRadar) {
+            val radar = state.radarState as RadarState.Active
+            binding.btnToggleSelfPickRadar.setBackgroundResource(R.drawable.bg_btn_soft_green)
+            binding.ivRadarFabIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.profile_green_primary))
+            binding.pillRadarStatus.isVisible = true
+            binding.tvRadarPillRadius.text = "Radar: ${formatRadius(radar.radiusMeters)}"
+        } else {
+            binding.btnToggleSelfPickRadar.setBackgroundResource(R.drawable.bg_card_clean)
+            binding.ivRadarFabIcon.setColorFilter(ContextCompat.getColor(requireContext(), R.color.profile_green_primary))
+            binding.pillRadarStatus.isVisible = false
+        }
+
+        binding.btnResumeAutoFollow.isVisible = isNavActive && !isAutoFollow
     }
 
     private fun renderEmptyState(state: MapUiState) {
@@ -525,25 +688,61 @@ class MapFragment : Fragment() {
         binding.cardSelectedBinPreview.isVisible = false
         binding.cardActiveJobRoute.isVisible = false
         binding.cardActiveNavigationBottom.isVisible = false
+        binding.cardNavConfirmPreview.isVisible = false
+        binding.cardNavArrivedBottom.isVisible = false
         binding.cardSelfPickRadarBottom.isVisible = false
         binding.cardGpsDisabled.isVisible = false
 
-        when (state.mode) {
-            MapMode.NAVIGATION -> {
-                val nav = state.navigationState as? NavigationState.Active
-                if (nav != null) {
-                    binding.tvNavTotalDistance.text = nav.distanceText
-                    binding.tvNavEtaText.text = nav.etaText
+        when (val nav = state.navigationState) {
+            is NavigationState.Confirming -> {
+                binding.cardNavConfirmPreview.isVisible = true
+                binding.tvNavConfirmBinName.text = nav.targetBin.name?.ifBlank { "BIN #${nav.targetBin.deviceId}" } ?: "BIN #${nav.targetBin.deviceId}"
+                binding.tvNavConfirmBinAddress.text = nav.targetBin.location?.ifBlank { "Tọa độ: ${nav.targetBin.latitude}, ${nav.targetBin.longitude}" } ?: "Tọa độ: ${nav.targetBin.latitude}, ${nav.targetBin.longitude}"
+                binding.tvNavConfirmDistance.text = nav.distanceText
+                binding.tvNavConfirmEta.text = nav.etaText
+                if (nav.isGpsAvailable) {
+                    binding.layoutNavConfirmMetrics.isVisible = true
+                    binding.btnNavConfirmStart.isVisible = true
+                    binding.layoutNavConfirmGpsError.isVisible = false
+                    binding.btnNavConfirmRetryGps.isVisible = false
+                } else {
+                    binding.layoutNavConfirmMetrics.isVisible = false
+                    binding.btnNavConfirmStart.isVisible = false
+                    binding.layoutNavConfirmGpsError.isVisible = true
+                    binding.btnNavConfirmRetryGps.isVisible = true
                 }
-                binding.cardActiveNavigationBottom.isVisible = true
+                return
             }
 
+            is NavigationState.Arrived -> {
+                binding.cardNavArrivedBottom.isVisible = true
+                binding.tvNavArrivedTitle.text = "📍 Bạn đã đến ${nav.targetBin.name?.ifBlank { "BIN #${nav.targetBin.deviceId}" } ?: "BIN #${nav.targetBin.deviceId}"}"
+                binding.tvNavArrivedSubtitle.text = "Khoảng cách tới điểm: ${nav.distanceText}"
+                return
+            }
+
+            is NavigationState.Active -> {
+                binding.tvNavTotalDistance.text = nav.distanceText
+                binding.tvNavEtaText.text = nav.etaText
+                binding.cardActiveNavigationBottom.isVisible = true
+                return
+            }
+
+            else -> Unit
+        }
+
+        when (state.mode) {
             MapMode.RADAR -> {
                 val radar = state.radarState
                 if (radar is RadarState.Active) {
                     val radiusText = formatRadius(radar.radiusMeters)
                     val count = radar.eligibleBins.size
-                    binding.tvRadarFoundCount.text = "Tìm thấy $count thùng phù hợp trong bán kính $radiusText"
+                    val critCount = radar.eligibleBins.count { 
+                        MapStatePolicy.classifyBin(it.levelPercent ?: 0.0, state.thresholds) == BinLevel.CRITICAL 
+                    }
+                    val critThresh = state.thresholds.critical.roundToInt()
+                    binding.tvRadarFoundCount.text = "Tìm thấy $count thùng\ntrong bán kính $radiusText"
+                    binding.tvRadarCriticalMeta.text = "Trong đó: $critCount thùng mức đầy > $critThresh%"
                     binding.btnOpenCreateSelfPickJobSheet.text = "Tạo job ($count điểm)"
                     binding.btnOpenCreateSelfPickJobSheet.isEnabled = (count > 0)
                     binding.btnOpenCreateSelfPickJobSheet.alpha = if (count > 0) 1.0f else 0.5f
@@ -561,28 +760,66 @@ class MapFragment : Fragment() {
             }
 
             MapMode.ACTIVE_JOB -> {
-                val activeJob = state.activeJob
+                val activeJob = state.activeJob ?: (state.activeJobState as? ActiveJobState.Available)?.job
                 val activeState = state.activeJobState as? ActiveJobState.Available
                 if (activeJob != null) {
                     binding.tvActiveJobCode.text = formatJobCode(activeJob.id)
+                    val isPaused = (activeJob.status == "PAUSED")
+                    binding.tvActiveJobStatusBadge.text = if (isPaused) "Tạm dừng" else "Đang thực hiện"
+                    binding.tvActiveJobStatusBadge.setBackgroundResource(
+                        if (isPaused) R.drawable.bg_btn_soft_red else R.drawable.bg_btn_soft_green
+                    )
+                    binding.tvActiveJobStatusBadge.setTextColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            if (isPaused) R.color.profile_danger else R.color.profile_green_primary
+                        )
+                    )
+
                     val total = activeState?.totalStops ?: (activeJob.targetBinIds?.size ?: 0)
                     val done = activeState?.completedStops ?: (activeJob.completedBinIds?.size ?: 0)
                     val percent = if (total > 0) (done * 100 / total).coerceIn(0, 100) else 0
                     binding.tvActiveJobProgressFraction.text = "$done / $total điểm • Hoàn thành $percent%"
+                    binding.pbActiveJobProgress.progress = percent
 
-                    val nextStop = activeState?.nextStop
-                    if (nextStop != null) {
-                        binding.tvActiveJobNextStopName.text = "Tiếp theo: #${nextStop.binId}"
-                        val nextBin = nextStop.bin
-                        val nextAddr = nextBin?.location ?: "Điểm thu gom"
-                        binding.tvActiveJobNextStopEta.text = nextAddr
-                    } else {
-                        binding.tvActiveJobNextStopName.text = "Tất cả điểm đã hoàn thành"
-                        binding.tvActiveJobNextStopEta.text = "Sẵn sàng kết thúc ca"
+                    val stops = activeState?.route?.stops ?: emptyList()
+                    val routeText = when {
+                        stops.size >= 2 -> {
+                            val firstLoc = stops.first().address?.takeIf { it.isNotBlank() }
+                                ?: stops.first().bin?.location?.takeIf { it.isNotBlank() }
+                                ?: "Điểm 1"
+                            val lastLoc = stops.last().address?.takeIf { it.isNotBlank() }
+                                ?: stops.last().bin?.location?.takeIf { it.isNotBlank() }
+                                ?: "Điểm ${stops.size}"
+                            "Tuyến: $firstLoc → $lastLoc"
+                        }
+                        stops.size == 1 -> {
+                            val loc = stops.first().address?.takeIf { it.isNotBlank() }
+                                ?: stops.first().bin?.location?.takeIf { it.isNotBlank() }
+                                ?: "Điểm thu gom"
+                            "Tuyến: $loc"
+                        }
+                        else -> {
+                            "Tuyến: Thu gom $total điểm thùng rác"
+                        }
+                    }
+                    binding.tvActiveJobRouteInfo.text = routeText
+
+                    binding.btnViewActiveJobDetail.setOnClickListener {
+                        it.applyPressEffect {
+                            val intent = Intent(requireContext(), JobExecutionActivity::class.java).apply {
+                                putExtra(JobExecutionActivity.EXTRA_JOB_ID, activeJob.id)
+                            }
+                            startActivity(intent)
+                        }
                     }
 
                     binding.cardActiveJobRoute.isVisible = true
                 }
+            }
+
+            MapMode.NAVIGATION -> {
+                binding.cardActiveNavigationBottom.isVisible = true
             }
 
             MapMode.GPS_UNAVAILABLE -> {
@@ -594,13 +831,8 @@ class MapFragment : Fragment() {
             }
 
             MapMode.IDLE, MapMode.OFFLINE -> {
-                val firstBin = state.displayedBins.firstOrNull()
-                if (firstBin != null) {
-                    binding.tvRecentBinId.text = firstBin.deviceId
-                    val fill = (firstBin.levelPercent ?: 0.0).roundToInt()
-                    binding.tvRecentBinBadge.text = "$fill%"
-                    binding.cardDefaultRecentTasks.isVisible = true
-                }
+                // Keep default map view 100% clean and unobstructed
+                binding.cardDefaultRecentTasks.isVisible = false
             }
         }
     }
@@ -608,16 +840,39 @@ class MapFragment : Fragment() {
     private fun renderSelectedBinFill(bin: SmartBinDto, thresholds: BinThresholds) {
         val fill = bin.levelPercent?.roundToInt()?.coerceIn(0, 100) ?: 0
         val category = MapStatePolicy.classifyBin(bin.levelPercent ?: 0.0, thresholds)
-        binding.tvSelectedBinFillBadge.text = "$fill%"
-        binding.tvSelectedBinFillBadge.setBackgroundResource(
-            if (category == BinLevel.CRITICAL) R.drawable.badge_danger else R.drawable.badge_warning
-        )
-        binding.tvSelectedBinFillBadge.setTextColor(
-            ContextCompat.getColor(
-                requireContext(),
-                if (category == BinLevel.CRITICAL) R.color.profile_danger else R.color.profile_warning
-            )
-        )
+        val isCrit = (category == BinLevel.CRITICAL)
+        val isWarn = (category == BinLevel.WARNING)
+
+        val badgeText = when {
+            isCrit -> "Mức đầy cao"
+            isWarn -> "Cảnh báo đầy"
+            else -> "Bình thường"
+        }
+        val badgeColor = when {
+            isCrit -> R.color.profile_danger
+            isWarn -> R.color.profile_warning
+            else -> R.color.profile_green_primary
+        }
+        val badgeBg = when {
+            isCrit -> R.drawable.badge_danger
+            isWarn -> R.drawable.badge_warning
+            else -> R.drawable.badge_success
+        }
+        val progressDrawable = when {
+            isCrit -> R.drawable.bg_bin_percent_red
+            isWarn -> R.drawable.bg_bin_percent_orange
+            else -> R.drawable.bg_bin_percent_green
+        }
+
+        binding.tvSelectedBinFillBadge.text = badgeText
+        binding.tvSelectedBinFillBadge.setBackgroundResource(badgeBg)
+        binding.tvSelectedBinFillBadge.setTextColor(ContextCompat.getColor(requireContext(), badgeColor))
+
+        binding.tvSelectedBinPercentText.text = "$fill%"
+        binding.tvSelectedBinPercentText.setTextColor(ContextCompat.getColor(requireContext(), badgeColor))
+
+        binding.pbSelectedBinFill.progress = fill
+        binding.pbSelectedBinFill.progressDrawable = ContextCompat.getDrawable(requireContext(), progressDrawable)
     }
 
     private fun renderMap(state: MapUiState) {
@@ -630,14 +885,31 @@ class MapFragment : Fragment() {
             binding.mapWebView.evaluateJavascript("SmartWasteMap.setLayer($quotedLayer);", null)
         }
 
-        // 2. Render Driver Location & Heading
+        // 2. Render Driver Location & Heading (Google Maps Blue Navigation Core + Staggered Pulse Radar)
         state.driverLocation?.let { driver ->
             if (driver.isValid) {
                 binding.mapWebView.evaluateJavascript(
-                    "SmartWasteMap.setDriverLocation(${driver.latitude}, ${driver.longitude}, ${state.driverHeading});",
+                    "SmartWasteMap.setDriverLocation(${driver.latitude}, ${driver.longitude}, ${state.driverHeading}, ${state.driverSpeed});",
                     null
                 )
             }
+        }
+
+        // Camera auto-focus on vehicle (~1/3 from bottom) when entering active navigation
+        if (state.navigationState is NavigationState.Active) {
+            if (!wasNavigationActive) {
+                wasNavigationActive = true
+                state.driverLocation?.let { driver ->
+                    if (driver.isValid) {
+                        binding.mapWebView.evaluateJavascript(
+                            "SmartWasteMap.focusDriver(${driver.latitude}, ${driver.longitude}, 17.5);",
+                            null
+                        )
+                    }
+                }
+            }
+        } else {
+            wasNavigationActive = false
         }
 
         // 3. Render Markers with Model Deduplication
@@ -665,8 +937,8 @@ class MapFragment : Fragment() {
             renderBinsOnMap(state.displayedBins, state.thresholds)
         }
 
-        // 4. Render Selection Halo with safe quoting
-        val currentSelectedId = state.selectedBin?.deviceId
+        // 4. Render Selection Halo with safe quoting (suppress during navigation to avoid overlapping pin)
+        val currentSelectedId = if (state.mode == MapMode.NAVIGATION) null else state.selectedBin?.deviceId
         if (lastSelectedBinId != currentSelectedId) {
             lastSelectedBinId = currentSelectedId
             val quotedId = currentSelectedId?.let { JSONObject.quote(it) } ?: "null"
@@ -793,64 +1065,109 @@ class MapFragment : Fragment() {
 
         val loc = gps.getLastKnownLocation() ?: gps.getCurrentLocation()
         if (loc.latitude.isFinite() && loc.longitude.isFinite()) {
-            viewModel.handleAction(MapAction.UpdateDriverLocation(loc.latitude, loc.longitude))
+            val heading = if (loc.hasBearing()) loc.bearing else 0f
+            val acc = if (loc.hasAccuracy()) loc.accuracy.toDouble() else null
+            val speed = if (loc.hasSpeed()) loc.speed.toDouble() else null
+            viewModel.handleAction(MapAction.UpdateDriverLocation(loc.latitude, loc.longitude, heading, acc, speed))
             viewModel.handleAction(MapAction.SetGpsState(GpsState.Available))
         }
 
+        val fineGranted = ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!fineGranted && !coarseGranted) {
+            viewModel.handleAction(MapAction.SetGpsState(GpsState.PermissionDenied))
+            return
+        }
+
         try {
-            val lm = requireContext().getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            locationManager = lm
-            if (lm != null) {
-                val fineGranted = ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    android.Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+            // 1. High-accuracy real-time FusedLocationProviderClient for Turn-by-Turn navigation
+            val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext()).also { fusedLocationClient = it }
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1200L)
+                .setMinUpdateIntervalMillis(800L)
+                .setMinUpdateDistanceMeters(1.0f)
+                .setWaitForAccurateLocation(false)
+                .build()
 
-                if (fineGranted) {
-                    val listener = object : LocationListener {
-                        override fun onLocationChanged(l: Location) {
-                            activity?.runOnUiThread {
-                                if (_binding != null && isAdded && l.latitude.isFinite() && l.longitude.isFinite()) {
-                                    val heading = if (l.hasBearing()) l.bearing else 0f
-                                    val acc = if (l.hasAccuracy()) l.accuracy.toDouble() else null
-                                    val speed = if (l.hasSpeed()) l.speed.toDouble() else null
-                                    viewModel.handleAction(MapAction.UpdateDriverLocation(l.latitude, l.longitude, heading, acc, speed))
-                                    viewModel.handleAction(MapAction.SetGpsState(GpsState.Available))
-                                }
-                            }
-                        }
-                        @Deprecated("Deprecated in Java")
-                        override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
-                        override fun onProviderEnabled(p: String) {
-                            activity?.runOnUiThread {
-                                if (_binding != null && isAdded) {
-                                    viewModel.handleAction(MapAction.SetGpsState(GpsState.Available))
-                                }
-                            }
-                        }
-                        override fun onProviderDisabled(p: String) {
-                            activity?.runOnUiThread {
-                                if (_binding != null && isAdded) {
-                                    viewModel.handleAction(MapAction.SetGpsState(GpsState.Disabled))
-                                }
-                            }
+            val callback = object : LocationCallback() {
+                override fun onLocationResult(locationResult: LocationResult) {
+                    for (l in locationResult.locations) {
+                        if (_binding != null && isAdded && l.latitude.isFinite() && l.longitude.isFinite()) {
+                            val heading = if (l.hasBearing()) l.bearing else 0f
+                            val acc = if (l.hasAccuracy()) l.accuracy.toDouble() else null
+                            val speed = if (l.hasSpeed()) l.speed.toDouble() else null
+                            viewModel.handleAction(MapAction.UpdateDriverLocation(l.latitude, l.longitude, heading, acc, speed))
+                            viewModel.handleAction(MapAction.SetGpsState(GpsState.Available))
                         }
                     }
-                    locationListener = listener
-
-                    if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000L, 5f, listener)
-                    } else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000L, 5f, listener)
-                    } else {
-                        viewModel.handleAction(MapAction.SetGpsState(GpsState.Disabled))
-                    }
-                } else {
-                    viewModel.handleAction(MapAction.SetGpsState(GpsState.PermissionDenied))
                 }
             }
-        } catch (e: SecurityException) {
-            viewModel.handleAction(MapAction.SetGpsState(GpsState.PermissionDenied))
+            fusedLocationCallback = callback
+            fusedClient.requestLocationUpdates(locationRequest, callback, android.os.Looper.getMainLooper())
+                .addOnFailureListener {
+                    setupFallbackLocationManager()
+                }
+        } catch (e: Exception) {
+            setupFallbackLocationManager()
+        }
+    }
+
+    private fun setupFallbackLocationManager() {
+        try {
+            val lm = requireContext().getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            locationManager = lm ?: return
+
+            val fineGranted = ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (fineGranted) {
+                val listener = object : LocationListener {
+                    override fun onLocationChanged(l: Location) {
+                        activity?.runOnUiThread {
+                            if (_binding != null && isAdded && l.latitude.isFinite() && l.longitude.isFinite()) {
+                                val heading = if (l.hasBearing()) l.bearing else 0f
+                                val acc = if (l.hasAccuracy()) l.accuracy.toDouble() else null
+                                val speed = if (l.hasSpeed()) l.speed.toDouble() else null
+                                viewModel.handleAction(MapAction.UpdateDriverLocation(l.latitude, l.longitude, heading, acc, speed))
+                                viewModel.handleAction(MapAction.SetGpsState(GpsState.Available))
+                            }
+                        }
+                    }
+                    @Deprecated("Deprecated in Java")
+                    override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
+                    override fun onProviderEnabled(p: String) {
+                        activity?.runOnUiThread {
+                            if (_binding != null && isAdded) {
+                                viewModel.handleAction(MapAction.SetGpsState(GpsState.Available))
+                            }
+                        }
+                    }
+                    override fun onProviderDisabled(p: String) {
+                        activity?.runOnUiThread {
+                            if (_binding != null && isAdded) {
+                                viewModel.handleAction(MapAction.SetGpsState(GpsState.Disabled))
+                            }
+                        }
+                    }
+                }
+                locationListener = listener
+
+                if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000L, 2f, listener)
+                } else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000L, 2f, listener)
+                } else {
+                    viewModel.handleAction(MapAction.SetGpsState(GpsState.Disabled))
+                }
+            }
         } catch (e: Exception) {
             // Non-fatal
         }
@@ -893,6 +1210,41 @@ class MapFragment : Fragment() {
     // 7. BOTTOM SHEET A: BỘ LỌC THÙNG RÁC
     // =========================================================================
 
+    private fun showRadarRadiusBottomSheet() {
+        val dialog = BottomSheetDialog(requireContext())
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_radar_radius, null)
+        dialog.setContentView(view)
+
+        val currentRadius = (viewModel.uiState.value.radarState as? RadarState.Active)?.radiusMeters ?: 500.0
+
+        val rgRadarRadius = view.findViewById<android.widget.RadioGroup>(R.id.rgRadarRadius)
+        when (currentRadius.roundToInt()) {
+            300 -> view.findViewById<android.widget.RadioButton>(R.id.rbRadius300)?.isChecked = true
+            500 -> view.findViewById<android.widget.RadioButton>(R.id.rbRadius500)?.isChecked = true
+            1000 -> view.findViewById<android.widget.RadioButton>(R.id.rbRadius1000)?.isChecked = true
+            2000 -> view.findViewById<android.widget.RadioButton>(R.id.rbRadius2000)?.isChecked = true
+            else -> view.findViewById<android.widget.RadioButton>(R.id.rbRadius500)?.isChecked = true
+        }
+
+        view.findViewById<View>(R.id.btnCloseRadarRadiusSheet)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        view.findViewById<View>(R.id.btnApplyRadarRadius)?.setOnClickListener {
+            val selectedRadius = when (rgRadarRadius?.checkedRadioButtonId) {
+                R.id.rbRadius300 -> 300.0
+                R.id.rbRadius500 -> 500.0
+                R.id.rbRadius1000 -> 1000.0
+                R.id.rbRadius2000 -> 2000.0
+                else -> 500.0
+            }
+            viewModel.handleAction(MapAction.EnableRadar(selectedRadius))
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
     private fun showFilterBottomSheet() {
         val dialog = BottomSheetDialog(requireContext())
         val view = layoutInflater.inflate(R.layout.bottom_sheet_map_filter, null)
@@ -902,6 +1254,10 @@ class MapFragment : Fragment() {
         val cbWarn = view.findViewById<CheckBox>(R.id.cbFilterWarning)
         val cbNorm = view.findViewById<CheckBox>(R.id.cbFilterNormal)
         val cbOff = view.findViewById<CheckBox>(R.id.cbFilterOffline)
+        val rowCrit = view.findViewById<View>(R.id.layoutRowCritical)
+        val rowWarn = view.findViewById<View>(R.id.layoutRowWarning)
+        val rowNorm = view.findViewById<View>(R.id.layoutRowNormal)
+        val rowOff = view.findViewById<View>(R.id.layoutRowOffline)
         val btnApply = view.findViewById<AppCompatButton>(R.id.btnApplyFilter)
         val btnReset = view.findViewById<AppCompatButton>(R.id.btnResetFilter)
         val btnClose = view.findViewById<ImageView>(R.id.btnCloseFilterSheet)
@@ -911,6 +1267,11 @@ class MapFragment : Fragment() {
         cbWarn.isChecked = currentFilters.showWarning
         cbNorm.isChecked = currentFilters.showNormal
         cbOff.isChecked = currentFilters.connectivity != ConnectivityFilter.ONLINE_ONLY
+
+        rowCrit?.setOnClickListener { cbCrit.isChecked = !cbCrit.isChecked }
+        rowWarn?.setOnClickListener { cbWarn.isChecked = !cbWarn.isChecked }
+        rowNorm?.setOnClickListener { cbNorm.isChecked = !cbNorm.isChecked }
+        rowOff?.setOnClickListener { cbOff.isChecked = !cbOff.isChecked }
 
         btnClose?.setOnClickListener { dialog.dismiss() }
 
@@ -959,11 +1320,6 @@ class MapFragment : Fragment() {
         val tvPercent = view.findViewById<TextView>(R.id.tvBinDetailPercentText)
         val pbFill = view.findViewById<ProgressBar>(R.id.pbBinDetailFill)
         val tvLastSeen = view.findViewById<TextView>(R.id.tvBinLastSeen)
-        val tvTypeStatus = view.findViewById<TextView>(R.id.tvBinDetailTypeAndStatus)
-        val tvLidStatus = view.findViewById<TextView>(R.id.tvBinDetailLidStatus)
-        val tvMode = view.findViewById<TextView>(R.id.tvBinDetailMode)
-        val tvCollectionStatus = view.findViewById<TextView>(R.id.tvBinDetailCollectionStatus)
-        val tvConnectivity = view.findViewById<TextView>(R.id.tvBinDetailConnectivity)
 
         val btnClose = view.findViewById<ImageView>(R.id.btnCloseBinDetail)
         val btnNav = view.findViewById<LinearLayout>(R.id.btnNavigateToBin)
@@ -997,34 +1353,17 @@ class MapFragment : Fragment() {
                 )
             )
             pbFill.progress = fill
-
-            val formattedTime = bin.lastSeen?.let { TimeUtils.formatDisplayDateTime(it) } ?: "Chưa có dữ liệu"
-            tvLastSeen.text = "Cập nhật: $formattedTime"
-
-            val onlineText = if (bin.isOnline != false) "Trực tuyến" else "Ngoại tuyến"
-            tvTypeStatus.text = "$onlineText • ${bin.modeText}"
-            tvTypeStatus.setTextColor(
-                ContextCompat.getColor(
-                    requireContext(),
-                    if (bin.isOnline != false) R.color.profile_green_primary else R.color.profile_text_secondary
-                )
+            pbFill.progressDrawable = ContextCompat.getDrawable(
+                requireContext(),
+                if (category == BinLevel.CRITICAL) R.drawable.bg_bin_percent_red else R.drawable.bg_bin_percent_orange
             )
 
-            tvLidStatus.text = bin.lidStatus
-            tvMode.text = bin.modeText
-            tvCollectionStatus.text = bin.collectionStatusText
+            val formattedTime = bin.lastSeen?.let { TimeUtils.formatDisplayDateTime(it) } ?: "--"
+            tvLastSeen.text = if (formattedTime != "--") "Cập nhật: $formattedTime" else "Chưa có dữ liệu cập nhật"
 
-            if (bin.isOnline != false) {
-                tvConnectivity.text = "🟢 Trực tuyến"
-                tvConnectivity.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_green_primary))
-                btnOpenLid.isEnabled = true
-                btnOpenLid.alpha = 1.0f
-            } else {
-                tvConnectivity.text = "⚫ Ngoại tuyến"
-                tvConnectivity.setTextColor(ContextCompat.getColor(requireContext(), R.color.profile_text_secondary))
-                btnOpenLid.isEnabled = false
-                btnOpenLid.alpha = 0.5f
-            }
+            val isOnline = bin.isOnline != false
+            btnOpenLid.isEnabled = isOnline
+            btnOpenLid.alpha = if (isOnline) 1.0f else 0.5f
         }
 
         // Initial binding from current state
@@ -1053,7 +1392,7 @@ class MapFragment : Fragment() {
         btnOpenLid.setOnClickListener {
             it.applyPressEffect {
                 dialog.dismiss()
-                showRemoteOpenLidBottomSheet(binId)
+                triggerRemoteOpenLid(binId)
             }
         }
 
@@ -1068,48 +1407,47 @@ class MapFragment : Fragment() {
     }
 
     // =========================================================================
-    // 9. REMOTE OPEN LID CONFIRMATION DIALOG
+    // 9. REMOTE OPEN LID TOP NOTIFICATION MESSAGE (SLIDE DOWN + 3 STATES + SWIPE UP)
     // =========================================================================
 
-    private fun showRemoteOpenLidBottomSheet(binId: String) {
-        val dialog = BottomSheetDialog(requireContext()).also { activeOpenLidDialog = it }
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_remote_open_lid, null)
-        dialog.setContentView(view)
+    private fun triggerRemoteOpenLid(binId: String) {
+        val act = activity ?: return
 
-        val tvId = view.findViewById<TextView>(R.id.tvOpenLidBinId)
-        val tvBadge = view.findViewById<TextView>(R.id.tvOpenLidBinBadge)
-        val pbProgress = view.findViewById<ProgressBar>(R.id.pbOpenLidProgress)
-        val tvResult = view.findViewById<TextView>(R.id.tvOpenLidResult)
-        val btnClose = view.findViewById<ImageView>(R.id.btnCloseOpenLidSheet)
-        val btnConfirm = view.findViewById<AppCompatButton>(R.id.btnConfirmOpenLid)
-        val btnCancel = view.findViewById<AppCompatButton>(R.id.btnCancelOpenLid)
+        // 1. Loading State: "Đang gửi lệnh mở nắp... / Vui lòng chờ"
+        TopCommandNotificationManager.showLoading(
+            activity = act,
+            title = "Đang gửi lệnh mở nắp...",
+            subtitle = "Vui lòng chờ"
+        )
 
-        val bin = viewModel.uiState.value.allBins.find { it.deviceId == binId }
-        tvId.text = binId
-        val fill = bin?.levelPercent?.roundToInt() ?: 0
-        tvBadge.text = "$fill%"
-
-        btnClose.setOnClickListener { dialog.dismiss() }
-        btnCancel.setOnClickListener { dialog.dismiss() }
-
-        btnConfirm.setOnClickListener {
-            it.applyPressEffect {
-                btnConfirm.isEnabled = false
-                btnConfirm.text = "Đang gửi lệnh..."
-                pbProgress.isVisible = true
-                tvResult.isVisible = false
-                viewModel.handleAction(MapAction.ConfirmOpenLid(binId))
+        // 2. Dispatch MQTT command to device via backend
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = binsRepo.openLid(binId)
+            if (result is BinCommandResult.Executed) {
+                // Success State: "Mở nắp thành công! / Nắp đã mở." (Auto dismiss ~2.5s)
+                TopCommandNotificationManager.showSuccess(
+                    activity = act,
+                    title = "Mở nắp thành công!",
+                    subtitle = "Nắp đã mở."
+                )
+                viewModel.handleAction(MapAction.LoadData())
+            } else {
+                // Error State: "Không phản hồi từ thiết bị / Vui lòng kiểm tra kết nối." + [ Thử lại ] button
+                val errorMsg = if (result is BinCommandResult.DeviceOffline) {
+                    "Thiết bị đang ngoại tuyến."
+                } else {
+                    "Vui lòng kiểm tra kết nối."
+                }
+                TopCommandNotificationManager.showError(
+                    activity = act,
+                    title = "Không phản hồi từ thiết bị",
+                    subtitle = errorMsg,
+                    onRetry = {
+                        triggerRemoteOpenLid(binId)
+                    }
+                )
             }
         }
-
-        dialog.setOnDismissListener {
-            if (activeOpenLidDialog === dialog) {
-                activeOpenLidDialog = null
-            }
-            viewModel.handleAction(MapAction.DismissLidCommandState)
-        }
-
-        dialog.show()
     }
 
     // =========================================================================
@@ -1130,18 +1468,20 @@ class MapFragment : Fragment() {
         dialog.setContentView(view)
 
         val tvStops = view.findViewById<TextView>(R.id.tvSelfPickStopsCount)
-        val tvDistance = view.findViewById<TextView>(R.id.tvSelfPickDistance)
+        val tvRadius = view.findViewById<TextView>(R.id.tvSelfPickRadius)
         val tvDuration = view.findViewById<TextView>(R.id.tvSelfPickDuration)
-        val llBinsList = view.findViewById<LinearLayout>(R.id.llSelfPickBinsList)
         val btnClose = view.findViewById<ImageView>(R.id.btnCloseSelfPickSheet)
         val btnCreate = view.findViewById<AppCompatButton>(R.id.btnConfirmCreateSelfPickJob)
 
-        tvStops.text = "${eligibleBins.size} điểm"
-        tvDistance.text = "--"
-        tvDuration.text = "--"
+        val radiusMeters = (radar as? RadarState.Active)?.radiusMeters ?: 500.0
+        tvRadius?.text = "Bán kính: ${radiusMeters.roundToInt()} m"
+        tvStops.text = "${eligibleBins.size} điểm dừng"
+        val approxDurationMins = (eligibleBins.size * 6).coerceAtLeast(10)
+        tvDuration.text = "Ước tính thời gian: ~ $approxDurationMins phút"
 
+        val llBinsList = view.findViewById<LinearLayout>(R.id.llSelfPickBinsList)
         // Dynamically populate bins list
-        llBinsList.removeAllViews()
+        llBinsList?.removeAllViews()
         val inflater = LayoutInflater.from(requireContext())
         eligibleBins.forEachIndexed { index, bin ->
             val row = LinearLayout(requireContext()).apply {
@@ -1172,7 +1512,7 @@ class MapFragment : Fragment() {
 
             row.addView(tvName)
             row.addView(tvFill)
-            llBinsList.addView(row)
+            llBinsList?.addView(row)
         }
 
         btnClose.setOnClickListener { dialog.dismiss() }
@@ -1220,7 +1560,9 @@ class MapFragment : Fragment() {
         val btnAddPhoto = view.findViewById<FrameLayout>(R.id.btnAddPhotoIncident)
         val btnSubmit = view.findViewById<AppCompatButton>(R.id.btnSubmitIncidentSheet)
 
-        tvTitle.text = "Báo cáo sự cố #$binId"
+        val tvCharCount = view.findViewById<TextView>(R.id.tvIncidentCharCount)
+
+        tvTitle.text = "Chọn loại sự cố"
 
         val chipMap = mapOf(
             IncidentReason.BROKEN_BIN to chipBroken,
@@ -1234,8 +1576,8 @@ class MapFragment : Fragment() {
             viewModel.handleAction(MapAction.SelectIncidentReason(reason))
             chipMap.forEach { (r, chip) ->
                 val isSelected = (r == reason)
-                chip.setBackgroundResource(if (isSelected) R.drawable.bg_chip_filter_active else R.drawable.bg_chip_filter_inactive)
-                chip.setTextColor(ContextCompat.getColor(requireContext(), if (isSelected) R.color.profile_green_primary else R.color.profile_text_primary))
+                chip.setBackgroundResource(if (isSelected) R.drawable.bg_chip_incident_active else R.drawable.bg_chip_incident_inactive)
+                chip.setTextColor(ContextCompat.getColor(requireContext(), if (isSelected) R.color.profile_danger else R.color.profile_text_primary))
                 chip.paint.isFakeBoldText = isSelected
             }
         }
@@ -1249,11 +1591,13 @@ class MapFragment : Fragment() {
 
         updateSelectedReason(viewModel.uiState.value.incidentReason)
 
-        // Description Text Change
+        // Description Text Change + Char Counter
         etDescription.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                viewModel.handleAction(MapAction.ChangeIncidentDescription(s?.toString().orEmpty()))
+                val text = s?.toString().orEmpty()
+                tvCharCount?.text = "${text.length}/200"
+                viewModel.handleAction(MapAction.ChangeIncidentDescription(text))
             }
             override fun afterTextChanged(s: Editable?) = Unit
         })
@@ -1332,59 +1676,6 @@ class MapFragment : Fragment() {
     // 12. SHEET E: CHỌN LỚP BẢN ĐỒ (PHASE 8)
     // =========================================================================
 
-    private fun showMapLayersBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext()).also { activeMapLayersDialog = it }
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_map_layers, null)
-        dialog.setContentView(view)
-
-        val btnClose = view.findViewById<ImageView>(R.id.btnCloseLayersSheet)
-        val btnDefault = view.findViewById<LinearLayout>(R.id.btnLayerDefault)
-        val btnSatellite = view.findViewById<LinearLayout>(R.id.btnLayerSatellite)
-        val btnTerrain = view.findViewById<LinearLayout>(R.id.btnLayerTerrain)
-
-        val ivCheckDefault = view.findViewById<ImageView>(R.id.ivCheckDefault)
-        val ivCheckSatellite = view.findViewById<ImageView>(R.id.ivCheckSatellite)
-        val ivCheckTerrain = view.findViewById<ImageView>(R.id.ivCheckTerrain)
-
-        fun updateChecks(layer: MapLayer) {
-            ivCheckDefault.isVisible = (layer == MapLayer.DEFAULT)
-            ivCheckSatellite.isVisible = (layer == MapLayer.SATELLITE)
-            ivCheckTerrain.isVisible = (layer == MapLayer.TERRAIN)
-        }
-
-        updateChecks(viewModel.uiState.value.mapLayer)
-        btnClose?.setOnClickListener { dialog.dismiss() }
-
-        btnDefault.setOnClickListener {
-            it.applyPressEffect {
-                viewModel.handleAction(MapAction.SetMapLayer(MapLayer.DEFAULT))
-                dialog.dismiss()
-            }
-        }
-
-        btnSatellite.setOnClickListener {
-            it.applyPressEffect {
-                viewModel.handleAction(MapAction.SetMapLayer(MapLayer.SATELLITE))
-                dialog.dismiss()
-            }
-        }
-
-        btnTerrain.setOnClickListener {
-            it.applyPressEffect {
-                viewModel.handleAction(MapAction.SetMapLayer(MapLayer.TERRAIN))
-                dialog.dismiss()
-            }
-        }
-
-        dialog.setOnDismissListener {
-            if (activeMapLayersDialog === dialog) {
-                activeMapLayersDialog = null
-            }
-        }
-
-        dialog.show()
-    }
-
     private fun formatJobCode(id: String): String {
         val clean = id.removePrefix("#")
         return if (clean.startsWith("JOB_")) "#$clean" else "#JOB_$clean"
@@ -1428,8 +1719,11 @@ class MapFragment : Fragment() {
         activeIncidentDialog?.dismiss()
         activeIncidentDialog = null
 
-        activeMapLayersDialog?.dismiss()
-        activeMapLayersDialog = null
+        fusedLocationCallback?.let {
+            try { fusedLocationClient?.removeLocationUpdates(it) } catch (e: Exception) {}
+        }
+        fusedLocationCallback = null
+        fusedLocationClient = null
 
         locationListener?.let {
             try { locationManager?.removeUpdates(it) } catch (e: Exception) {}

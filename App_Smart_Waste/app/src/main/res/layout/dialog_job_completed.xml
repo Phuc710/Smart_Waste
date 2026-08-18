@@ -3,45 +3,50 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:background="@drawable/bg_dialog_rounded"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:paddingHorizontal="24dp"
+    android:paddingTop="28dp"
+    android:paddingBottom="24dp">
 
-    <ImageView
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:background="@drawable/bg_icon_circle_green"
-        android:contentDescription="Hoàn thành"
-        android:padding="16dp"
-        android:src="@drawable/ic_check_circle_green" />
+    <!-- Green Circle with White Checkmark -->
+    <FrameLayout
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:background="@drawable/bg_avatar_circle_green">
 
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:contentDescription="Hoàn thành"
+            android:src="@drawable/ic_check"
+            app:tint="@color/white" />
+    </FrameLayout>
+
+    <!-- Title: Hoàn thành nhiệm vụ! -->
     <TextView
+        android:id="@+id/tvCompletedDialogTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Hoàn thành xuất sắc!"
-        android:textColor="#2E7D32"
-        android:textSize="22sp"
+        android:gravity="center"
+        android:text="Hoàn thành nhiệm vụ!"
+        android:textColor="@color/profile_text_primary"
+        android:textSize="18.5sp"
         android:textStyle="bold" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Bạn đã hoàn thành ca thu gom an toàn &amp; sạch sẽ."
-        android:textColor="@color/profile_text_secondary"
-        android:textSize="13.5sp" />
-
-    <!-- 3 Metrics KPI Card -->
+    <!-- Metric Statistics (3 Columns: Điểm dừng | Quãng đường | Thời gian thực tế) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:background="@drawable/bg_dialog_item_field"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:layout_marginBottom="24dp"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
 
+        <!-- Column 1: Điểm dừng (e.g. 7/7) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -50,33 +55,33 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tvCompletedBinsCount"
+                android:id="@+id/tvCompletedStopsCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="3/3"
-                android:textColor="#2E7D32"
-                android:textSize="18sp"
+                android:text="7/7"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Điểm thu gom"
+                android:layout_marginTop="3dp"
+                android:text="điểm dừng"
                 android:textColor="@color/profile_text_secondary"
                 android:textSize="11.5sp" />
         </LinearLayout>
 
         <View
             android:layout_width="1dp"
-            android:layout_height="32dp"
-            android:layout_gravity="center_vertical"
-            android:background="#E2E8F0" />
+            android:layout_height="match_parent"
+            android:background="@color/profile_border_light" />
 
+        <!-- Column 2: Quãng đường (e.g. 6.1 km) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="1.1"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -84,30 +89,30 @@
                 android:id="@+id/tvCompletedDistance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="4.5 km"
+                android:text="6.1 km"
                 android:textColor="@color/profile_text_primary"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Quãng đường"
+                android:layout_marginTop="3dp"
+                android:text="quãng đường"
                 android:textColor="@color/profile_text_secondary"
                 android:textSize="11.5sp" />
         </LinearLayout>
 
         <View
             android:layout_width="1dp"
-            android:layout_height="32dp"
-            android:layout_gravity="center_vertical"
-            android:background="#E2E8F0" />
+            android:layout_height="match_parent"
+            android:background="@color/profile_border_light" />
 
+        <!-- Column 3: Thời gian thực tế (e.g. 28 phút) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="1.2"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -115,31 +120,53 @@
                 android:id="@+id/tvCompletedDuration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="38 phút"
+                android:text="28 phút"
                 android:textColor="@color/profile_text_primary"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Thời gian"
+                android:layout_marginTop="3dp"
+                android:text="thời gian thực tế"
                 android:textColor="@color/profile_text_secondary"
                 android:textSize="11.5sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnDoneCelebration"
+    <!-- Action Buttons (Xem lịch sử & Về danh sách) -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="24dp"
-        android:background="@drawable/bg_btn_accept_green"
-        android:text="Về Trang Chủ"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        app:backgroundTint="@null" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Button 1: Xem lịch sử (Solid Green) -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCompletedViewHistory"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Xem lịch sử"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+
+        <!-- Button 2: Về danh sách (Outlined Green) -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCompletedBackToList"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_outlined_green"
+            android:text="Về danh sách"
+            android:textAllCaps="false"
+            android:textColor="@color/profile_green_primary"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
 </LinearLayout>

@@ -299,7 +299,8 @@ internal object MapStatePolicy {
             coordinates = coordinates,
             stops = stops,
             distanceMeters = job.routeData?.distanceMeters?.toInt(),
-            durationSeconds = job.routeData?.durationSeconds?.toInt()
+            durationSeconds = job.routeData?.durationSeconds?.toInt(),
+            steps = job.routeData?.steps ?: emptyList()
         )
     }
 
@@ -325,5 +326,85 @@ internal object MapStatePolicy {
                 level >= thresholds.warning &&
                 calculateHaversineDistance(driverLocation.latitude, driverLocation.longitude, lat, lng) <= radiusMeters
         }
+    }
+
+    fun calculateDistanceToPolyline(driverLat: Double, driverLng: Double, polyline: List<List<Double>>): Double {
+        if (polyline.isEmpty()) return 0.0
+        if (polyline.size == 1) {
+            return calculateHaversineDistance(driverLat, driverLng, polyline[0][0], polyline[0][1])
+        }
+        var minDistance = Double.MAX_VALUE
+        for (i in 0 until polyline.size - 1) {
+            val p1 = polyline[i]
+            val p2 = polyline[i + 1]
+            val d = distanceToSegment(driverLat, driverLng, p1[0], p1[1], p2[0], p2[1])
+            if (d < minDistance) minDistance = d
+        }
+        return minDistance
+    }
+
+    private fun distanceToSegment(pLat: Double, pLng: Double, aLat: Double, aLng: Double, bLat: Double, bLng: Double): Double {
+        val dLat = (bLat - aLat) * 111320.0
+        val dLng = (bLng - aLng) * 111320.0 * cos(Math.toRadians((aLat + bLat) / 2.0))
+        val segLengthSq = dLat * dLat + dLng * dLng
+        if (segLengthSq < 1e-6) {
+            return calculateHaversineDistance(pLat, pLng, aLat, aLng)
+        }
+        val dpLat = (pLat - aLat) * 111320.0
+        val dpLng = (pLng - aLng) * 111320.0 * cos(Math.toRadians((aLat + pLat) / 2.0))
+        val t = ((dpLat * dLat + dpLng * dLng) / segLengthSq).coerceIn(0.0, 1.0)
+        val projLat = aLat + t * (bLat - aLat)
+        val projLng = aLng + t * (bLng - aLng)
+        return calculateHaversineDistance(pLat, pLng, projLat, projLng)
+    }
+
+    fun deriveNextManeuverInstruction(
+        driverLat: Double,
+        driverLng: Double,
+        remainingDistanceMeters: Int,
+        steps: List<com.example.app_smart_waste.core.model.RouteStepDto>
+    ): Pair<String, Int> {
+        if (steps.isEmpty()) {
+            val dist = if (remainingDistanceMeters <= 200) remainingDistanceMeters else 120
+            return Pair("Đi thẳng theo tuyến đường", dist)
+        }
+
+        var upcomingStep: com.example.app_smart_waste.core.model.RouteStepDto? = null
+        var minStepDist = Double.MAX_VALUE
+
+        for (step in steps) {
+            val loc = step.location
+            if (loc != null && loc.size >= 2) {
+                val stepLat = loc[1]
+                val stepLng = loc[0]
+                val d = calculateHaversineDistance(driverLat, driverLng, stepLat, stepLng)
+                if (d in 15.0..1200.0 && d < minStepDist) {
+                    minStepDist = d
+                    upcomingStep = step
+                }
+            }
+        }
+
+        val step = upcomingStep ?: steps.firstOrNull()
+        if (step == null) {
+            val dist = if (remainingDistanceMeters <= 200) remainingDistanceMeters else 120
+            return Pair("Đi thẳng theo tuyến đường", dist)
+        }
+
+        val stepDistM = if (minStepDist < Double.MAX_VALUE) minStepDist.roundToInt() else (step.distanceMeters?.roundToInt() ?: 120)
+        val modifier = step.maneuverModifier?.lowercase(java.util.Locale.ROOT) ?: ""
+        val type = step.maneuverType?.lowercase(java.util.Locale.ROOT) ?: "straight"
+        val streetName = if (step.street.isNullOrBlank()) "" else " vào ${step.street}"
+
+        val instruction = when {
+            modifier.contains("right") || type.contains("right") -> "Rẽ phải$streetName"
+            modifier.contains("left") || type.contains("left") -> "Rẽ trái$streetName"
+            modifier.contains("uturn") || type.contains("uturn") -> "Quay đầu xe$streetName"
+            type.contains("arrive") || stepDistM <= 30 -> "Điểm đến ở phía trước"
+            type.contains("roundabout") -> "Đi vào vòng xuyến$streetName"
+            else -> if (step.street.isNullOrBlank()) "Đi thẳng trên tuyến đường" else "Tiếp tục đi trên ${step.street}"
+        }
+
+        return Pair(instruction, stepDistM)
     }
 }

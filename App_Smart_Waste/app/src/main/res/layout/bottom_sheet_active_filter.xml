@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_map"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="24dp">
+
+    <!-- Header: Title & Close -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="Bộ lọc cần xử lý"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="17.5sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnCloseActiveFilterSheet"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Đóng"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/profile_text_secondary" />
+    </RelativeLayout>
+
+    <!-- Status Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Trạng thái"
+        android:textColor="#1E293B"
+        android:textSize="13.5sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:orientation="vertical">
+
+        <!-- Đã giao -->
+        <CheckBox
+            android:id="@+id/cbActiveAssigned"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:buttonTint="@color/profile_green_primary"
+            android:checked="true"
+            android:text="Đã giao"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <!-- Đang thực hiện -->
+        <CheckBox
+            android:id="@+id/cbActiveInProgress"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:buttonTint="@color/profile_green_primary"
+            android:checked="true"
+            android:text="Đang thực hiện"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+
+        <!-- Tạm dừng -->
+        <CheckBox
+            android:id="@+id/cbActivePaused"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:buttonTint="@color/profile_green_primary"
+            android:checked="true"
+            android:text="Tạm dừng"
+            android:textColor="@color/profile_text_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnResetActiveFilter"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_outlined_gray"
+            android:text="Đặt lại"
+            android:textAllCaps="false"
+            android:textColor="#374151"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnApplyActiveFilter"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_button_primary_green"
+            android:text="Áp dụng"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

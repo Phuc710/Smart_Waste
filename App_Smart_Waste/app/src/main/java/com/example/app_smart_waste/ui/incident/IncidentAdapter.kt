@@ -44,28 +44,15 @@ class IncidentAdapter(
             tvReason.text = item.reason
             tvDesc.text = if (!item.description.isNullOrBlank()) item.description else "Không có ghi chú thêm."
 
-            // Status Pill
-            when (item.status.uppercase()) {
-                "NEW" -> {
-                    tvStatus.text = "MỚI TIẾP NHẬN"
-                    tvStatus.setTextColor(Color.parseColor("#DC2626"))
-                    tvStatus.setBackgroundResource(R.drawable.bg_badge_pill_red)
-                }
-                "IN_REVIEW", "IN_PROGRESS" -> {
-                    tvStatus.text = "ĐANG XỬ LÝ"
-                    tvStatus.setTextColor(Color.parseColor("#2563EB"))
-                    tvStatus.setBackgroundResource(R.drawable.bg_badge_pill_blue)
-                }
-                "RESOLVED", "DONE" -> {
-                    tvStatus.text = "ĐÃ GIẢI QUYẾT"
-                    tvStatus.setTextColor(Color.parseColor("#16A34A"))
-                    tvStatus.setBackgroundResource(R.drawable.bg_badge_pill_green)
-                }
-                else -> {
-                    tvStatus.text = item.status
-                    tvStatus.setTextColor(Color.GRAY)
-                    tvStatus.setBackgroundResource(R.drawable.bg_badge_pill_yellow)
-                }
+            // Status Pill (2 trạng thái: Đang xử lý, Đã giải quyết)
+            if (item.status.equals("RESOLVED", ignoreCase = true) || item.status.equals("DONE", ignoreCase = true)) {
+                tvStatus.text = "ĐÃ GIẢI QUYẾT"
+                tvStatus.setTextColor(Color.parseColor("#16A34A"))
+                tvStatus.setBackgroundResource(R.drawable.bg_badge_pill_green)
+            } else {
+                tvStatus.text = "ĐANG XỬ LÝ"
+                tvStatus.setTextColor(Color.parseColor("#2563EB"))
+                tvStatus.setBackgroundResource(R.drawable.bg_badge_pill_blue)
             }
 
             // Time Formatted

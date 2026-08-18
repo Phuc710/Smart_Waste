@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet_map"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="44dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_drag_handle_gray" />
+
+    <!-- Top Header: Bin ID + Status Badge + Close -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvStopDetailBinId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BIN_HCM_045"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvStopDetailStatusBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_role_badge_pill"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="Đã thu gom"
+                android:textColor="@color/profile_green_primary"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnCloseStopDetailSheet"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Đóng"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/profile_text_secondary" />
+    </RelativeLayout>
+
+    <!-- Address -->
+    <TextView
+        android:id="@+id/tvStopDetailAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="124 Nguyễn Thái Học, Quận 1"
+        android:textColor="@color/profile_text_secondary"
+        android:textSize="13.5sp" />
+
+    <!-- Info Table Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_profile_item_card"
+        android:elevation="1dp"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- Row 1: Loại thùng -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🗑 Loại thùng"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvStopDetailBinType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rác sinh hoạt"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Row 2: Mức đầy lúc thu gom -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📊 Mức đầy lúc thu gom"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvStopDetailFillPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="72%"
+                android:textColor="@color/profile_danger"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Row 3: Thời gian thu gom -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🕒 Thời gian thu gom"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvStopDetailCollectedAt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="07:42 • 26/05/2025"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 4: Ghi chú -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📝 Ghi chú"
+                android:textColor="@color/profile_text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvStopDetailNote"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Không có ghi chú"
+                android:textColor="@color/profile_text_primary"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnNavigateToStopSheet"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_outlined_gray"
+            android:text="▲ Dẫn đường"
+            android:textColor="@color/profile_green_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReportIncidentStopSheet"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_button_outlined_red"
+            android:text="Báo sự cố"
+            android:textColor="@color/profile_danger"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

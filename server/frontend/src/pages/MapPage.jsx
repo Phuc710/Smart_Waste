@@ -1692,7 +1692,7 @@ export default function MapPage({ bins = [], selectedBin: initialSelectedBin, em
               border: '1px solid #e2e8f0' 
             }}>
               {/* Item 1: Trạng thái nắp (Chỉ có button) */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontSize: '11.5px', fontWeight: 500, whiteSpace: 'nowrap' }}>Trạng thái nắp:</span>
                 {onSendCommand ? (
                   <button
@@ -1726,7 +1726,7 @@ export default function MapPage({ bins = [], selectedBin: initialSelectedBin, em
               </div>
 
               {/* Item 2: Chế độ hoạt động (Chỉ có button) */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontSize: '11.5px', fontWeight: 500, whiteSpace: 'nowrap' }}>Chế độ:</span>
                 {onSendCommand ? (
                   <button
@@ -1760,7 +1760,7 @@ export default function MapPage({ bins = [], selectedBin: initialSelectedBin, em
               </div>
 
               {/* Item 3: Thu gom */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontSize: '11.5px', fontWeight: 500 }}>Thu gom:</span>
                 <strong style={{
                   color: binCollectionStatus?.color || '#0f172a',
@@ -1772,7 +1772,7 @@ export default function MapPage({ bins = [], selectedBin: initialSelectedBin, em
               </div>
 
               {/* Item 4: Cập nhật */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ color: '#64748b', fontSize: '11.5px', fontWeight: 500 }}>Cập nhật:</span>
                 <span style={{ color: '#0f172a', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700 }}>
                   {formatLastSeen(activeBin.last_seen || activeBin.updated_at)}

@@ -35,9 +35,29 @@ async function getSessionUser(rawToken) {
     return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
+function extractToken(request) {
+    if (!request || !request.headers) return null;
+    const rawCookieToken = parseCookies(request.headers.cookie)[SESSION_COOKIE_NAME];
+    if (rawCookieToken) return rawCookieToken;
+
+    const authHeader = request.headers.authorization;
+    if (authHeader && typeof authHeader === 'string') {
+        const parts = authHeader.split(' ');
+        if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
+            return parts[1].trim();
+        }
+    }
+
+    if (request.headers['x-access-token']) {
+        return String(request.headers['x-access-token']).trim();
+    }
+
+    return null;
+}
+
 async function requireAuth(request, response, next) {
     try {
-        const rawToken = parseCookies(request.headers.cookie)[SESSION_COOKIE_NAME];
+        const rawToken = extractToken(request);
         const user = await getSessionUser(rawToken);
         if (!user) {
             return response.status(401).json({ error: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
@@ -58,6 +78,7 @@ function requireAdmin(request, response, next) {
 
 module.exports = {
     parseCookies,
+    extractToken,
     hashToken,
     generateRawToken,
     sessionCookie,
