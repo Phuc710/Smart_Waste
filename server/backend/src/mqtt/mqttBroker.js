@@ -40,14 +40,40 @@ function initMqttBroker() {
         callback(null, true);
     };
 
+    // Helper kiểm tra quyền truy cập Topic MQTT theo Zero-Trust Device Isolation
+    function isAuthorizedMqttTopic(clientId, topic) {
+        if (!topic || typeof topic !== 'string' || !topic.startsWith('wastebin/')) {
+            return false;
+        }
+        const parts = topic.split('/');
+        const topicBinId = parts[1];
+        if (!topicBinId) return false;
+
+        // 1. Khớp trực tiếp: wastebin/{clientId}/...
+        if (topic.startsWith(`wastebin/${clientId}/`)) {
+            return true;
+        }
+
+        // 2. Khớp với Client ID có tiền tố phần cứng (ESP32-SmartBin-{binId}, ESP32-{binId}, SmartBin-{binId})
+        const cleanClientId = clientId
+            .replace(/^ESP32[-_]SmartBin[-_]/i, '')
+            .replace(/^ESP32[-_]/i, '')
+            .replace(/^SmartBin[-_]/i, '');
+
+        if (topicBinId === cleanClientId || clientId.endsWith(topicBinId)) {
+            return true;
+        }
+
+        return false;
+    }
+
     // 2. MQTT Topic Authorization (ACL) Hook
     aedes.authorizePublish = (client, packet, callback) => {
-        // Allow internal backend publishers (null client)
+        // Cho phép backend internal publisher (null client)
         if (!client) return callback(null);
 
         const clientId = String(client.id || '');
-        // An IoT device can ONLY publish telemetry to wastebin/{clientId}/*
-        if (packet.topic.startsWith(`wastebin/${clientId}/`)) {
+        if (isAuthorizedMqttTopic(clientId, packet.topic)) {
             return callback(null);
         }
         logger.warn('MQTT ACL Blocked Pub', `Client ${clientId} tried to publish to unauthorized topic: ${packet.topic}`);
@@ -58,8 +84,7 @@ function initMqttBroker() {
         if (!client) return callback(null, sub);
 
         const clientId = String(client.id || '');
-        // An IoT device can ONLY subscribe to its own command topic wastebin/{clientId}/#
-        if (sub.topic.startsWith(`wastebin/${clientId}/`)) {
+        if (isAuthorizedMqttTopic(clientId, sub.topic)) {
             return callback(null, sub);
         }
         logger.warn('MQTT ACL Blocked Sub', `Client ${clientId} tried to subscribe to unauthorized topic: ${sub.topic}`);
@@ -106,15 +131,19 @@ function initMqttBroker() {
 
             // Cập nhật bộ nhớ RAM stateStore ngay lập tức không chờ I/O
             const existing = stateStore.latestBins.get(binId) || {};
-            stateStore.latestBins.set(binId, {
+            const enrichedBin = {
                 ...existing,
                 ...data,
                 device_id: binId,
                 is_online: true,
                 last_seen: nowIso,
                 lastSeen: nowIso
-            });
+            };
+            stateStore.latestBins.set(binId, enrichedBin);
             
+            // Phát sóng Realtime ngay lập tức tới Web Admin (Dashboard, Map, SmartBins)
+            stateStore.emit('binData', { binId, data: enrichedBin });
+
             binService.acknowledgeBinCommand(binId, data).catch((error) => {
                 logger.error('MQTT ACK', error.message);
             });

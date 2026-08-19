@@ -40,6 +40,9 @@ async function cleanAndSeedDatabase() {
     // BƯỚC 1: DỌN DẸP TOÀN BỘ CSDL THEO THỨ TỰ RÀNG BUỘC KHÓA NGOẠI
     logStep(1, 'Dọn dẹp sạch sẽ các bảng dữ liệu cũ trên Supabase...');
     const tablesToClean = [
+        'ota_device_jobs',
+        'ota_deployments',
+        'firmware_releases',
         'employee_sessions',
         'incident_image_uploads',
         'incident_reports',

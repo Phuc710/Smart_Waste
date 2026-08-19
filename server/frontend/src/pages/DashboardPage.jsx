@@ -614,104 +614,114 @@ export default function DashboardPage({ bins = [], onSendCommand, onSelectBinFor
     }
   }, [timeFilter]);
 
-  // Dynamic Chart Config (Generated from actual dates and calculated weights)
+  // Dynamic Chart Config (100% computed from real Supabase DB data)
   const chartConfig = useMemo(() => {
     const now = new Date();
     const formatDayMonth = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Lấy danh sách điểm thu gom theo ngày từ statsData
+    const rawDays = timeFilter === '30days'
+      ? (statsData?.chartData?.days30 || [])
+      : (statsData?.chartData?.days7 || []);
 
-    if (timeFilter === '30days') {
-      const labels = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i * 5);
-        labels.push(formatDayMonth(d));
-      }
-      return {
-        title: '30 ngày qua',
-        xLabels: labels,
-        points: [
-          { cx: 40, cy: 150, label: `${labels[0]}: 42,5 tấn (58 chuyến)` },
-          { cx: 120, cy: 110, label: `${labels[1]}: 68,2 tấn (82 chuyến)` },
-          { cx: 200, cy: 80, label: `${labels[2]}: 84,1 tấn (104 chuyến)` },
-          { cx: 280, cy: 100, label: `${labels[3]}: 72,0 tấn (91 chuyến)` },
-          { cx: 360, cy: 50, label: `${labels[4]}: 98,6 tấn (125 chuyến)` },
-          { cx: 460, cy: 30, label: `${labels[5]}: 104,2 tấn (132 chuyến)` }
-        ],
-        areaPath: 'M 40 150 C 90 120, 150 90, 200 80 C 250 70, 310 120, 360 50 C 410 20, 430 40, 460 30 L 460 180 L 40 180 Z',
-        linePath: 'M 40 150 C 90 120, 150 90, 200 80 C 250 70, 310 120, 360 50 C 410 20, 430 40, 460 30',
-        totalTons: '469.6',
-        avgDaily: '15.6'
-      };
-    } else if (timeFilter === 'this_week') {
-      const dayNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-      return {
-        title: 'Tuần này',
-        xLabels: dayNames,
-        points: [
-          { cx: 40, cy: 140, label: 'T2: 9,2 tấn (12 chuyến)' },
-          { cx: 110, cy: 100, label: 'T3: 14,1 tấn (18 chuyến)' },
-          { cx: 180, cy: 85, label: 'T4: 16,8 tấn (21 chuyến)' },
-          { cx: 250, cy: 110, label: 'T5: 13,4 tấn (17 chuyến)' },
-          { cx: 320, cy: 65, label: 'T6: 18,9 tấn (24 chuyến)' },
-          { cx: 400, cy: 90, label: 'T7: 15,2 tấn (19 chuyến)' },
-          { cx: 480, cy: 35, label: 'CN: 21,5 tấn (28 chuyến)' }
-        ],
-        areaPath: 'M 40 140 C 90 100, 140 75, 180 85 C 220 95, 270 130, 320 65 C 370 30, 420 110, 480 35 L 480 180 L 40 180 Z',
-        linePath: 'M 40 140 C 90 100, 140 75, 180 85 C 220 95, 270 130, 320 65 C 370 30, 420 110, 480 35',
-        totalTons: '109.1',
-        avgDaily: '15.5'
-      };
-    } else if (timeFilter === 'this_month') {
-      return {
-        title: `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`,
-        xLabels: ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'],
-        points: [
-          { cx: 40, cy: 160, label: 'Tuần 1: 85,2 tấn' },
-          { cx: 180, cy: 105, label: 'Tuần 2: 112,4 tấn' },
-          { cx: 320, cy: 65, label: 'Tuần 3: 138,7 tấn' },
-          { cx: 480, cy: 25, label: 'Tuần 4: 162,1 tấn' }
-        ],
-        areaPath: 'M 40 160 C 110 120, 240 85, 320 65 C 400 45, 440 25, 480 25 L 480 180 L 40 180 Z',
-        linePath: 'M 40 160 C 110 120, 240 85, 320 65 C 400 45, 440 25, 480 25',
-        totalTons: '498.4',
-        avgDaily: '17.8'
-      };
+    let items = [];
+    if (rawDays.length > 0) {
+      items = rawDays;
     } else {
-      // 7 days default with real dynamic dates
-      const labels = [];
-      for (let i = 6; i >= 0; i--) {
+      const count = timeFilter === '30days' ? 30 : 7;
+      for (let i = count - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
-        labels.push(formatDayMonth(d));
+        items.push({
+          label: formatDayMonth(d),
+          tons: 0,
+          trips: 0
+        });
       }
-      return {
-        title: '7 ngày qua',
-        xLabels: labels,
-        points: [
-          { cx: 40, cy: 145, label: `${labels[0]}: 7,2 tấn (9 chuyến)` },
-          { cx: 110, cy: 95, label: `${labels[1]}: 12,8 tấn (16 chuyến)` },
-          { cx: 170, cy: 70, label: `${labels[2]}: 15,1 tấn (19 chuyến)` },
-          { cx: 235, cy: 105, label: `${labels[3]}: 11,4 tấn (14 chuyến)` },
-          { cx: 300, cy: 60, label: `${labels[4]}: 18,7 tấn (24 chuyến)` },
-          { cx: 390, cy: 110, label: `${labels[5]}: 11,2 tấn (14 chuyến)` },
-          { cx: 480, cy: 30, label: `${labels[6]}: 20,4 tấn (26 chuyến)` }
-        ],
-        areaPath: 'M 40 145 C 90 90, 130 65, 170 70 C 210 75, 240 115, 280 60 C 320 30, 360 120, 400 110 C 440 100, 450 30, 480 30 L 480 180 L 40 180 Z',
-        linePath: 'M 40 145 C 90 90, 130 65, 170 70 C 210 75, 240 115, 280 60 C 320 30, 360 120, 400 110 C 440 100, 450 30, 480 30',
-        totalTons: '96.8',
-        avgDaily: '13.8'
-      };
     }
-  }, [timeFilter]);
+
+    // Lấy 6 mốc đại diện nếu xem 30 ngày
+    let displayItems = items;
+    if (timeFilter === '30days' && items.length > 6) {
+      const sampled = [];
+      const step = Math.floor(items.length / 5);
+      for (let i = 0; i < 5; i++) {
+        sampled.push(items[i * step]);
+      }
+      sampled.push(items[items.length - 1]);
+      displayItems = sampled;
+    }
+
+    const totalTonsVal = items.reduce((sum, item) => sum + (Number(item.tons) || 0), 0);
+    const avgDailyVal = items.length > 0 ? (totalTonsVal / items.length) : 0;
+    const xLabels = displayItems.map(d => d.label);
+    
+    // Xác định trần trục Y (tối thiểu 5 tấn để hiển thị thoáng đẹp)
+    const maxVal = Math.max(5, ...displayItems.map(d => Number(d.tons) || 0));
+    
+    const width = 450;
+    const startX = 35;
+    const baseY = 175;
+    const topY = 30;
+    const heightRange = baseY - topY;
+
+    const points = displayItems.map((item, idx) => {
+      const step = displayItems.length > 1 ? (width / (displayItems.length - 1)) : width;
+      const cx = Math.round(startX + (idx * step));
+      const val = Number(item.tons) || 0;
+      const cy = Math.round(baseY - ((val / maxVal) * heightRange));
+      return {
+        cx,
+        cy,
+        tons: val,
+        trips: item.trips || 0,
+        label: `${item.label}: ${val.toFixed(1)} tấn (${item.trips || 0} chuyến)`
+      };
+    });
+
+    let linePath = '';
+    let areaPath = '';
+    if (points.length > 0) {
+      linePath = `M ${points[0].cx} ${points[0].cy}`;
+      for (let i = 1; i < points.length; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        const cpX1 = prev.cx + (curr.cx - prev.cx) / 2;
+        const cpY1 = prev.cy;
+        const cpX2 = prev.cx + (curr.cx - prev.cx) / 2;
+        const cpY2 = curr.cy;
+        linePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${curr.cx} ${curr.cy}`;
+      }
+      const firstX = points[0].cx;
+      const lastX = points[points.length - 1].cx;
+      areaPath = `${linePath} L ${lastX} 185 L ${firstX} 185 Z`;
+    }
+
+    const title = timeFilter === '30days' ? '30 ngày qua'
+      : timeFilter === 'this_week' ? 'Tuần này'
+      : timeFilter === 'this_month' ? 'Tháng này'
+      : '7 ngày qua';
+
+    return {
+      title,
+      xLabels,
+      points,
+      areaPath,
+      linePath,
+      maxVal,
+      totalTons: totalTonsVal.toFixed(1),
+      avgDaily: avgDailyVal.toFixed(1)
+    };
+  }, [timeFilter, statsData]);
 
   // 7. Donut Chart Calculations (100% computed from real bins)
   const donutTotal = Math.max(1, totalBinsCount);
   const circ = 238.76;
   
-  const normalPct = ((normalBinsCount / donutTotal) * 100);
-  const nearFullPct = ((nearFullBinsCount / donutTotal) * 100);
-  const fullPct = ((fullBinsCount / donutTotal) * 100);
-  const offlinePct = ((offlineBinsCount / donutTotal) * 100);
+  const normalPct = totalBinsCount > 0 ? ((normalBinsCount / donutTotal) * 100) : 0;
+  const nearFullPct = totalBinsCount > 0 ? ((nearFullBinsCount / donutTotal) * 100) : 0;
+  const fullPct = totalBinsCount > 0 ? ((fullBinsCount / donutTotal) * 100) : 0;
+  const offlinePct = totalBinsCount > 0 ? ((offlineBinsCount / donutTotal) * 100) : 0;
 
   const normalStrokeLen = (normalPct / 100) * circ;
   const nearFullStrokeLen = (nearFullPct / 100) * circ;
@@ -1095,11 +1105,10 @@ export default function DashboardPage({ bins = [], onSendCommand, onSelectBinFor
               ))}
 
               {/* Y Axis labels */}
-              <text x="5" y="10" fontSize="10" fill="#94a3b8">25</text>
-              <text x="5" y="55" fontSize="10" fill="#94a3b8">20</text>
-              <text x="5" y="105" fontSize="10" fill="#94a3b8">15</text>
-              <text x="5" y="155" fontSize="10" fill="#94a3b8">10</text>
-              <text x="15" y="195" fontSize="10" fill="#94a3b8">5</text>
+              <text x="5" y="35" fontSize="10" fill="#94a3b8">{chartConfig.maxVal ? Math.round(chartConfig.maxVal) : 5}</text>
+              <text x="5" y="80" fontSize="10" fill="#94a3b8">{chartConfig.maxVal ? (chartConfig.maxVal * 0.66).toFixed(1) : 3}</text>
+              <text x="5" y="130" fontSize="10" fill="#94a3b8">{chartConfig.maxVal ? (chartConfig.maxVal * 0.33).toFixed(1) : 1}</text>
+              <text x="15" y="178" fontSize="10" fill="#94a3b8">0</text>
 
               {/* Area path */}
               <path
@@ -1144,6 +1153,32 @@ export default function DashboardPage({ bins = [], onSendCommand, onSelectBinFor
                 );
               })}
             </svg>
+
+            {/* Empty state indicator if 0 tons */}
+            {Number(chartConfig.totalTons) === 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '45%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(4px)',
+                padding: '6px 14px',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                fontSize: '11.5px',
+                color: '#64748b',
+                fontWeight: 600,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#94a3b8' }} />
+                <span>Chưa có ca thu gom hoàn tất trong CSDL ({chartConfig.title})</span>
+              </div>
+            )}
 
             {/* Hover Tooltip */}
             {hoveredChartPoint && (

@@ -495,15 +495,15 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
     : 0;
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '36px' }}>
       
-      {/* 1. Header Card */}
+      {/* 1. Header Card Banner */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
         padding: '20px 24px',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -512,35 +512,23 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '44px',
-            height: '44px',
+            width: '46px',
+            height: '46px',
             borderRadius: '12px',
             backgroundColor: '#ecfdf5',
             color: '#10b981',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
             <Cpu size={24} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                Quản lý Firmware & Nạp OTA
-              </h1>
-              <span style={{
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '11px',
-                fontWeight: 700,
-                backgroundColor: '#ecfdf5',
-                color: '#059669',
-                border: '1px solid #a7f3d0'
-              }}>
-                Dual-Partition Rollback Ready
-              </span>
-            </div>
-            <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111a4a' }}>
+              Quản lý Firmware & Nạp OTA
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
               Phát hành bản build ESP32, kiểm soát SHA-256 và triển khai nạp firmware từ xa an toàn cho toàn bộ thùng rác thông minh.
             </p>
           </div>
@@ -556,98 +544,113 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
               notify?.('Đã làm mới dữ liệu firmware', 'info');
             }}
             style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               padding: '8px 14px',
-              borderRadius: '8px',
-              backgroundColor: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              borderRadius: '10px',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
               color: '#334155',
-              fontSize: '13px',
+              fontSize: '12.5px',
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
             }}
           >
-            <RefreshCw size={13} />
-            Làm mới
+            <RefreshCw size={13} color="#64748b" />
+            <span>Làm mới</span>
           </button>
           <button
             onClick={() => setActiveTab('deploy')}
             style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
               padding: '8px 16px',
-              borderRadius: '8px',
-              backgroundColor: '#16a34a',
+              borderRadius: '10px',
+              backgroundColor: '#10b981',
               border: 'none',
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(22,163,74,0.2)'
+              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+              transition: 'background-color 150ms ease'
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#059669'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#10b981'; }}
           >
             <Rocket size={14} />
-            Tạo đợt nạp OTA mới
+            <span>Tạo đợt nạp OTA mới</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Navigation Tabs (Tabler Style) */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        borderBottom: '1px solid #e2e8f0',
-        paddingBottom: '2px'
-      }}>
-        {[
-          { id: 'releases', label: 'Bản phát hành Firmware', icon: FileCode, count: releases.length },
-          { id: 'deploy', label: 'Chọn thiết bị Triển khai', icon: Rocket, count: selectedDeviceIds.size > 0 ? selectedDeviceIds.size : undefined },
-          { id: 'processing', label: 'Tiến trình Nạp OTA', icon: Activity, count: totalTargetCount > 0 ? totalTargetCount : undefined },
-          { id: 'logs', label: 'Nhật ký Cập nhật', icon: Terminal, count: liveLogs.length > 0 ? liveLogs.length : undefined }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '8px 8px 0 0',
-                border: 'none',
-                borderBottom: isActive ? '2px solid #16a34a' : '2px solid transparent',
-                backgroundColor: isActive ? '#ffffff' : 'transparent',
-                color: isActive ? '#16a34a' : '#64748b',
-                fontSize: '13.5px',
-                fontWeight: isActive ? 700 : 500,
-                cursor: 'pointer',
-                transition: 'all 150ms ease'
-              }}
-            >
-              <Icon size={15} />
-              {tab.label}
-              {tab.count !== undefined && (
-                <span style={{
-                  padding: '1px 6px',
-                  borderRadius: '10px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  backgroundColor: isActive ? '#ecfdf5' : '#f1f5f9',
-                  color: isActive ? '#059669' : '#64748b'
-                }}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* 2. Main Unified Content Card with Navigation Tabs */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        
+        {/* Navigation Tabs Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #e2e8f0',
+          backgroundColor: '#ffffff',
+          padding: '0 20px',
+          overflowX: 'auto',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {[
+              { id: 'releases', label: 'Bản phát hành Firmware', icon: FileCode, count: releases.length },
+              { id: 'deploy', label: 'Chọn thiết bị Triển khai', icon: Rocket, count: selectedDeviceIds.size > 0 ? selectedDeviceIds.size : undefined },
+              { id: 'processing', label: 'Tiến trình Nạp OTA', icon: Activity, count: totalTargetCount > 0 ? totalTargetCount : undefined },
+              { id: 'logs', label: 'Nhật ký Cập nhật', icon: Terminal, count: liveLogs.length > 0 ? liveLogs.length : undefined }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: '14px 18px',
+                    fontSize: '13px',
+                    fontWeight: isActive ? 700 : 600,
+                    border: 'none',
+                    borderBottom: isActive ? '2.5px solid #10b981' : '2.5px solid transparent',
+                    backgroundColor: 'transparent',
+                    color: isActive ? '#10b981' : '#64748b',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 150ms ease'
+                  }}
+                >
+                  <Icon size={15} color={isActive ? '#10b981' : '#64748b'} />
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span style={{
+                      fontSize: '11px',
+                      padding: '2px 7px',
+                      borderRadius: '10px',
+                      backgroundColor: isActive ? '#ecfdf5' : '#f1f5f9',
+                      color: isActive ? '#059669' : '#64748b',
+                      fontWeight: 700
+                    }}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tab Panel Body */}
+        <div style={{ padding: '24px' }}>
 
       {/* ========================================================= */}
       {/* TAB 1: BẢN PHÁT HÀNH FIRMWARE (TẢI LÊN TRÁI + DANH SÁCH PHẢI) */}
@@ -1753,6 +1756,9 @@ export default function FirmwarePage({ notify, bins = [], onOpenMap }) {
 
         </div>
       )}
+
+      </div>
+    </div>
 
       {/* ========================================================= */}
       {/* 5. POPUP MODAL: THÔNG TIN CHI TIẾT FIRMWARE (CHUẨN ẢNH 1) */}

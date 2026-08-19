@@ -372,30 +372,41 @@ export default function EmployeesPage({ currentUser, onNotify, onUpdateCurrentUs
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '36px' }}>
       
-      {/* 1. Page Header & Action Controls */}
+      {/* 1. Page Header Banner Card */}
       <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        padding: '20px 24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '14px'
       }}>
-        <div>
-          <h1 style={{
-            fontSize: '22px',
-            fontWeight: 800,
-            color: '#111a4a',
-            margin: '0 0 4px 0',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '12px',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
-            <span>Quản lý Nhân sự & Báo cáo Sự cố</span>
-            <span style={{ fontSize: '18px' }}>🛡️</span>
-          </h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-            Giám sát trạng thái Online ứng dụng, tài khoản nhân viên và xử lý báo cáo hình ảnh từ hiện trường.
-          </p>
+            <Users size={24} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111a4a' }}>
+              Quản lý Nhân sự & Báo cáo Sự cố
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+              Giám sát trạng thái Online ứng dụng, tài khoản nhân viên và xử lý báo cáo hình ảnh từ hiện trường.
+            </p>
+          </div>
         </div>
 
         {/* Action Controls */}
@@ -418,7 +429,7 @@ export default function EmployeesPage({ currentUser, onNotify, onUpdateCurrentUs
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
             }}
           >
             <RefreshCw size={13} className={loading || loadingIncidents ? 'spin-animation' : ''} color="#64748b" />

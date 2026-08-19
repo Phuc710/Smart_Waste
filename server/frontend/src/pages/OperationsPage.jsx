@@ -453,33 +453,116 @@ export default function OperationsPage({ bins = [], onNotify, onNavigateTab, onS
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '36px' }}>
       
-      {/* 1. KPI Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+      {/* 1. Page Header Banner Card */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        padding: '20px 24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '14px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '12px',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Truck size={24} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111a4a' }}>
+              Lịch sử Hoạt động & Vận hành Tuyến gom
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+              Giám sát nhật ký các ca thu gom rác, cảnh báo sự cố hiện trường và nhật ký telemetry IoT thời gian thực.
+            </p>
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={exportCSV}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}
+          >
+            <Download size={14} color="#64748b" />
+            <span>Xuất CSV</span>
+          </button>
+          <button
+            onClick={() => load(false)}
+            disabled={loading}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}
+          >
+            <RefreshCw size={13} className={loading ? 'spin-animation' : ''} color="#64748b" />
+            <span>Làm mới</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Top KPI Metric Summary Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
         {KPIS.map((k, i) => {
           const Icon = k.Icon;
           return (
-            <div key={i} style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 12, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: k.bg, color: k.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon size={22} />
+            <div key={i} style={{ backgroundColor: '#ffffff', padding: '16px 20px', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: k.bg, color: k.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon size={20} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{k.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>{k.val}</div>
-                <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.sub}</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>{k.label}</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#111a4a', lineHeight: 1.1 }}>{k.val}</div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.sub}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* 2. Main Table Card */}
-      <div style={{ backgroundColor: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+      {/* 3. Main Content Card */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         
         {/* Navigation Tabs Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', padding: '0 16px', backgroundColor: '#fafafa', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '10px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', padding: '0 20px', backgroundColor: '#ffffff', overflowX: 'auto', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             {TABS.map(t => {
               const TabIcon = t.Icon;
               const isActive = tab === t.id;
@@ -488,47 +571,35 @@ export default function OperationsPage({ bins = [], onNotify, onNavigateTab, onS
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    fontSize: 13,
+                    padding: '14px 18px',
+                    fontSize: '13px',
                     fontWeight: isActive ? 700 : 600,
                     border: 'none',
+                    borderBottom: isActive ? '2.5px solid #10b981' : '2.5px solid transparent',
+                    backgroundColor: 'transparent',
+                    color: isActive ? '#10b981' : '#64748b',
                     cursor: 'pointer',
-                    backgroundColor: isActive ? '#fff' : 'transparent',
-                    color: isActive ? '#0f172a' : '#64748b',
-                    boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 7,
+                    gap: '8px',
                     transition: 'all 150ms ease'
                   }}
                 >
-                  <TabIcon size={14} color={isActive ? '#10b981' : '#94a3b8'} />
+                  <TabIcon size={15} color={isActive ? '#10b981' : '#64748b'} />
                   <span>{t.label}</span>
-                  <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, backgroundColor: isActive ? '#f1f5f9' : '#e2e8f0', color: '#475569' }}>
+                  <span style={{
+                    fontSize: '11px',
+                    padding: '2px 7px',
+                    borderRadius: '10px',
+                    backgroundColor: isActive ? '#ecfdf5' : '#f1f5f9',
+                    color: isActive ? '#059669' : '#64748b',
+                    fontWeight: 700
+                  }}>
                     {t.count}
                   </span>
                 </button>
               );
             })}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0' }}>
-            <button
-              onClick={exportCSV}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e8f0', backgroundColor: '#fff', color: '#334155', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
-            >
-              <Download size={15} />
-              <span>Xuất CSV</span>
-            </button>
-            <button
-              onClick={() => load(false)}
-              disabled={loading}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e8f0', backgroundColor: '#fff', color: '#334155', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
-            >
-              <RefreshCw size={15} className={loading ? 'spin-animation' : ''} />
-              <span>Làm mới</span>
-            </button>
           </div>
         </div>
 

@@ -141,13 +141,22 @@ export default function App() {
     };
 
     const onBinData = (payload) => {
-      const { binId, data } = payload || {};
+      if (!payload) return;
+      const binId = payload.binId || payload.device_id || payload.id;
+      const data = payload.data || payload;
       if (!binId || !data) return;
 
       setBins(prev => {
         const map = new Map(prev.map(b => [b.device_id, b]));
         const existing = map.get(binId) || { device_id: binId };
-        map.set(binId, { ...existing, ...data, is_online: true });
+        map.set(binId, {
+          ...existing,
+          ...data,
+          device_id: binId,
+          level_percent: Number(data.level_percent ?? data.levelPercent ?? existing.level_percent ?? 0),
+          is_online: data.is_online !== undefined ? Boolean(data.is_online) : true,
+          last_seen: data.last_seen || data.lastSeen || new Date().toISOString()
+        });
         return [...map.values()];
       });
     };

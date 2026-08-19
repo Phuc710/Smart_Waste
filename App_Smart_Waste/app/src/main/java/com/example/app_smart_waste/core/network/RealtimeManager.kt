@@ -57,7 +57,7 @@ class RealtimeManager(context: Context) {
             extraHeaders = mapOf("Cookie" to listOf(cookieHeader))
             transports = arrayOf("websocket", "polling")
             reconnection = true
-            reconnectionAttempts = 10
+            reconnectionAttempts = Int.MAX_VALUE
             reconnectionDelay = 1000
             reconnectionDelayMax = 5000
             timeout = 10000

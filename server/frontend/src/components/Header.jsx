@@ -31,12 +31,13 @@ export default function Header({ activeView, onToggleSidebar, onOpenMap, bins = 
     dashboard: 'Dashboard Tổng Quan',
     map: 'Bản Đồ & Định Vị Tuyến Gom',
     smart_bins: 'Quản Lý Thùng Rác',
-    operations: 'Lịch Sử Hoạt Động',
-    employees: 'Quản Lý Nhân Sự',
+    operations: 'Lịch Sử Hoạt Động & Thu Gom',
+    employees: 'Quản Lý Nhân Sự & Sự Cố',
+    firmware: 'Cập Nhật Firmware & Nạp OTA',
     settings: 'Cài Đặt & Cấu Hình Hệ Thống'
   };
 
-  const title = titles[activeView] || 'Dashboard';
+  const title = titles[activeView] || 'SmartWaste Admin';
 
   // Filter overfull / critical bins in real-time (Strictly online devices)
   const overfullBins = (bins || []).filter(b => b.is_online === true && (b.level_percent || 0) >= 85);

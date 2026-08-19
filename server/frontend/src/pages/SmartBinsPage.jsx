@@ -222,29 +222,41 @@ export default function SmartBinsPage({ bins = [], onSendCommand, onSelectBinFor
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '36px' }}>
 
-      {/* 1. Page Header & Summary Banner */}
+      {/* 1. Page Header Banner Card */}
       <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        padding: '20px 24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '14px'
       }}>
-        <div>
-          <h1 style={{
-            fontSize: '22px',
-            fontWeight: 800,
-            color: '#111a4a',
-            margin: '0 0 4px 0',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '12px',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
-            <span>Quản Lý Smart Bins</span>
-          </h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-            Giám sát dung lượng mức rác thời gian thực, điều khiển nắp từ xa và quản lý vị trí GPS cảm biến.
-          </p>
+            <Trash2 size={24} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111a4a' }}>
+              Quản lý Thùng Rác Thông Minh
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+              Giám sát dung lượng mức rác thời gian thực, điều khiển nắp từ xa và quản lý vị trí GPS cảm biến.
+            </p>
+          </div>
         </div>
 
         {/* Action Controls */}
@@ -252,18 +264,18 @@ export default function SmartBinsPage({ bins = [], onSendCommand, onSelectBinFor
           <button
             onClick={handleExportCSV}
             style={{
-              padding: '9px 14px',
+              padding: '8px 14px',
               borderRadius: '10px',
-              border: '1px solid #cbd5e1',
+              border: '1px solid #e2e8f0',
               backgroundColor: '#ffffff',
               color: '#334155',
-              fontSize: '13px',
+              fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
               transition: 'all 150ms ease'
             }}
           >
@@ -416,75 +428,79 @@ export default function SmartBinsPage({ bins = [], onSendCommand, onSelectBinFor
         </div>
       </div>
 
-      {/* 3. Toolbar & Filter Pills */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
-        {/* Filter Pills */}
-        <div style={{ display: 'inline-flex', padding: '3px', borderRadius: '10px', backgroundColor: '#f1f5f9', flexWrap: 'wrap', gap: '2px' }}>
-          {[
-            { id: 'ALL', label: `Tất cả (${metrics.total})` },
-            { id: 'CRITICAL', label: `🚨 Quá tải (${metrics.critical})` },
-            { id: 'WARNING', label: `⚠️ Cảnh báo (${metrics.warning})` },
-            { id: 'NORMAL', label: `🟢 Mức vừa (${metrics.normal})` },
-            { id: 'OPEN', label: `🔓 Đang mở (${metrics.openCount})` },
-            { id: 'OFFLINE', label: `⚪ Ngoại tuyến (${metrics.offline})` }
-          ].map(pill => (
-            <button
-              key={pill.id}
-              onClick={() => setFilterTab(pill.id)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                backgroundColor: filterTab === pill.id ? '#ffffff' : 'transparent',
-                color: filterTab === pill.id ? '#111a4a' : '#64748b',
-                boxShadow: filterTab === pill.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 120ms ease'
-              }}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Global Search Input */}
-        <div style={{ position: 'relative', minWidth: '240px' }}>
-          <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            placeholder="Tìm mã thùng, tên vị trí, địa chỉ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px 8px 34px',
-              borderRadius: '10px',
-              border: '1px solid #cbd5e1',
-              fontSize: '12.5px',
-              backgroundColor: '#ffffff',
-              outline: 'none',
-              transition: 'border-color 150ms ease'
-            }}
-          />
-        </div>
-      </div>
-
-      {/* 4. Smart Bins Table Container (ALL CENTERED, BALANCED, MODERN) */}
+      {/* 3. Main Content Card */}
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         overflow: 'hidden'
       }}>
+        {/* Navigation / Filter Toolbar Bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #e2e8f0',
+          backgroundColor: '#ffffff',
+          padding: '12px 20px',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          {/* Filter Pills */}
+          <div style={{ display: 'inline-flex', padding: '3px', borderRadius: '10px', backgroundColor: '#f1f5f9', flexWrap: 'wrap', gap: '2px' }}>
+            {[
+              { id: 'ALL', label: `Tất cả (${metrics.total})` },
+              { id: 'CRITICAL', label: `🚨 Quá tải (${metrics.critical})` },
+              { id: 'WARNING', label: `⚠️ Cảnh báo (${metrics.warning})` },
+              { id: 'NORMAL', label: `🟢 Mức vừa (${metrics.normal})` },
+              { id: 'OPEN', label: `🔓 Đang mở (${metrics.openCount})` },
+              { id: 'OFFLINE', label: `⚪ Ngoại tuyến (${metrics.offline})` }
+            ].map(pill => (
+              <button
+                key={pill.id}
+                onClick={() => setFilterTab(pill.id)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: filterTab === pill.id ? '#ffffff' : 'transparent',
+                  color: filterTab === pill.id ? '#111a4a' : '#64748b',
+                  boxShadow: filterTab === pill.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 120ms ease'
+                }}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Global Search Input */}
+          <div style={{ position: 'relative', minWidth: '240px' }}>
+            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Tìm mã thùng, tên vị trí, địa chỉ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '7px 12px 7px 32px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                fontSize: '12.5px',
+                backgroundColor: '#ffffff',
+                outline: 'none',
+                transition: 'border-color 150ms ease'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Table View */}
         <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', minWidth: '1080px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12.5px' }}>
             <thead>

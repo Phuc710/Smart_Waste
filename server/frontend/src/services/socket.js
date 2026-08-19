@@ -7,8 +7,11 @@ export function getSocket() {
     socketInstance = io('/', {
       withCredentials: true,
       autoConnect: false,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
     });
   }
   return socketInstance;

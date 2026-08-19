@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "seed": "node seed_vietnam_data.js",
+    "seed": "node tests/00_clean_and_seed_data.js",
+    "seed:standard": "node tests/00_clean_and_seed_data.js",
+    "clean:db": "node tests/clean_database.js",
+    "clean:bins": "node tests/delete_all_bins.js",
     "check": "node --check server.js",
     "test": "node --test tests/*.test.js"
   },
