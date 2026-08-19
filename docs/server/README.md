@@ -507,14 +507,17 @@ Máy chủ Backend tích hợp trực tiếp **Aedes MQTT Broker** chạy trên 
 
 ---
 
-### 4.2. Quy chuẩn Danh mục Topics & QoS
+### 4.2. Quy chuẩn Danh mục Topics, QoS & Kiểm Soát Truy Cập ACL
 
 | Hướng truyền thông | Cấu trúc Topic | Mức QoS | Mục đích & Ý nghĩa |
 | :--- | :--- | :---: | :--- |
 | **ESP32 → Server (Publish)** | `wastebin/{device_id}/status` | 0 hoặc 1 | ESP32 gửi dữ liệu cảm biến định kỳ và gửi gói tin xác nhận ACK |
 | **Server → ESP32 (Publish)** | `wastebin/{device_id}/command` | 1 (Retain) | Server gửi lệnh đóng/mở nắp, chuyển chế độ tới thiết bị |
+| **Server → ESP32 (Publish)** | `wastebin/{device_id}/ota` | 1 (No-Retain) | Server phát lệnh nạp firmware OTA kèm Signed URL và mã băm SHA-256 |
+| **ESP32 → Server (Publish)** | `wastebin/{device_id}/ota/status` | 1 | ESP32 báo cáo tiến độ nạp OTA (0-100%), xác thực SHA-256 và trạng thái Flash |
 
----
+> **Cơ chế Bảo mật Zero-Trust Device Isolation (ACL):**
+> Aedes Broker tích hợp sẵn `authorizePublish` và `authorizeSubscribe` để kiểm soát chặt chẽ: Thiết bị mang `clientId` dạng `ESP32-SmartBin-{device_id}` hoặc `{device_id}` chỉ được phép đăng ký/gửi dữ liệu vào đúng các topic thuộc mã của chính mình (`wastebin/{device_id}/*`), ngăn chặn triệt để nguy cơ thiết bị này can thiệp vào dữ liệu hoặc lệnh điều khiển của thiết bị khác.
 
 ### 4.3. Cấu trúc Payload Cảm biến (Telemetry Sensor Payload)
 
@@ -1639,19 +1642,20 @@ Bạn có thể sử dụng script Python hoặc công cụ **MQTTX** để gi�
 
 ---
 
-### 12.2. Kiểm thử REST APIs & WebSocket Events
+### 12.2. Kiểm thử Tự động & Quản trị Dữ liệu (Automated Test Suite & DB Tools)
 
-Sử dụng cURL kiểm tra tình trạng máy chủ:
+Backend tích hợp sẵn bộ kiểm thử tự động toàn diện và các công cụ dọn dẹp CSDL:
 
-```bash
-# Kiểm tra Health Check
-curl -X GET http://localhost:3000/api/health
-
-# Đăng nhập lấy Token
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
-```
+| Lệnh / Script | Mô tả chức năng | Phạm vi tác động |
+| :--- | :--- | :--- |
+| `npm run clean:db` | Xóa sạch toàn bộ 15 bảng CSDL theo thứ tự ràng buộc khóa ngoại (FK), khởi tạo lại tài khoản `admin` chuẩn và nạp cấu hình hệ thống | Toàn bộ CSDL Supabase |
+| `npm run clean:bins` | Xóa toàn bộ thùng rác (`smart_bins`) và tự động dọn sạch các bảng phụ thuộc (job items, events, commands, incidents) | Thùng rác & Lịch sử |
+| `npm run seed` | Dọn sạch và khởi tạo 6 thùng rác mẫu tọa độ TP.HCM + 3 tài xế (`driver1`, `driver2`, `driver3`) + tài khoản `admin` | Môi trường thử nghiệm |
+| `node tests/01_test_mqtt_full_flow.js` | Kiểm thử luồng MQTT hoàn chỉnh: Đo mức rác, cảnh báo quá tải, điều phối | MQTT & Socket.IO |
+| `node tests/02_test_mobile_notifications.js` | Kiểm thử thông báo đẩy thời gian thực tới ứng dụng di động tài xế | Push Notifications |
+| `node tests/03_test_lid_open_ack.js` | Kiểm thử bắt tay 2 chiều (2-Way ACK Handshake) điều khiển nắp thùng rác | Lệnh phần cứng |
+| `node tests/04_test_failure_and_security.js` | Kiểm thử bảo mật Zero-Trust: Chặn truy cập trái phép, từ chối token giả | Bảo mật & ACL |
+| `node tests/05_test_nearest_driver_dispatch.js` | Kiểm thử thuật toán tìm kiếm tài xế gần nhất theo khoảng cách thực tế | Thuật toán điều phối |
 
 ---
 
